@@ -3,10 +3,11 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import Blog from './Blog';
 import EducationExperience from './Education';
 import Profile from './Profile';
+import Products from './Products';
 import Projects from './Projects';
 import Skills from './Skills';
 import Socials from './Socials';
@@ -19,6 +20,7 @@ const TABS = [
   { trans: 'Education', component: EducationExperience },
   { trans: 'Skills', component: Skills },
   { trans: 'Projects', component: Projects },
+  { trans: 'Products', component: Products },
   { trans: 'Socials', component: Socials },
   { trans: 'Blog', component: Blog },
 ] as const;
@@ -32,8 +34,22 @@ const Tab = () => {
   const td = useTranslations('dashboard');
   const [activeTab, setActiveTab] = useState(0);
   const listRef = useRef<HTMLDivElement>(null);
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([]);
 
   const Active = TABS[activeTab].component;
+
+  // The strip scrolls sideways on narrow screens, so a tab picked from the far
+  // end has to be brought back into view. `nearest` keeps the page still.
+  useEffect(() => {
+    tabRefs.current[activeTab]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  }, [activeTab]);
+
+  const registerTab = useCallback(
+    (index: number) => (node: HTMLButtonElement | null) => {
+      tabRefs.current[index] = node;
+    },
+    []
+  );
 
   const focusTab = (index: number) => {
     listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]')[index]?.focus();
@@ -71,6 +87,7 @@ const Tab = () => {
           <button
             key={tab.trans}
             id={`dashboard-tab-${index}`}
+            ref={registerTab(index)}
             role="tab"
             type="button"
             aria-selected={index === activeTab}
