@@ -1,13 +1,15 @@
 ﻿import { JsonLd } from '@/components/JsonLd';
 import Navbar from '@/components/navbar';
 import { About } from '@/components/sections/about';
+import { Blog } from '@/components/sections/blog';
 import { Contact } from '@/components/sections/contact';
 import { Education } from '@/components/sections/education';
 import { Experience } from '@/components/sections/experience';
 import { Hero } from '@/components/sections/hero';
+import { Products } from '@/components/sections/products';
 import { Projects } from '@/components/sections/projects';
 import { Skills } from '@/components/sections/skills';
-import { getPortfolioData, getProfile } from '@/lib/data';
+import { getBlogList, getPortfolioData, getProducts, getProfile } from '@/lib/data';
 import { OG_IMAGE_URL, TWITTER_HANDLE, brandedTitle, languageAlternates, localeUrl, site } from '@/lib/seo';
 import { sectionIndex, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
@@ -72,10 +74,12 @@ export default async function Page({ params }: Props) {
   const { locale } = await params;
   const lang = asLocale(locale);
 
-  const [t, tSections, data] = await Promise.all([
+  const [t, tSections, data, products, posts] = await Promise.all([
     getTranslations({ locale }),
     getTranslations({ locale, namespace: 'sections' }),
     getPortfolioData(lang),
+    getProducts(lang),
+    getBlogList(lang),
   ]);
 
   const { profile, projects, works, educations, skills, socials } = data;
@@ -106,6 +110,8 @@ export default async function Page({ params }: Props) {
     education: educations.length > 0,
     skills: skills.length > 0,
     projects: projects.some(project => project.active),
+    products: products.length > 0,
+    blog: posts.length > 0,
     contact: Boolean(profile.email?.trim() || profile.tel?.trim() || socials.some(social => social.url)),
   };
   const renderedKeys = (Object.keys(rendered) as (keyof typeof rendered)[]).filter(key => rendered[key]);
@@ -191,6 +197,30 @@ export default async function Page({ params }: Props) {
         viewAllLabel={tSections('projects.viewAll')}
         delay={0.3}
       />
+      <Products
+        index={ordinal('products')}
+        label={tSections('products.label')}
+        title={tSections('products.title')}
+        description={tSections('products.description')}
+        meta={tSections('products.count', { count: localizedCount(products.length, lang) })}
+        products={products}
+        locale={locale}
+        unavailableLabel={t('productsPage.unavailable')}
+        viewAllLabel={tSections('products.viewAll')}
+        delay={0.35}
+      />
+      <Blog
+        index={ordinal('blog')}
+        label={tSections('blog.label')}
+        title={tSections('blog.title')}
+        description={tSections('blog.description')}
+        meta={tSections('blog.count', { count: localizedCount(posts.length, lang) })}
+        posts={posts}
+        locale={locale}
+        lang={lang}
+        viewAllLabel={tSections('blog.viewAll')}
+        delay={0.4}
+      />
       <Contact
         index={ordinal('contact')}
         label={tSections('contact.label')}
@@ -198,7 +228,7 @@ export default async function Page({ params }: Props) {
         description={tSections('contact.description')}
         profile={profile}
         socials={socials}
-        delay={0.35}
+        delay={0.45}
       />
 
       <Navbar socials={socials} />
