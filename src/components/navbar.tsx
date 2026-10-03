@@ -1,9 +1,10 @@
 'use client';
 
 import { iconDecider } from '@/components/icons';
+import { NavbarMenu } from '@/components/navbar-menu';
 import { buttonVariants } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { NavbarRoutes } from '@/constants/global';
+import { DockRoutes, MenuRoutes } from '@/constants/global';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
 import type { ISocial } from '@/types';
@@ -21,9 +22,10 @@ const MOBILE_SOCIALS = 2;
 const MAX_SOCIALS = 5;
 
 /**
- * Floating navigation bar: pages, social profiles, language switch and theme
- * switch. Deliberately static — no magnification, no springs, no motion of
- * any kind; only the active route and hover states change.
+ * Floating navigation bar: Home, a compact menu that groups the content
+ * archives (products, projects, blog), social profiles, language switch and
+ * theme switch. The bar itself stays static — no magnification or springs; only
+ * the active route, hover states and the group menu's open/close ever move.
  */
 const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
   const t = useTranslations('navbar');
@@ -41,13 +43,16 @@ const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
 
   const divider = <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border sm:mx-1" />;
 
+  // The grouped archives share one trigger; it lights up when any is active.
+  const menuActive = MenuRoutes.some(route => pathname.startsWith(route.href));
+
   return (
     <nav
       aria-label={t('label')}
       className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
     >
       <div className="pointer-events-auto flex max-w-full items-center gap-0.5 rounded-full border bg-background/85 p-1 shadow-sm backdrop-blur-md sm:gap-1">
-        {NavbarRoutes().map(({ href, icon: Icon, label: key }) => {
+        {DockRoutes.map(({ href, icon: Icon, label: key }) => {
           const label = t(key);
           const active = href === '/' ? pathname === '/' : pathname.startsWith(href);
 
@@ -69,6 +74,8 @@ const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
             </Tooltip>
           );
         })}
+
+        <NavbarMenu routes={MenuRoutes} active={menuActive} />
 
         {links.length > 0 && divider}
 
