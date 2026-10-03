@@ -7,7 +7,7 @@ import { withBothLangs, type Persona } from './personas/types';
  * sensible order, and the three `featured` ones lead the home section.
  * Returns the inserted count.
  */
-export const seedProductData = async (persona: Persona) => {
+export const seedProjectData = async (persona: Persona) => {
   const inserted = await projectModel.insertMany(withBothLangs(persona.projects));
   return inserted.length;
 };

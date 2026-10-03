@@ -51,6 +51,7 @@ export function describePersonas(): string[] {
     const counts = [
       `${persona.works.en.length} roles`,
       `${persona.projects.en.length} projects`,
+      `${persona.products?.en.length ?? 0} products`,
       `${persona.posts.en.length} posts`,
       `${persona.skills.en.length} skills`,
     ].join(', ');

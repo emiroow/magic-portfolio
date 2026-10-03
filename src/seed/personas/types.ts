@@ -1,4 +1,4 @@
-import type { AppLocale, IBlog, IEducation, IProfile, IProject, ISkill, ISocial, IWork } from '@/types';
+import type { AppLocale, IBlog, IEducation, IProduct, IProfile, IProject, ISkill, ISocial, IWork } from '@/types';
 
 /**
  * Persona primitives for the demo content.
@@ -29,6 +29,12 @@ export interface Localized<T> {
 /** Projects carry an explicit date: the archive and the home row sort on `createdAt`. */
 export type PersonaProject = Content<IProject> & { createdAt: string };
 
+/**
+ * Products carry an optional date too; the catalogue sorts newest first and the
+ * home row fills from the featured picks, so `createdAt` only orders them.
+ */
+export type PersonaProduct = Content<IProduct> & { createdAt?: string };
+
 /** Posts carry their publication date (and, when revised, an update date). */
 export type PersonaPost = Content<IBlog> & { createdAt: string; updatedAt?: string };
 
@@ -43,6 +49,8 @@ export interface Persona {
   educations: Localized<Content<IEducation>>;
   works: Localized<Content<IWork>>;
   projects: Localized<PersonaProject>;
+  /** Optional: a persona without products simply seeds an empty catalogue. */
+  products?: Localized<PersonaProduct>;
   posts: Localized<PersonaPost>;
 }
 

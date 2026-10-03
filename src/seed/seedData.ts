@@ -1,6 +1,7 @@
 import { connectDB } from '@/config/dbConnection';
 import { blogModel } from '@/models/blog';
 import { educationModel } from '@/models/education';
+import { productModel } from '@/models/product';
 import { profileModel } from '@/models/profile';
 import { projectModel } from '@/models/project';
 import { skillModel } from '@/models/skill';
@@ -12,7 +13,8 @@ import type { Persona } from './personas/types';
 import { seedBlogData } from './blog.seed';
 import { seedEducationData } from './education.seed';
 import { seedUserData } from './profile.seed';
-import { seedProductData } from './project.seed';
+import { seedProductData } from './product.seed';
+import { seedProjectData } from './project.seed';
 import { seedSkillsData } from './skill.seed';
 import { seedSocialData } from './social.seed';
 import { seedWorkData } from './work.seed';
@@ -24,7 +26,8 @@ const STEPS: readonly Step[] = [
   ['profile', seedUserData],
   ['education', seedEducationData],
   ['work', seedWorkData],
-  ['projects', seedProductData],
+  ['projects', seedProjectData],
+  ['products', seedProductData],
   ['skills', seedSkillsData],
   ['socials', seedSocialData],
   ['blog', seedBlogData],
@@ -51,6 +54,7 @@ export const seedData = async (persona: Persona = getPersona()) => {
   const counts = await Promise.all([
     educationModel.countDocuments(),
     projectModel.countDocuments(),
+    productModel.countDocuments(),
     socialModel.countDocuments(),
     profileModel.countDocuments(),
     workModel.countDocuments(),
