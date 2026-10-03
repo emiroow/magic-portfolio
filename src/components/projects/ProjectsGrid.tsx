@@ -5,7 +5,7 @@ import BlurFade from '@/components/magicui/blur-fade';
 import { ProjectCard } from '@/components/project-card';
 import { Button } from '@/components/ui/button';
 import { ListingToolbar } from '@/components/ui/listing-toolbar';
-import { localizedCount, projectKey } from '@/lib/utils';
+import { documentKey, localizedCount } from '@/lib/utils';
 import type { AppLocale, IProject } from '@/types';
 import { FolderGit2, Search } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -108,7 +108,7 @@ export default function ProjectsGrid({ projects, technologies }: ProjectsGridPro
         <>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((project, id) => {
-              const key = projectKey(project);
+              const key = documentKey(project);
               return (
                 <BlurFade key={project._id ?? `${project.title}-${id}`} inView className="h-full">
                   <ProjectCard

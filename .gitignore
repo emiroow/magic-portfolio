@@ -5,6 +5,8 @@ public/avatar/*
 !public/avatar/.gitkeep
 public/projects/*
 !public/projects/.gitkeep
+public/products/*
+!public/products/.gitkeep
 public/experience/*
 !public/experience/.gitkeep
 public/education/*

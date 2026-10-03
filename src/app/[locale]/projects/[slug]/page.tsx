@@ -10,7 +10,7 @@ import { Stack } from '@/components/sections/stack';
 import { Badge } from '@/components/ui/badge';
 import { getProfile, getProjectByKey, getProjects, getSocials } from '@/lib/data';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
-import { cn, isOptimizableImage, linkHost, projectKey } from '@/lib/utils';
+import { cn, documentKey, isOptimizableImage, linkHost } from '@/lib/utils';
 import type { AppLocale, IProject } from '@/types';
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
 import Image from 'next/image';
@@ -36,7 +36,7 @@ async function loadProject(params: Props['params']) {
 }
 
 function projectUrl(locale: string, project: IProject) {
-  return localeUrl(locale, `/projects/${projectKey(project)}`);
+  return localeUrl(locale, `/projects/${documentKey(project)}`);
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -55,7 +55,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     title: project.title,
     description,
     keywords: project.technologies,
-    alternates: { canonical: url, languages: languageAlternates(`/projects/${projectKey(project)}`) },
+    alternates: { canonical: url, languages: languageAlternates(`/projects/${documentKey(project)}`) },
     openGraph: {
       type: 'website',
       title: project.title,
@@ -247,7 +247,7 @@ export default async function ProjectPage({ params }: Props) {
           <nav aria-label={t('pagination')} className="mt-10 grid gap-3 sm:grid-cols-2">
             {prev && (
               <Link
-                href={`/${locale}/projects/${projectKey(prev)}`}
+                href={`/${locale}/projects/${documentKey(prev)}`}
                 className="group flex items-center gap-3 rounded-xl border bg-card p-4 text-sm shadow-sm transition-colors hover:border-foreground/40"
               >
                 <ArrowLeft
@@ -262,7 +262,7 @@ export default async function ProjectPage({ params }: Props) {
             )}
             {next && (
               <Link
-                href={`/${locale}/projects/${projectKey(next)}`}
+                href={`/${locale}/projects/${documentKey(next)}`}
                 className={cn(
                   'group flex items-center justify-end gap-3 rounded-xl border bg-card p-4 text-end text-sm shadow-sm transition-colors hover:border-foreground/40',
                   !prev && 'sm:col-start-2'
@@ -291,7 +291,7 @@ export default async function ProjectPage({ params }: Props) {
                 <ProjectCard
                   key={item._id}
                   href={item.href}
-                  detailHref={`/${locale}/projects/${projectKey(item)}`}
+                  detailHref={`/${locale}/projects/${documentKey(item)}`}
                   title={item.title}
                   description={item.description}
                   dates={item.dates}

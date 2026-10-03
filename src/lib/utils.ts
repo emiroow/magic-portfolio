@@ -52,11 +52,20 @@ export function truncate(text: string | undefined, max = 160): string {
 }
 
 /**
- * URL key for a project page: its slug, or the document id for records
- * created before slugs existed.
+ * URL key for a detail page (`/projects/[key]`, `/products/[key]`): the slug, or
+ * the document id for records saved before slugs existed.
  */
-export function projectKey(project: { slug?: string; _id?: string }): string {
-  return project.slug || project._id || '';
+export function documentKey(item: { slug?: string; _id?: string }): string {
+  return item.slug || item._id || '';
+}
+
+/**
+ * Price in the locale's own digits and grouping, so a Persian catalogue never
+ * shows `120000 تومان` next to `۰۳`. The caller supplies the currency label,
+ * which lives in the message catalogues.
+ */
+export function formatPrice(value: number, locale: 'fa' | 'en' = 'en'): string {
+  return new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 2 }).format(value);
 }
 
 /** Estimate reading time in minutes (~200 words per minute). */

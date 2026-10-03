@@ -2,12 +2,13 @@ import { tryConnectDB } from '@/config/dbConnection';
 import { blogModel } from '@/models/blog';
 import { educationModel } from '@/models/education';
 import { profileModel } from '@/models/profile';
+import { productModel } from '@/models/product';
 import { projectModel } from '@/models/project';
 import { skillModel } from '@/models/skill';
 import { socialModel } from '@/models/social';
 import { workModel } from '@/models/work';
 import { readingTime } from '@/lib/utils';
-import type { AppLocale, IBlog, IEducation, IProfile, IProject, ISkill, ISocial, IWork } from '@/types';
+import type { AppLocale, IBlog, IEducation, IProduct, IProfile, IProject, ISkill, ISocial, IWork } from '@/types';
 import mongoose from 'mongoose';
 
 /** Server-side data access layer. DB-safe: returns empty results when unreachable. */
@@ -101,7 +102,7 @@ export async function getBlogList(locale: AppLocale): Promise<IBlog[]> {
 
   return serializeList<IBlog>(docs as Record<string, unknown>[]).map(post => {
     const { content, ...rest } = post;
-    return { ...rest, tags: post.tags ?? [], readingMinutes: readingTime(content) };
+    return { ...rest, tags: post.tags ?? [], featured: Boolean(post.featured), readingMinutes: readingTime(content) };
   });
 }
 
@@ -123,7 +124,7 @@ export async function getBlogTags(locale: AppLocale): Promise<string[]> {
   if (!(await tryConnectDB())) return [];
 
   const tags = await blogModel.distinct('tags', { lang: locale, ...PUBLISHED });
-  return (tags as string[]).filter(Boolean).sort((a, b) => a.localeCompare(b, locale === 'fa' ? 'fa' : 'en'));
+  return (tags as string[]).filter(Boolean).sort(byLocaleOrder(locale));
 }
 
 /** Posts sharing a tag with `post`, falling back to the newest ones. */
@@ -173,7 +174,60 @@ export async function getProjectTechnologies(locale: AppLocale): Promise<string[
   if (!(await tryConnectDB())) return [];
 
   const tags = await projectModel.distinct('technologies', { lang: locale, active: true });
-  return (tags as string[]).filter(Boolean).sort((a, b) => a.localeCompare(b, locale === 'fa' ? 'fa' : 'en'));
+  return (tags as string[]).filter(Boolean).sort(byLocaleOrder(locale));
+}
+
+/** Sorted in the active locale's collation, so Persian chips group sensibly. */
+function byLocaleOrder(locale: AppLocale) {
+  return (a: string, b: string) => a.localeCompare(b, locale === 'fa' ? 'fa' : 'en');
+}
+
+/**
+ * `.lean()` hands back stored documents as they are, so a record written outside
+ * the dashboard can be missing a field the schema defaults. The catalogue
+ * renders `features.length` and the price directly, so both get filled in here.
+ */
+function normalizeProduct(product: IProduct): IProduct {
+  return {
+    ...product,
+    features: product.features ?? [],
+    price: Number.isFinite(product.price) ? product.price : 0,
+    currency: product.currency ?? 'usd',
+    available: product.available !== false,
+    featured: Boolean(product.featured),
+  };
+}
+
+/** Published products for a locale, newest first. */
+export async function getProducts(locale: AppLocale): Promise<IProduct[]> {
+  if (!(await tryConnectDB())) return [];
+
+  const docs = await productModel.find({ lang: locale, active: true }).sort({ createdAt: -1 }).lean();
+  return serializeList<IProduct>(docs as Record<string, unknown>[]).map(normalizeProduct);
+}
+
+/**
+ * One product by its slug, or by id for records saved without one. Only
+ * published products are public.
+ */
+export async function getProductByKey(locale: AppLocale, key: string): Promise<IProduct | null> {
+  if (!(await tryConnectDB())) return null;
+
+  const byKey = key.trim();
+  const or: Record<string, unknown>[] = [{ slug: byKey }];
+  if (mongoose.isValidObjectId(byKey)) or.push({ _id: byKey });
+
+  const doc = await productModel.findOne({ lang: locale, active: true, $or: or }).lean();
+  const product = serialize<IProduct>(doc as Record<string, unknown> | null);
+  return product ? normalizeProduct(product) : null;
+}
+
+/** Distinct categories across the published products, for the catalogue filter. */
+export async function getProductCategories(locale: AppLocale): Promise<string[]> {
+  if (!(await tryConnectDB())) return [];
+
+  const categories = await productModel.distinct('category', { lang: locale, active: true });
+  return (categories as string[]).filter(Boolean).sort(byLocaleOrder(locale));
 }
 
 /** Profile document only (used by metadata/OG generation). */

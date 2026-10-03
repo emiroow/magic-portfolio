@@ -26,6 +26,8 @@ function folderForType(type: string | null): string {
       return 'avatar';
     case 'project':
       return 'projects';
+    case 'product':
+      return 'products';
     case 'education':
       return 'education';
     case 'experience':

@@ -3,7 +3,7 @@ import { SectionHeader, type SectionHeadingProps } from '@/components/sections/s
 import { ProjectCard } from '@/components/project-card';
 import { buttonVariants } from '@/components/ui/button';
 import { HOME_PROJECT_SLOTS } from '@/constants/global';
-import { cn, projectKey } from '@/lib/utils';
+import { cn, documentKey } from '@/lib/utils';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import type { IProject } from '@/types';
@@ -64,7 +64,7 @@ export function Projects({
           <BlurFade key={project._id ?? `${project.title}-${id}`} delay={delay + 0.06 + id * 0.05} inView className="h-full">
             <ProjectCard
               href={project.href}
-              detailHref={projectKey(project) ? `/${locale}/projects/${projectKey(project)}` : undefined}
+              detailHref={documentKey(project) ? `/${locale}/projects/${documentKey(project)}` : undefined}
               title={project.title}
               description={project.description}
               dates={project.dates}

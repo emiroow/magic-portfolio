@@ -11,6 +11,8 @@ const BlogSchema = new mongoose.Schema<IBlog>(
     tags: { type: [String], default: [] },
     // Drafts stay out of every public surface; legacy documents default to true.
     published: { type: Boolean, default: true },
+    /** Chosen for the home page; when none are set the newest published stand in. */
+    featured: { type: Boolean, default: false },
     lang: { type: String, required: true, index: true },
   },
   { timestamps: true }
