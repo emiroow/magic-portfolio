@@ -14,7 +14,7 @@ import { z } from 'zod';
 const formSchema = blogSchema.extend({ _id: z.string().optional() });
 type BlogForm = z.infer<typeof formSchema>;
 
-const EMPTY: BlogForm = { title: '', slug: '', summary: '', content: '', image: '', tags: [], published: true };
+const EMPTY: BlogForm = { title: '', slug: '', summary: '', content: '', image: '', tags: [], published: true, featured: false };
 
 /** Blog post list + CRUD (drafts, tags, cover image) for the dashboard editor. */
 const useBlog = () => {
@@ -76,8 +76,19 @@ const useBlog = () => {
     onError: () => fail(),
   });
 
+  // Home page pick from the list row. The update schema is partial, so only the
+  // flipped flag is sent and an open edit panel is never rewritten.
+  const toggleFeatured = useMutation({
+    mutationFn: (post: IBlog) => api.put<IBlog>(`/api/${locale}/admin/blog`, { _id: post._id, featured: !post.featured }),
+    onSuccess: () => {
+      ok();
+      refetchPosts();
+    },
+    onError: () => fail(),
+  });
+
   const startEdit = (post: IBlog) =>
-    reset({ ...EMPTY, ...post, tags: post.tags ?? [], published: post.published ?? true, _id: post._id });
+    reset({ ...EMPTY, ...post, tags: post.tags ?? [], published: post.published ?? true, featured: Boolean(post.featured), _id: post._id });
 
   /** Cover image: upload returns a clean URL that goes straight into the form. */
   const uploadCover = useMutation({
@@ -133,6 +144,7 @@ const useBlog = () => {
     deletePost,
     deleting,
     togglePublished,
+    toggleFeatured,
     uploadCover,
     deleteCover,
     startEdit,
