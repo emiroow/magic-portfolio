@@ -1,12 +1,13 @@
-import { getBlogList, getProjects } from '@/lib/data';
-import { projectKey } from '@/lib/utils';
+import { getBlogList, getProducts, getProjects } from '@/lib/data';
+import { documentKey } from '@/lib/utils';
 import { routing } from '@/i18n/routing';
 import type { AppLocale } from '@/types';
 import type { MetadataRoute } from 'next';
 
 /**
- * Localized sitemap: home + blog pages per locale, plus every blog post.
- * Database-safe — posts are simply omitted when the DB is unavailable.
+ * Localized sitemap: home + blog + catalogue pages per locale, plus every
+ * blog post, project and product page.
+ * Database-safe — content is simply omitted when the DB is unavailable.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '');
@@ -86,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const projects = await getProjects(locale as AppLocale);
     projectsByLocale.set(
       locale,
-      new Map(projects.map(p => [projectKey(p), undefined as string | undefined]))
+      new Map(projects.map(p => [documentKey(p), undefined as string | undefined]))
     );
   }
 
@@ -103,6 +104,44 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         changeFrequency: 'monthly',
         priority: 0.5,
         ...(localizedIn.length > 1 ? { alternates: alternates(`/projects/${key}`, localizedIn) } : {}),
+      });
+    }
+  }
+
+  // Product catalogue.
+  for (const locale of routing.locales) {
+    entries.push({
+      url: url(locale, '/products'),
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.7,
+      alternates: alternates('/products', routing.locales),
+    });
+  }
+
+  // Product pages, keyed by slug (or id when a record has no slug).
+  const productsByLocale = new Map<string, Map<string, string | undefined>>();
+  for (const locale of routing.locales) {
+    const products = await getProducts(locale as AppLocale);
+    productsByLocale.set(
+      locale,
+      new Map(products.map(p => [documentKey(p), p.updatedAt]))
+    );
+  }
+
+  for (const locale of routing.locales) {
+    const products = productsByLocale.get(locale);
+    if (!products) continue;
+
+    for (const [key, updatedAt] of products) {
+      if (!key) continue;
+      const localizedIn = routing.locales.filter(l => productsByLocale.get(l)?.has(key));
+      entries.push({
+        url: url(locale, `/products/${key}`),
+        lastModified: updatedAt ? new Date(updatedAt) : now,
+        changeFrequency: 'monthly',
+        priority: 0.5,
+        ...(localizedIn.length > 1 ? { alternates: alternates(`/products/${key}`, localizedIn) } : {}),
       });
     }
   }
