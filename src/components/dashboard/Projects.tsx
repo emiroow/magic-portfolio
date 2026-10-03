@@ -19,19 +19,13 @@ import { useLocale, useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useRef, useState } from 'react';
 
-const LINK_TYPES = [
-  { value: 'github', label: 'GitHub' },
-  { value: 'demo', label: 'Demo' },
-  { value: 'website', label: 'Website' },
-  { value: 'figma', label: 'Figma' },
-  { value: 'docs', label: 'Documentation' },
-  { value: 'video', label: 'Video' },
-  { value: 'download', label: 'Download' },
-];
+/** Stored link kinds; the labels shown beside them live under `linkTypes`. */
+const LINK_TYPES = ['github', 'demo', 'website', 'figma', 'docs', 'video', 'download'] as const;
 
 /** Projects section: CRUD form (cover, slug, long-form body, links) + list. */
 const Projects = () => {
   const t = useTranslations('dashboard.projects');
+  const tLink = useTranslations('linkTypes');
   const tcrop = useTranslations('dashboard.crop');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
@@ -99,6 +93,9 @@ const Projects = () => {
 
   // Slug drives `/projects/[slug]`; it is auto-derived until edited by hand.
   const autoSlug = !editingId && title ? slugify(title) : watch('slug');
+
+  // A stored type is a slug, so anything unexpected falls through readable.
+  const linkLabel = (value: string) => (tLink.has(value) ? tLink(value) : value);
 
   const closeForm = () => {
     panel.close();
@@ -191,7 +188,6 @@ const Projects = () => {
             src={cropSrc}
             aspect={16 / 9}
             labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: t('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
-            dir={locale === 'fa' ? 'rtl' : 'ltr'}
             outputSize={1600}
             onCropped={file => {
               const formData = new FormData();
@@ -294,9 +290,9 @@ const Projects = () => {
                 className={cn('control sm:max-w-48')}
               >
                 <option value="">{t('selectLinkType')}</option>
-                {LINK_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
+                {LINK_TYPES.map(value => (
+                  <option key={value} value={value}>
+                    {tLink(value)}
                   </option>
                 ))}
               </select>
@@ -327,7 +323,7 @@ const Projects = () => {
                 {links.map((item, index) => (
                   <li key={`${item.type}-${index}`}>
                     <Badge variant="secondary" onDelete={() => removeLink(index)}>
-                      {item.type}
+                      {linkLabel(item.type)}
                     </Badge>
                   </li>
                 ))}

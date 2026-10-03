@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import Loading from '@/components/ui/loading';
 import type { IProject } from '@/types';
-import { cn, localizedCount, projectKey } from '@/lib/utils';
+import { cn, documentKey, isOptimizableImage, localizedCount } from '@/lib/utils';
 import { ExternalLink, Pencil, Pin, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -30,11 +30,15 @@ interface ProjectItemProps {
 /** Dashboard list item for a single project. */
 const ProjectCard = ({ project, onEdit, onDelete, isDeleting, homePosition, slotsFull, onToggleHome, togglingHome }: ProjectItemProps) => {
   const t = useTranslations('dashboard.projects');
+  const tLink = useTranslations('linkTypes');
   const locale = useLocale();
   const lang = locale === 'fa' ? 'fa' : 'en';
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const key = projectKey(project);
+  const key = documentKey(project);
   const featured = project.active && project.featured === true;
+
+  // A stored type is a slug, so anything unexpected falls through readable.
+  const linkLabel = (value: string) => (tLink.has(value) ? tLink(value) : value);
 
   // A dead control is worse than no control: say why it is unavailable.
   const homeBlock = !project.active ? t('featuredNeedsPublish') : slotsFull && !featured ? t('featuredFull') : '';
@@ -88,7 +92,12 @@ const ProjectCard = ({ project, onEdit, onDelete, isDeleting, homePosition, slot
         <div className="flex flex-col gap-4 sm:flex-row">
           {project.image && (
             <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden rounded-lg border sm:h-20 sm:w-32 sm:aspect-auto">
-              <Image src={project.image} alt={project.title} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover" />
+              {isOptimizableImage(project.image) ? (
+                <Image src={project.image} alt={project.title} fill sizes="(max-width: 640px) 100vw, 128px" className="object-cover" />
+              ) : (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={project.image} alt={project.title} loading="lazy" decoding="async" className="size-full object-cover" />
+              )}
             </div>
           )}
           <div className="min-w-0 flex-1 space-y-3">
@@ -132,10 +141,10 @@ const ProjectCard = ({ project, onEdit, onDelete, isDeleting, homePosition, slot
                       target="_blank"
                       rel="noopener noreferrer"
                       className="flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-medium transition-colors hover:bg-foreground hover:text-background"
-                      title={link.type}
+                      title={linkLabel(link.type)}
                     >
                       {iconDecider(link.icon, 'size-3')}
-                      {link.type}
+                      {linkLabel(link.type)}
                     </a>
                   ))}
                 </div>

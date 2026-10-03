@@ -19,6 +19,8 @@ const AVAILABLE_ICONS = ['github', 'linkedin', 'x', 'instagram', 'telegram', 'wh
 const Socials = () => {
   const t = useTranslations('dashboard.social');
   const tDash = useTranslations('dashboard');
+  // Icon names are already labelled for the navigation dock; reuse those words.
+  const tNav = useTranslations('navbar');
   const { socials, isPending, isError, error, register, handleSubmit, reset, watch, errors, onsubmit, save, deleteSocial, edit } =
     useSocials();
 
@@ -26,6 +28,9 @@ const Socials = () => {
   const { anchorRef, scrollToSection } = useSectionScroll();
   const selectedIcon = watch('icon');
   const editingId = watch('_id');
+
+  // An icon slug the dock has no label for stays readable as stored.
+  const iconLabel = (value: string) => (tNav.has(`social.${value}`) ? tNav(`social.${value}`) : value);
 
   // The form sits above the list, so an edit has to bring it back into view.
   const beginEdit = (social: ISocial) => {
@@ -50,7 +55,7 @@ const Socials = () => {
             <option value="">{t('selectIcon')}</option>
             {AVAILABLE_ICONS.map(icon => (
               <option key={icon} value={icon}>
-                {icon}
+                {iconLabel(icon)}
               </option>
             ))}
           </select>
@@ -82,7 +87,7 @@ const Socials = () => {
                 <span aria-hidden className="inline-flex size-7 items-center justify-center rounded-md border bg-background">
                   {iconDecider(selectedIcon, 'size-4')}
                 </span>
-                {t('icon')}: {selectedIcon}
+                {t('icon')}: {iconLabel(selectedIcon)}
               </p>
             )}
 
