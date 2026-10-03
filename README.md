@@ -43,12 +43,12 @@ A portfolio that reads like a printed page: one monochrome palette, one heading 
 
 | Area | What you get |
 | --- | --- |
-| **Public site** | Hero, about, work experience, education, skills, projects, contact — plus a project archive with search and technology filters, project detail pages, a blog with tags, drafts and an RSS feed. Which projects the home page shows is a dashboard setting. |
-| **Admin dashboard** | Every content type at `/{locale}/dashboard`: profile, work experience, education, skills, projects, socials and a Markdown blog editor. Validation, loading, error and empty states everywhere; image upload with in-browser cropping. |
+| **Public site** | Hero, about, work experience, education, skills, projects, contact — plus a project archive with search and technology filters, project detail pages, a product catalogue with prices, search, category filters and product pages, and a blog with tags, drafts and an RSS feed. Which projects the home page shows is a dashboard setting. |
+| **Admin dashboard** | Every content type at `/{locale}/dashboard`: profile, work experience, education, skills, projects, products, socials and a Markdown blog editor. Validation, loading, error and empty states everywhere; image upload with in-browser cropping. |
 | **Two languages** | English (default, `/`) and Persian (`/fa`) with real RTL: mirrored icons and arrows, Persian digits, Jalali (Solar Hijri) dates, and typography tuned for the Persian script. |
 | **Strictly monochrome UI** | Black-and-white shadcn/ui tokens, light and dark themes, and CSS-only reveal animations that respect `prefers-reduced-motion`. |
 | **Secure by default** | All admin APIs require a session; credentials live in server-only env vars with no demo or fallback accounts; every request body is validated with Zod on the server. |
-| **SEO out of the box** | Per-page metadata, canonical + hreflang alternates, Open Graph / Twitter cards with a generated OG image, JSON-LD (`Person`, `CollectionPage`, `SoftwareApplication`, `Blog`, `BlogPosting`, `BreadcrumbList`), localized sitemap, robots, RSS and a web manifest. |
+| **SEO out of the box** | Per-page metadata, canonical + hreflang alternates, Open Graph / Twitter cards with a generated OG image, JSON-LD (`Person`, `CollectionPage`, `SoftwareApplication`, `Product` + `Offer`, `Blog`, `BlogPosting`, `BreadcrumbList`), localized sitemap, robots, RSS and a web manifest. |
 | **Typed end to end** | Strict TypeScript, shared domain types, Mongoose models, ESLint (core-web-vitals) and one quality gate: `npm run verify`. |
 
 ## Quick start (5 minutes)
@@ -144,6 +144,7 @@ src/
 │   │   ├── auth/            # Admin sign-in
 │   │   ├── blog/            # Blog list, post pages and the RSS route
 │   │   ├── projects/        # Project archive and /projects/[slug] pages
+│   │   ├── products/        # Product catalogue and /products/[slug] pages
 │   │   └── dashboard/       # Admin dashboard (session protected)
 │   ├── api/
 │   │   ├── [lang]/          # Public JSON API (portfolio data, blog)
@@ -155,6 +156,7 @@ src/
 │   ├── dashboard/           # Admin sections (one file per resource)
 │   ├── sections/            # Public home-page sections
 │   ├── blog/ & projects/    # Listing views
+│   ├── products/            # Catalogue grid, product card, price tag
 │   ├── magicui/             # Blur-fade reveal
 │   └── ui/                  # shadcn/ui primitives + shared listing parts
 ├── config/                  # NextAuth options + cached DB connection
@@ -176,14 +178,15 @@ src/
 - **Uploads.** Development writes to `public/{type}/{lang}`; production uses Vercel Blob. Images are cropped in the browser before upload, and a cache-busting query keeps the preview fresh without polluting the stored URL.
 - **Editing flow.** Each dashboard section owns one slide-in panel: opening it scrolls the section back into view (the panel always sits above the list), a save that lands closes it, `Escape` dismisses it, and a rejected save leaves it open so nothing typed is lost.
 - **Home page selection.** `active` publishes a project to the site; `featured` curates the home section, which has three slots. Curated picks lead the row and any leftover slot is filled by the newest published project, so the section never renders half empty — and with nothing curated at all, the three newest published projects show. Manage it from the project row's pin button (it saves instantly and numbers the picks `صفحه اصلی · ۱`), or from the edit panel; either way the counter says how many slots are left, and a control that cannot be used says why — an unpublished project must be published first, and a fourth pick is refused while three are already pinned.
-- **Data model.** `profile`, `work`, `education`, `skill`, `social`, `project`, `blog` in `src/models`, mirrored by types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; blog posts support tags, covers and a published/draft flag.
+- **Data model.** `profile`, `work`, `education`, `skill`, `social`, `project`, `product`, `blog` in `src/models`, mirrored by types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; products carry a price, a currency, a category, feature bullets and an availability flag; blog posts support tags, covers and a published/draft flag.
+- **Prices stay readable in both languages.** A product price is stored as a number plus a currency code, formatted with `Intl.NumberFormat` — Persian digits and separators on `/fa`, Latin on `/en` — and rendered inside a `<bdi dir="ltr">` run so grouping can never reverse inside an RTL sentence. `0` is shown as the localized “Free”, and the catalogue only offers a price ordering while every product sits on one scale (a single currency, or the rial/toman pair).
 
 ## Design system
 
 - **Monochrome tokens.** All colour lives in the CSS variables in `src/app/globals.css`. Emphasis never comes from hue — only from border weight, surface contrast and inverted hover states.
 - **One header language.** `SectionHeader` renders the ordinal + eyebrow + count line, the title, an optional description and a hairline that fades out in the reading direction. Home sections and standalone pages share it.
-- **Shared listing parts.** `ListingToolbar` (search + facet chips), `FilterChip`, `EmptyPanel` and `Stack` keep the project archive, the blog and the dashboard lists visually identical.
-- **RTL is a first-class citizen.** Physical insets are avoided (`ps-*`/`pe-*`, `ms-*`/`me-*`), directional glyphs are mirrored with `rtl:-scale-x-100`, letter-spacing is neutralised in RTL because it breaks Persian joining, and Latin fragments inside Persian text are wrapped in `<bdi>` so bidirectional ordering stays correct.
+- **Shared listing parts.** `ListingToolbar` (search + facet chips), `FilterChip`, `EmptyPanel` and `Stack` keep the project archive, the product catalogue, the blog and the dashboard lists visually identical.
+- **RTL is a first-class citizen.** Physical insets are avoided (`ps-*`/`pe-*`, `ms-*`/`me-*`, `text-start`, `start-*`/`end-*`), directional glyphs are mirrored with `rtl:-scale-x-100`, letter-spacing is neutralised in RTL because it breaks Persian joining, and Latin fragments inside Persian text are wrapped in `<bdi>` so bidirectional ordering stays correct. Dialogs and popovers mount outside the locale wrapper, so they inherit `<html dir>` and mirror through logical properties alone — no per-direction class lists. The Markdown editor runs in the library's own `direction="rtl"` mode, and its Latin-only font stack is overridden so the Persian typing surface keeps the site face.
 - **Motion without a runtime.** Reveals are CSS animations (`reveal` / `reveal-view`) rendered server-side, so public pages ship no animation JavaScript and `prefers-reduced-motion` disables them entirely.
 
 ## SEO and structured data
@@ -192,7 +195,7 @@ src/
 | --- | --- |
 | Metadata | Per-page title/description, canonical URL, `hreflang` alternates for both locales, Open Graph and Twitter cards. |
 | OG images | `/api/og` renders a branded 1200×630 image per page and per language. |
-| JSON-LD | `Person` and `BreadcrumbList` on the home page, `CollectionPage` on archives, `SoftwareApplication` on project pages, `Blog` + `BlogPosting` on articles. |
+| JSON-LD | `Person` and `BreadcrumbList` on the home page, `CollectionPage` on archives, `SoftwareApplication` on project pages, `Product` + `Offer` (price, ISO 4217 currency, stock availability) on product pages, `Blog` + `BlogPosting` on articles. |
 | Discovery | Localized `sitemap.ts`, `robots.ts`, RSS at `/blog/rss.xml`, and a web manifest for installability. |
 | ISR | Public pages revalidate hourly; an admin write calls `revalidatePath`, so edits appear immediately. |
 
