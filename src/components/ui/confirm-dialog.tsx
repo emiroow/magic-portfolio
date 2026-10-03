@@ -32,7 +32,7 @@ export function ConfirmDialog({ open, onOpenChange, title, confirmText, cancelTe
           </DialogTitle>
           <DialogDescription>{itemName ? <span className="font-semibold break-words text-foreground">{itemName}</span> : t('confirmDescription')}</DialogDescription>
         </DialogHeader>
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {cancelText ?? t('cancel')}
           </Button>

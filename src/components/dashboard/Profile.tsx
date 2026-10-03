@@ -11,7 +11,7 @@ import useProfile from '@/hooks/dashboard/useProfile';
 import { Avatar, AvatarImage } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
 import { ImagePlus } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
 /** Profile section: identity, contact info and avatar upload with crop. */
@@ -19,7 +19,6 @@ const Profile = () => {
   const t = useTranslations('dashboard.profile');
   const tDash = useTranslations('dashboard');
   const tcrop = useTranslations('dashboard.crop');
-  const locale = useLocale();
 
   const { register, handleSubmit, formState: { errors }, profile, isPending, isError, error, saving, onsubmit, uploadAvatar, refetchGetProfile } = useProfile();
 
@@ -105,7 +104,6 @@ const Profile = () => {
           src={cropSrc}
           aspect={1}
           labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: t('cancelForm'), zoom: tcrop('zoom'), move: tcrop('move') }}
-          dir={locale === 'fa' ? 'rtl' : 'ltr'}
           outputSize={512}
           onCropped={file => {
             const formData = new FormData();

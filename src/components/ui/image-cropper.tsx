@@ -5,6 +5,7 @@ import { Button } from "./button";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -15,8 +16,6 @@ type ImageCropperProps = {
   onOpenChange: (v: boolean) => void;
   src: string | null;
   aspect?: number; // width/height, default 1 (square)
-  dir?: "rtl" | "ltr";
-  isDark?: boolean; // for slider accent color
   labels: {
     title: string;
     apply: string;
@@ -31,19 +30,20 @@ type ImageCropperProps = {
 type CropperBodyProps = {
   src: string | null;
   aspect: number;
-  dir: "rtl" | "ltr";
-  isDark: boolean;
   labels: ImageCropperProps["labels"];
   outputSize: number;
   onCropped: (file: File) => void;
   onClose: () => void;
 };
 
+/**
+ * Crop body. Text alignment, control order and the footer buttons all mirror
+ * through logical utilities and inherited direction, so the Persian dialog is
+ * the English one flipped — no hand-rolled `flex-row-reverse` to double-mirror.
+ */
 function CropperBody({
   src,
   aspect,
-  dir,
-  isDark,
   labels,
   outputSize,
   onCropped,
@@ -85,11 +85,19 @@ function CropperBody({
 
   return (
     <>
-      <DialogHeader className={`${dir === "rtl" ? "text-right" : "text-left"}`}>
+      <DialogHeader>
         <DialogTitle>{labels.title}</DialogTitle>
+        {/* Doubles as the dialog description, which is what makes the dialog
+            announce itself to a screen reader instead of warning. */}
+        <DialogDescription>{labels.move}</DialogDescription>
       </DialogHeader>
-      <div className="space-y-3" dir={dir}>
-        <div className="relative w-full h-[280px] bg-muted rounded-md overflow-hidden">
+      <div className="space-y-3">
+        {/* The viewport is a coordinate space, not text: pinning it to LTR keeps
+            the library's absolute offsets and drag vectors exact in RTL. */}
+        <div
+          dir="ltr"
+          className="relative h-[280px] w-full overflow-hidden rounded-md bg-muted"
+        >
           {src && (
             <Cropper
               image={src}
@@ -106,34 +114,26 @@ function CropperBody({
             />
           )}
         </div>
-        <div
-          className={`flex items-center gap-3 ${dir === "rtl" ? "flex-row-reverse" : ""}`}
-        >
-          <label className="text-sm text-muted-foreground whitespace-nowrap">
+        <div className="flex items-center gap-3">
+          <label
+            htmlFor="image-cropper-zoom"
+            className="whitespace-nowrap text-sm text-muted-foreground"
+          >
             {labels.zoom}
           </label>
           <input
+            id="image-cropper-zoom"
             type="range"
             min={1}
             max={3}
             step={0.01}
             value={zoom}
             onChange={(e) => setZoom(parseFloat(e.target.value))}
-            className="w-full"
-            style={{ accentColor: isDark ? "#ffffff" : "#000000" }}
+            className="w-full accent-primary"
           />
         </div>
-        <p
-          className={`text-xs text-muted-foreground ${
-            dir === "rtl" ? "text-right" : "text-left"
-          }`}
-        >
-          {labels.move}
-        </p>
       </div>
-      <DialogFooter
-        className={`flex gap-2 ${dir === "rtl" ? "flex-row-reverse" : ""}`}
-      >
+      <DialogFooter>
         <Button variant="outline" type="button" onClick={onClose}>
           {labels.cancel}
         </Button>
@@ -150,22 +150,18 @@ export default function ImageCropperDialog({
   onOpenChange,
   src,
   aspect = 1,
-  dir = "ltr",
-  isDark = false,
   labels,
   outputSize = 512,
   onCropped,
 }: ImageCropperProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="w-[95%] sm:w-full sm:max-w-[420px] left-[2.5%] translate-x-0 sm:left-1/2 sm:-translate-x-1/2">
+      <DialogContent className="sm:max-w-[420px]">
         {open ? (
           <CropperBody
             key={src ?? "no-src"}
             src={src}
             aspect={aspect}
-            dir={dir}
-            isDark={isDark}
             labels={labels}
             outputSize={outputSize}
             onCropped={onCropped}

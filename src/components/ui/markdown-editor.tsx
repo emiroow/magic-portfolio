@@ -16,6 +16,8 @@ type MDEditorProps = {
   height?: number;
   hideToolbar?: boolean;
   preview?: 'edit' | 'preview' | 'live';
+  /** The editor's own RTL mode: mirrors the shell, the toolbar and the preview. */
+  direction?: 'rtl' | 'ltr';
   textareaProps?: { placeholder?: string; dir?: string };
 };
 
@@ -78,19 +80,14 @@ export default function MarkdownEditor({
         </label>
       )}
 
-      <div
-        data-color-mode={colorMode}
-        className={cn(
-          "rounded-md border",
-          dir === "rtl" &&
-            "[&_*]:text-right [&_.w-md-editor-toolbar]:justify-end"
-        )}
-      >
+      {/* The editor owns its direction; the wrapper only carries the site hairline. */}
+      <div data-color-mode={colorMode} className="rounded-md border">
         <MDEditor
           value={value}
           onChange={(val: string | undefined) => onChange(val || "")}
           height={height}
           hideToolbar={hideToolbar}
+          direction={dir}
           textareaProps={{ placeholder: fallbackPlaceholder, dir }}
         />
       </div>

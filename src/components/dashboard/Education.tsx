@@ -131,7 +131,6 @@ const EducationExperience = () => {
             src={cropSrc}
             aspect={1}
             labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: t('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
-            dir={locale === 'fa' ? 'rtl' : 'ltr'}
             outputSize={256}
             onCropped={file => {
               const formData = new FormData();
