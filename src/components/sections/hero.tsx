@@ -2,8 +2,9 @@ import BlurFade from '@/components/magicui/blur-fade';
 import { eyebrowClass } from '@/components/sections/section-header';
 import { Button } from '@/components/ui/button';
 import { isOptimizableImage } from '@/lib/utils';
-import { Mail } from 'lucide-react';
+import { Coffee, Mail } from 'lucide-react';
 import Image from 'next/image';
+import Link from 'next/link';
 import type { IProfile } from '@/types';
 
 interface HeroProps {
@@ -12,6 +13,10 @@ interface HeroProps {
   greeting: string;
   /** Label for the mailto shortcut; the button is hidden without it. */
   emailLabel?: string;
+  /** Label for the buy-me-a-coffee shortcut; hidden without it. */
+  supportLabel?: string;
+  /** Localized `/support` page the coffee button leads to. */
+  supportHref?: string;
   /** Base delay for the entrance stagger. */
   delay?: number;
 }
@@ -21,11 +26,16 @@ interface HeroProps {
  * role, summary and portrait. Stacks portrait-first on small screens and sits
  * side by side from `sm`. The portrait is the LCP element, so it is preloaded
  * and never waits on JavaScript.
+ *
+ * The two shortcuts under the summary are the only actions above the fold: one
+ * to `/support`, one to the mail client.
  */
-export function Hero({ profile, greeting, emailLabel, delay = 0 }: HeroProps) {
+export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref, delay = 0 }: HeroProps) {
   const name = profile.fullName?.trim() || profile.name?.trim() || '';
   const monogram = (name || '?').charAt(0);
   const avatar = profile.avatarUrl;
+  const mailto = profile.email && emailLabel ? `mailto:${profile.email}` : undefined;
+  const coffee = supportLabel && supportHref ? { label: supportLabel, href: supportHref } : undefined;
 
   return (
     <section id="hero" aria-labelledby="hero-heading">
@@ -56,15 +66,27 @@ export function Hero({ profile, greeting, emailLabel, delay = 0 }: HeroProps) {
             </BlurFade>
           )}
 
-          {profile.email && emailLabel && (
+          {(mailto || coffee) && (
             <BlurFade delay={delay + 0.24}>
-              <div className="mt-7">
-                <Button asChild variant="outline" size="sm" className="rounded-full">
-                  <a href={`mailto:${profile.email}`}>
-                    <Mail className="me-2 size-4" aria-hidden />
-                    {emailLabel}
-                  </a>
-                </Button>
+              {/* Two shortcuts, one row: the paid one leads and is filled, the
+                  written one follows as an outline. */}
+              <div className="mt-7 flex flex-wrap gap-2.5">
+                {coffee && (
+                  <Button asChild size="sm" className="rounded-full px-5">
+                    <Link href={coffee.href}>
+                      <Coffee className="me-2 size-4" aria-hidden />
+                      {coffee.label}
+                    </Link>
+                  </Button>
+                )}
+                {mailto && (
+                  <Button asChild variant="outline" size="sm" className="rounded-full px-5">
+                    <a href={mailto}>
+                      <Mail className="me-2 size-4" aria-hidden />
+                      {emailLabel}
+                    </a>
+                  </Button>
+                )}
               </div>
             </BlurFade>
           )}

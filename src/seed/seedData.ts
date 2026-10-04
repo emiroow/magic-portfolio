@@ -1,5 +1,6 @@
 import { connectDB } from '@/config/dbConnection';
 import { blogModel } from '@/models/blog';
+import { donationModel } from '@/models/donation';
 import { educationModel } from '@/models/education';
 import { productModel } from '@/models/product';
 import { profileModel } from '@/models/profile';
@@ -11,6 +12,7 @@ import mongoose from 'mongoose';
 import { describePersonas, getPersona } from './personas';
 import type { Persona } from './personas/types';
 import { seedBlogData } from './blog.seed';
+import { seedDonationData } from './donation.seed';
 import { seedEducationData } from './education.seed';
 import { seedUserData } from './profile.seed';
 import { seedProductData } from './product.seed';
@@ -31,6 +33,7 @@ const STEPS: readonly Step[] = [
   ['skills', seedSkillsData],
   ['socials', seedSocialData],
   ['blog', seedBlogData],
+  ['support', seedDonationData],
 ];
 
 /** `FORCE_SEED=true` or `--force`: drop the database before seeding. */
@@ -60,6 +63,7 @@ export const seedData = async (persona: Persona = getPersona()) => {
     workModel.countDocuments(),
     skillModel.countDocuments(),
     blogModel.countDocuments(),
+    donationModel.countDocuments(),
   ]);
 
   if (counts.some(count => count > 0)) {

@@ -5,12 +5,14 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Blog from './Blog';
+import Donation from './Donation';
 import EducationExperience from './Education';
 import Profile from './Profile';
 import Products from './Products';
 import Projects from './Projects';
 import Skills from './Skills';
 import Socials from './Socials';
+import Supporters from './Supporters';
 import WorkExperience from './WorkExperience';
 
 /** Ordered dashboard sections; `trans` is a key under `dashboard.menu`. */
@@ -23,6 +25,8 @@ const TABS = [
   { trans: 'Products', component: Products },
   { trans: 'Socials', component: Socials },
   { trans: 'Blog', component: Blog },
+  { trans: 'Donation', component: Donation },
+  { trans: 'Supporters', component: Supporters },
 ] as const;
 
 /**

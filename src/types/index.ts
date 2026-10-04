@@ -82,6 +82,127 @@ export interface IProduct {
   updatedAt?: string;
 }
 
+/**
+ * How a support option actually collects money. Every option is exactly one of
+ * these, which is what keeps the checkout dialog honest: it only ever shows the
+ * surface belonging to the option's own mode.
+ *
+ * - `referral`  — hand off to a creator-support platform (Buy Me a Coffee, Ko-fi, حمیاتو…)
+ * - `link`      — a checkout page built in advance inside a gateway (ZarinPal/IDPay links, PayPal.me, Stripe link)
+ * - `card`      — card-to-card: a card number and/or IBAN with a scannable QR
+ * - `crypto`    — an on-chain address or Lightning destination with a QR
+ * - `gateway`   — a full in-site checkout: the site calls the gateway API itself
+ */
+export type DonationMode = 'referral' | 'link' | 'card' | 'crypto' | 'gateway';
+
+/** Market the option is aimed at: drives the order of the methods on the page. */
+export type DonationRegion = 'ir' | 'global';
+
+/** Creator-support platforms a `referral` option can point at. */
+export type ReferralProvider = 'buymeacoffee' | 'kofi' | 'patreon' | 'github' | 'liberapay' | 'hamyato';
+
+/** Hosted checkout links a `link` option can point at. */
+export type LinkProvider = 'zarinpal' | 'idpay' | 'paypalme' | 'stripe' | 'other';
+
+/** Gateways the site can talk to directly from `gateway` options. */
+export type GatewayId = 'zarinpal' | 'idpay' | 'stripe' | 'paypal';
+
+/** Ledgers a `crypto` option can receive on. */
+export type CryptoNetwork = 'tron' | 'ethereum' | 'bitcoin' | 'ton' | 'bsc' | 'lightning';
+
+/**
+ * A support option (one coffee, ten coffees, a monthly pledge…). Created in the
+ * dashboard, rendered on `/support` and inside the home-page section.
+ */
+export interface IDonation {
+  _id?: string;
+  title: string;
+  /** URL-free identifier kept for analytics and stable ordering. */
+  slug?: string;
+  /** Short pitch under the title on the card. */
+  description?: string;
+  /** `0` means "the supporter chooses": the dialog starts on the amount step. */
+  amount: number;
+  currency: ProductCurrency;
+  /** Allow an amount the owner did not pre-set. */
+  customAmount: boolean;
+  /** Quick-pick amounts offered on the amount step; empty falls back to `amount`. */
+  suggestedAmounts: number[];
+  /** Smallest accepted amount; `0` defers to the site default. */
+  minAmount: number;
+  /** Largest accepted amount; `0` defers to the site default. */
+  maxAmount: number;
+  mode: DonationMode;
+  region: DonationRegion;
+  /** `referral` only. */
+  referral?: ReferralProvider;
+  /** `link` and `referral`: where the button leads. */
+  href?: string;
+  /** `link` only: which gateway the prepared link belongs to. */
+  linkProvider?: LinkProvider;
+  /** `card` only. Digits are stored without spaces. */
+  card?: { number?: string; holder?: string; iban?: string };
+  /** `card`: override for the QR payload; empty encodes the card number. */
+  cardQrPayload?: string;
+  /** `crypto` only. */
+  crypto?: { network?: CryptoNetwork; address?: string };
+  /** `gateway` only: which configured gateway charges the supporter. */
+  gateway?: GatewayId;
+  /** Optional funding target; when set the card shows a progress bar. */
+  goal?: number;
+  /** Repeat the gift every month, where the destination supports it. */
+  recurring: boolean;
+  /** Number of coffees the option represents — drawn as the cup row on the card. */
+  cups: number;
+  /** `false` keeps the option out of every public surface. */
+  active: boolean;
+  /** Picked for the home page section; `active` still controls visibility. */
+  featured?: boolean;
+  /** Position on `/support`; lower numbers lead. */
+  order: number;
+  lang: AppLocale;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+/** Lifecycle of a support record. */
+export type SupporterStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
+
+/**
+ * One act of support: created when a visitor starts a checkout, confirmed by the
+ * owner (or by the gateway callback). These records are what the supporter wall
+ * on `/support` is built from.
+ */
+export interface ISupporter {
+  _id?: string;
+  /** Option the gift was for; the id may one day be gone, so the title is stored too. */
+  donationId?: string;
+  donationTitle?: string;
+  name?: string;
+  /** `true` hides the name on the wall behind the anonymous label. */
+  anonymous: boolean;
+  /** Never published — only used for the "email me a receipt" note. */
+  email?: string;
+  /** Message left for the owner; shown on the wall when opted in and confirmed. */
+  message?: string;
+  amount: number;
+  currency: ProductCurrency;
+  mode: DonationMode;
+  region?: DonationRegion;
+  status: SupporterStatus;
+  /** Gateway authority / tracking code / transaction hash / receipt description. */
+  reference?: string;
+  /** Gateway-side id used to match a callback back to this record. */
+  externalId?: string;
+  /** Owner's note when confirming a card-to-card transfer by hand. */
+  note?: string;
+  /** Show this supporter on the wall once the gift is confirmed. */
+  showOnWall: boolean;
+  lang: AppLocale;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 /** Skill badge. */
 export interface ISkill {
   _id?: string;
@@ -149,6 +270,35 @@ export interface IBlog {
   /** Derived from `content`; never stored. */
   readingMinutes?: number;
 }
+
+/**
+ * What the deployment can charge with, read by the dashboard so it can warn about
+ * an option pointed at a gateway with no credentials.
+ */
+export interface SupportSettings {
+  gateways: GatewayId[];
+  currencyRules: Record<GatewayId, readonly ProductCurrency[]>;
+}
+
+/**
+ * What the checkout endpoint hands back, one shape per rail:
+ *
+ * - `external`   — leave for a platform or a prepared gateway link
+ * - `instructions` — transfer it yourself; the QR and destination are included
+ * - `redirect`   — a gateway session was created; send the supporter there
+ */
+export type SupportCheckoutResult =
+  | { kind: 'external'; orderId: string; url: string }
+  | { kind: 'redirect'; orderId: string; url: string }
+  | {
+      kind: 'instructions';
+      orderId: string;
+      instruction: 'card' | 'crypto';
+      /** PNG data URL generated on the server; `null` when the payload was unusable. */
+      qr: string | null;
+      card?: { number?: string; holder?: string; iban?: string };
+      crypto?: { network?: CryptoNetwork; address?: string };
+    };
 
 /** Aggregated payload consumed by the public site and `/api/[lang]`. */
 export interface IPortfolioData {

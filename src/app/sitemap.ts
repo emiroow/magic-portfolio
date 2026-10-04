@@ -5,8 +5,8 @@ import type { AppLocale } from '@/types';
 import type { MetadataRoute } from 'next';
 
 /**
- * Localized sitemap: home + blog + catalogue pages per locale, plus every
- * blog post, project and product page.
+ * Localized sitemap: home + blog + catalogue pages per locale, plus the support
+ * page and every blog post, project and product page.
  * Database-safe — content is simply omitted when the DB is unavailable.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -144,6 +144,17 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         ...(localizedIn.length > 1 ? { alternates: alternates(`/products/${key}`, localizedIn) } : {}),
       });
     }
+  }
+
+  // Support page: one per locale, always listed (it works with zero options too).
+  for (const locale of routing.locales) {
+    entries.push({
+      url: url(locale, '/support'),
+      lastModified: now,
+      changeFrequency: 'weekly',
+      priority: 0.6,
+      alternates: alternates('/support', routing.locales),
+    });
   }
 
   return entries;
