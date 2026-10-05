@@ -1,15 +1,16 @@
 import { apiError, apiJson, parseBody } from '@/lib/api';
 import { tryConnectDB } from '@/config/dbConnection';
-import { getDonations } from '@/lib/data';
+import { getDonations } from '@/features/support/queries';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
-import { cardQrPayload, cryptoQrPayload, qrDataUrl } from '@/lib/qr';
-import { createGatewaySession, gatewaySupports, isGatewayConfigured } from '@/lib/payments';
-import { resolveVariant, variantCurrency, variantName, variantRegion } from '@/lib/support';
-import { langSchema, supporterSubmitSchema } from '@/lib/validations';
-import { supporterModel } from '@/models/supporter';
+import { cardQrPayload, cryptoQrPayload, qrDataUrl } from '@/features/support/qr';
+import { createGatewaySession, gatewaySupports, isGatewayConfigured } from '@/features/support/payments';
+import { resolveVariant, variantCurrency, variantName, variantRegion } from '@/features/support/variants';
+import { langSchema } from '@/lib/validations';
+import { supporterSubmitSchema } from '@/features/support/schema';
+import { supporterModel } from '@/features/support/supporter.model';
 import { site } from '@/lib/seo';
 import { revalidatePath } from 'next/cache';
-import type { GatewayId, IDonation, SupportCheckoutResult } from '@/types';
+import type { GatewayId, IDonation, SupportCheckoutResult } from '@/features/support/types';
 
 /**
  * Public checkout: one endpoint for every payment method. It records the gift, then

@@ -1,4 +1,4 @@
-import { getServerAuthSession } from '@/config/auth';
+import { getServerAuthSession } from '@/features/auth/config';
 import type { z } from 'zod';
 
 /** Shared route-handler helpers: JSON envelopes, admin guard and body validation. */

@@ -7,11 +7,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DockRoutes, MenuRoutes } from '@/constants/global';
 import { Link, usePathname } from '@/i18n/routing';
 import { cn } from '@/lib/utils';
-import type { ISocial } from '@/types';
+import type { ISocial } from '@/features/socials/types';
 import { useTranslations } from 'next-intl';
 import { FC } from 'react';
-import { ModeToggle } from './mode-toggle';
-import ThemeToggle from './theme-toggle';
+import { ModeToggle } from '@/components/mode-toggle';
+import ThemeToggle from '@/components/locale-toggle';
 
 interface NavbarProps {
   socials?: ISocial[];
@@ -59,12 +59,7 @@ const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
           return (
             <Tooltip key={href}>
               <TooltipTrigger asChild>
-                <Link
-                  href={href}
-                  aria-label={label}
-                  aria-current={active ? 'page' : undefined}
-                  className={itemClass(active)}
-                >
+                <Link href={href} aria-label={label} aria-current={active ? 'page' : undefined} className={itemClass(active)}>
                   <Icon className="size-4" aria-hidden />
                 </Link>
               </TooltipTrigger>

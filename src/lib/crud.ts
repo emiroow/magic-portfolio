@@ -49,7 +49,10 @@ export function createAdminCrud({ model, createSchema, updateSchema, sort, trans
     if (!prepared.ok) return prepared.response;
 
     try {
-      const docs = await model.find({ lang: prepared.lang }).sort(sort ?? {}).lean();
+      const docs = await model
+        .find({ lang: prepared.lang })
+        .sort(sort ?? {})
+        .lean();
       const items = docs.map(doc => (transform ? transform(doc) : doc));
       return apiJson({ data: JSON.parse(JSON.stringify(items)) });
     } catch (error) {

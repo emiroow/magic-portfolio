@@ -1,8 +1,8 @@
 import { apiError, apiJson, requireAdmin } from '@/lib/api';
-import { GATEWAY_CURRENCIES } from '@/constants/global';
-import { configuredGateways } from '@/lib/payments';
+import { GATEWAY_CURRENCIES } from '@/features/support/constants';
+import { configuredGateways } from '@/features/support/payments';
 import { langSchema } from '@/lib/validations';
-import type { SupportSettings } from '@/types';
+import type { SupportSettings } from '@/features/support/types';
 
 /**
  * Admin view of what the deployment can actually charge with: which gateways have

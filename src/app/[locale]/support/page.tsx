@@ -1,10 +1,12 @@
 import Navbar from '@/components/navbar';
 import { JsonLd } from '@/components/JsonLd';
-import { SectionHeader } from '@/components/sections/section-header';
-import SupportBrowser, { type SupportReturnStatus } from '@/components/support/support-browser';
-import { getDonations, getProfile, getSocials, getSupportStats, getSupporterCounts, getSupporters } from '@/lib/data';
+import { SectionHeader } from '@/components/section-header';
+import SupportBrowser, { type SupportReturnStatus } from '@/features/support/support-browser';
+import { getDonations, getSupportStats, getSupporterCounts, getSupporters } from '@/features/support/queries';
+import { getProfile } from '@/features/profile/queries';
+import { getSocials } from '@/features/socials/queries';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
-import { handlesMoney } from '@/lib/support';
+import { handlesMoney } from '@/features/support/variants';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { documentKey, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';

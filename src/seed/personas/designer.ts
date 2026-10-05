@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from './types';
+import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Mina Rahimi — product designer working on interfaces, design systems and motion.

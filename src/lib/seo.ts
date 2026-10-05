@@ -1,5 +1,6 @@
 import { routing } from '@/i18n/routing';
-import type { AppLocale, IProfile } from '@/types';
+import type { AppLocale } from '@/types';
+import type { IProfile } from '@/features/profile/types';
 
 /** Shared SEO constants and helpers. */
 

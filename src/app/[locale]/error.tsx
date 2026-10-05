@@ -1,6 +1,6 @@
 'use client'; // Error boundaries must be Client Components
 
-import { eyebrowClass } from '@/components/sections/section-header';
+import { eyebrowClass } from '@/components/section-header';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { AlertTriangle, RotateCw } from 'lucide-react';

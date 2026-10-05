@@ -1,5 +1,5 @@
-import { productModel } from '@/models/product';
-import { withBothLangs, type Persona } from './personas/types';
+import { productModel } from '@/features/products/model';
+import { withBothLangs, type Persona } from '@/seed/personas/types';
 
 /**
  * Commercial products for the `/products` catalogue, authored once per locale.

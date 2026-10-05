@@ -1,4 +1,4 @@
-import { getServerAuthSession } from '@/config/auth';
+import { getServerAuthSession } from '@/features/auth/config';
 import { notFound, redirect } from 'next/navigation';
 import { getTranslations } from 'next-intl/server';
 import { routing } from '@/i18n/routing';

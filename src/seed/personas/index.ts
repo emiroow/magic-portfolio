@@ -1,8 +1,8 @@
-import { backend } from './backend';
-import { designer } from './designer';
-import { frontend } from './frontend';
-import { fullstack } from './fullstack';
-import type { Persona, PersonaId } from './types';
+import { backend } from '@/seed/personas/backend';
+import { designer } from '@/seed/personas/designer';
+import { frontend } from '@/seed/personas/frontend';
+import { fullstack } from '@/seed/personas/fullstack';
+import type { Persona, PersonaId } from '@/seed/personas/types';
 
 /**
  * Demo identities, keyed by the id used in `--persona=<id>` and `SEED_PERSONA`.

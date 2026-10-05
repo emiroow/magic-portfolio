@@ -1,17 +1,4 @@
-import {
-  BookOpen,
-  Download,
-  FileText,
-  Github,
-  Globe,
-  Instagram,
-  Linkedin,
-  Loader2,
-  Mail,
-  Play,
-  Rss,
-  Youtube,
-} from 'lucide-react';
+import { BookOpen, Download, FileText, Github, Globe, Instagram, Linkedin, Loader2, Mail, Play, Rss, Youtube } from 'lucide-react';
 
 /** Icon registry: lucide icons plus inlined brand SVGs lucide doesn't ship. */
 

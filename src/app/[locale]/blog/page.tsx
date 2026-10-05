@@ -1,8 +1,9 @@
-import BlogListClient from '@/components/blog/BlogListClient';
+import BlogListClient from '@/features/blog/BlogListClient';
 import { JsonLd } from '@/components/JsonLd';
 import Navbar from '@/components/navbar';
-import { SectionHeader } from '@/components/sections/section-header';
-import { getBlogList, getBlogTags, getSocials } from '@/lib/data';
+import { SectionHeader } from '@/components/section-header';
+import { getBlogList, getBlogTags } from '@/features/blog/queries';
+import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';

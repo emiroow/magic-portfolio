@@ -1,4 +1,6 @@
-import { getBlogList, getProducts, getProjects } from '@/lib/data';
+import { getBlogList } from '@/features/blog/queries';
+import { getProducts } from '@/features/products/queries';
+import { getProjects } from '@/features/projects/queries';
 import { documentKey } from '@/lib/utils';
 import { routing } from '@/i18n/routing';
 import type { AppLocale } from '@/types';
@@ -85,10 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const projectsByLocale = new Map<string, Map<string, string | undefined>>();
   for (const locale of routing.locales) {
     const projects = await getProjects(locale as AppLocale);
-    projectsByLocale.set(
-      locale,
-      new Map(projects.map(p => [documentKey(p), undefined as string | undefined]))
-    );
+    projectsByLocale.set(locale, new Map(projects.map(p => [documentKey(p), undefined as string | undefined])));
   }
 
   for (const locale of routing.locales) {
@@ -123,10 +122,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const productsByLocale = new Map<string, Map<string, string | undefined>>();
   for (const locale of routing.locales) {
     const products = await getProducts(locale as AppLocale);
-    productsByLocale.set(
-      locale,
-      new Map(products.map(p => [documentKey(p), p.updatedAt]))
-    );
+    productsByLocale.set(locale, new Map(products.map(p => [documentKey(p), p.updatedAt])));
   }
 
   for (const locale of routing.locales) {

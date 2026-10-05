@@ -1,8 +1,10 @@
-import ProductsGrid from '@/components/products/ProductsGrid';
+import ProductsGrid from '@/features/products/ProductsGrid';
 import Navbar from '@/components/navbar';
 import { JsonLd } from '@/components/JsonLd';
-import { SectionHeader } from '@/components/sections/section-header';
-import { getProfile, getProductCategories, getProducts, getSocials } from '@/lib/data';
+import { SectionHeader } from '@/components/section-header';
+import { getProfile } from '@/features/profile/queries';
+import { getProductCategories, getProducts } from '@/features/products/queries';
+import { getSocials } from '@/features/socials/queries';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';

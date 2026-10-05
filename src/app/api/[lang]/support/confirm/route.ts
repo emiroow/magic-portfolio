@@ -1,8 +1,9 @@
 import { apiError, apiJson, parseBody } from '@/lib/api';
 import { tryConnectDB } from '@/config/dbConnection';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
-import { langSchema, supporterConfirmSchema } from '@/lib/validations';
-import { supporterModel } from '@/models/supporter';
+import { langSchema } from '@/lib/validations';
+import { supporterConfirmSchema } from '@/features/support/schema';
+import { supporterModel } from '@/features/support/supporter.model';
 
 /**
  * “I have sent the transfer.” Card-to-card and crypto gifts cannot be proven by

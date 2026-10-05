@@ -1,14 +1,17 @@
 import { JsonLd } from '@/components/JsonLd';
 import BlurFade from '@/components/magicui/blur-fade';
-import PostShare from '@/components/blog/post-share';
+import PostShare from '@/features/blog/post-share';
 import { MarkdownBody } from '@/components/markdown-body';
 import Navbar from '@/components/navbar';
-import { eyebrowClass } from '@/components/sections/section-header';
+import { eyebrowClass } from '@/components/section-header';
 import { Badge } from '@/components/ui/badge';
-import { getBlogBySlug, getBlogList, getProfile, getRelatedPosts, getSocials } from '@/lib/data';
+import { getBlogBySlug, getBlogList, getRelatedPosts } from '@/features/blog/queries';
+import { getProfile } from '@/features/profile/queries';
+import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { cn, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
-import type { AppLocale, IBlog } from '@/types';
+import type { AppLocale } from '@/types';
+import type { IBlog } from '@/features/blog/types';
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react';
 import Image from 'next/image';
 import type { Metadata } from 'next';
@@ -165,9 +168,7 @@ export default async function BlogPostPage({ params }: Props) {
           <h1 className="mt-3 text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl md:text-4xl">{post.title}</h1>
 
           {post.summary && (
-            <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground rtl:leading-[1.9] sm:text-base">
-              {post.summary}
-            </p>
+            <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground rtl:leading-[1.9] sm:text-base">{post.summary}</p>
           )}
 
           {Boolean(post.tags?.length) && (
@@ -175,7 +176,10 @@ export default async function BlogPostPage({ params }: Props) {
               {post.tags?.map(tag => (
                 <li key={tag}>
                   <Link href={`/${locale}/blog?tag=${encodeURIComponent(tag)}`}>
-                    <Badge variant="secondary" className="px-2 py-0.5 text-[11px] font-normal transition-colors hover:bg-foreground hover:text-background">
+                    <Badge
+                      variant="secondary"
+                      className="px-2 py-0.5 text-[11px] font-normal transition-colors hover:bg-foreground hover:text-background"
+                    >
                       {tag}
                     </Badge>
                   </Link>
@@ -216,9 +220,7 @@ export default async function BlogPostPage({ params }: Props) {
           <div className="mt-10 flex flex-wrap items-center justify-between gap-4 border-t pt-6">
             <PostShare title={post.title} url={url} />
             {post.updatedAt && post.updatedAt !== post.createdAt && (
-              <p className="text-[11px] text-muted-foreground">
-                {t('updatedOn', { date: formatYearMonthLocal(post.updatedAt, lang) })}
-              </p>
+              <p className="text-[11px] text-muted-foreground">{t('updatedOn', { date: formatYearMonthLocal(post.updatedAt, lang) })}</p>
             )}
           </div>
         </BlurFade>
@@ -291,9 +293,7 @@ export default async function BlogPostPage({ params }: Props) {
                     className="group flex items-baseline justify-between gap-4 px-4 py-3.5 transition-colors hover:bg-muted/40 sm:px-5"
                   >
                     <span className="min-w-0 text-sm font-medium leading-snug transition-colors group-hover:underline">{item.title}</span>
-                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">
-                      {formatYearMonthLocal(item.createdAt, lang)}
-                    </span>
+                    <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{formatYearMonthLocal(item.createdAt, lang)}</span>
                   </Link>
                 </li>
               ))}

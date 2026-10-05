@@ -1,7 +1,8 @@
 import { requireAdmin, parseBody, apiError, apiJson } from '@/lib/api';
 import { connectDB } from '@/config/dbConnection';
-import { langSchema, supporterAdminSchema } from '@/lib/validations';
-import { supporterModel } from '@/models/supporter';
+import { langSchema } from '@/lib/validations';
+import { supporterAdminSchema } from '@/features/support/schema';
+import { supporterModel } from '@/features/support/supporter.model';
 import { revalidatePath } from 'next/cache';
 
 /**
@@ -46,9 +47,7 @@ export const PUT = async (request: Request, { params }: RouteContext) => {
 
   try {
     await connectDB();
-    const updated = await supporterModel
-      .findOneAndUpdate({ _id, lang: parsedLang.data }, update, { new: true, runValidators: true })
-      .lean();
+    const updated = await supporterModel.findOneAndUpdate({ _id, lang: parsedLang.data }, update, { new: true, runValidators: true }).lean();
     if (!updated) return apiError('Document not found', 404);
 
     // Confirming a gift changes the public wall, so both surfaces refresh.

@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from './types';
+import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Alex Carter — full stack developer on small product teams.
@@ -700,7 +700,13 @@ export const fullstack: Persona = {
         image: cover('nextauth-roles-starter'),
         description:
           'Auth.js v5 with a typed role model, protected routes, a seeded admin and the tests that prove the guards actually block. Boring, in the best way.',
-        features: ['Auth.js v5 + Prisma adapter', 'Typed roles & permissions', 'Route & server-action guards', 'Seedable admin account', 'Vitest coverage on the guards'],
+        features: [
+          'Auth.js v5 + Prisma adapter',
+          'Typed roles & permissions',
+          'Route & server-action guards',
+          'Seedable admin account',
+          'Vitest coverage on the guards',
+        ],
         details: [
           '## The problem',
           '',
@@ -757,7 +763,12 @@ export const fullstack: Persona = {
         image: cover('boring-deploy-configs'),
         description:
           'The Dockerfiles, compose files and CI pipelines I reuse on every project. Free, because good deployment defaults should not be someone’s paywall.',
-        features: ['Multi-stage Node & Next Dockerfiles', 'Docker Compose for local Postgres', 'GitHub Actions lint/typecheck/build', 'Healthchecks & graceful shutdown'],
+        features: [
+          'Multi-stage Node & Next Dockerfiles',
+          'Docker Compose for local Postgres',
+          'GitHub Actions lint/typecheck/build',
+          'Healthchecks & graceful shutdown',
+        ],
         details: [
           '## The idea',
           '',
@@ -784,7 +795,13 @@ export const fullstack: Persona = {
         image: cover('ledgerly-starter'),
         description:
           'دقیقاً همان پایه Next.js و Prisma که لجرلی رویش اجرا می‌شود؛ پول به عدد صحیح، فاکتور PDF از React و Stripe آماده برای دیپلوی خودمیزبان یا ابری.',
-        features: ['Next.js 15 App Router', 'اسکیمای Prisma و PostgreSQL', 'کمکی‌های پول صحیح‌عدد', 'فاکتور PDF از React', 'پیکربندی Docker و دیپلوی'],
+        features: [
+          'Next.js 15 App Router',
+          'اسکیمای Prisma و PostgreSQL',
+          'کمکی‌های پول صحیح‌عدد',
+          'فاکتور PDF از React',
+          'پیکربندی Docker و دیپلوی',
+        ],
         details: [
           '## چه چیزی می‌گیرید',
           '',
@@ -813,7 +830,13 @@ export const fullstack: Persona = {
         image: cover('nextauth-roles-starter'),
         description:
           'Auth.js v5 با مدل نقش تایپ‌شده، مسیرهای محافظت‌شده، ادمین seedشده و تست‌هایی که ثابت می‌کنند گاردها واقعاً مسدود می‌کنند. کسل‌کننده، به بهترین شکل.',
-        features: ['Auth.js v5 + ادپتر Prisma', 'نقش و دسترسی تایپ‌شده', 'گاردهای مسیر و server action', 'حساب ادمین قابل seed', 'پوشش Vitest روی گاردها'],
+        features: [
+          'Auth.js v5 + ادپتر Prisma',
+          'نقش و دسترسی تایپ‌شده',
+          'گاردهای مسیر و server action',
+          'حساب ادمین قابل seed',
+          'پوشش Vitest روی گاردها',
+        ],
         details: [
           '## مسئله',
           '',
@@ -870,7 +893,12 @@ export const fullstack: Persona = {
         image: cover('boring-deploy-configs'),
         description:
           'Dockerfileها، فایل‌های compose و پایپ‌لاین‌های CI که در هر پروژه دوباره استفاده می‌کنم. رایگان، چون پیش‌فرض‌های خوب دیپلوی نباید پشت paywall کسی باشد.',
-        features: ['Dockerfile چندمرحله‌ای Node و Next', 'Docker Compose برای Postgres محلی', 'GitHub Actions برای لینت/تایپ‌چک/بیلد', 'Healthcheck و shutdown محترمانه'],
+        features: [
+          'Dockerfile چندمرحله‌ای Node و Next',
+          'Docker Compose برای Postgres محلی',
+          'GitHub Actions برای لینت/تایپ‌چک/بیلد',
+          'Healthcheck و shutdown محترمانه',
+        ],
         details: [
           '## ایده',
           '',

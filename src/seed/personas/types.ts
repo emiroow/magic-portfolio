@@ -1,4 +1,12 @@
-import type { AppLocale, IBlog, IEducation, IProduct, IProfile, IProject, ISkill, ISocial, IWork } from '@/types';
+import type { AppLocale } from '@/types';
+import type { IBlog } from '@/features/blog/types';
+import type { IEducation } from '@/features/education/types';
+import type { IProduct } from '@/features/products/types';
+import type { IProfile } from '@/features/profile/types';
+import type { IProject } from '@/features/projects/types';
+import type { ISkill } from '@/features/skills/types';
+import type { ISocial } from '@/features/socials/types';
+import type { IWork } from '@/features/experience/types';
 
 /**
  * Persona primitives for the demo content.

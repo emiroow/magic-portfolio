@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from './types';
+import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Sara Mirzaei — front-end engineer working on design systems.
@@ -781,7 +781,13 @@ export const frontend: Persona = {
         image: cover('prism-design-system-starter'),
         description:
           'خط لوله توکن و ۶۰ کامپوننت دسترس‌پذیر و سازگار با RTL که سیستم طراحی من رویشان ساخته شده؛ ورودی Style Dictionary، خروجی preset تیلویند و متغیرهای CSS.',
-        features: ['خط لوله توکن چهارلایه', '۶۰ کامپوننت بر پایه Radix', 'RTL و تم تیره از ابتدا', 'مستندات Storybook', 'راه‌اندازی ریلیز با Changesets'],
+        features: [
+          'خط لوله توکن چهارلایه',
+          '۶۰ کامپوننت بر پایه Radix',
+          'RTL و تم تیره از ابتدا',
+          'مستندات Storybook',
+          'راه‌اندازی ریلیز با Changesets',
+        ],
         details: [
           '## چیست',
           '',

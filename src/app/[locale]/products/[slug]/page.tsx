@@ -1,17 +1,20 @@
 import Navbar from '@/components/navbar';
-import PostShare from '@/components/blog/post-share';
-import { PriceTag } from '@/components/products/price-tag';
-import { ProductCard } from '@/components/products/ProductCard';
+import PostShare from '@/features/blog/post-share';
+import { PriceTag } from '@/features/products/price-tag';
+import { ProductCard } from '@/features/products/ProductCard';
 import { JsonLd } from '@/components/JsonLd';
 import { MarkdownBody } from '@/components/markdown-body';
-import { eyebrowClass } from '@/components/sections/section-header';
+import { eyebrowClass } from '@/components/section-header';
 import BlurFade from '@/components/magicui/blur-fade';
 import { buttonVariants } from '@/components/ui/button';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
-import { getProfile, getProductByKey, getProducts, getSocials } from '@/lib/data';
+import { getProfile } from '@/features/profile/queries';
+import { getProductByKey, getProducts } from '@/features/products/queries';
+import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { cn, documentKey, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
-import type { AppLocale, IProduct } from '@/types';
+import type { AppLocale } from '@/types';
+import type { IProduct } from '@/features/products/types';
 import { ArrowLeft, ArrowUpRight, CalendarDays, Check, ShoppingBag, Tag } from 'lucide-react';
 import Image from 'next/image';
 import type { Metadata } from 'next';
@@ -213,7 +216,9 @@ export default async function ProductPage({ params }: Props) {
                       <CalendarDays className="size-3.5 shrink-0" aria-hidden />
                       {t('updated')}
                     </dt>
-                    <dd className="ms-auto shrink-0 font-medium tabular-nums">{formatYearMonthLocal(product.updatedAt || product.createdAt, lang)}</dd>
+                    <dd className="ms-auto shrink-0 font-medium tabular-nums">
+                      {formatYearMonthLocal(product.updatedAt || product.createdAt, lang)}
+                    </dd>
                   </div>
                 </dl>
               </div>
@@ -256,7 +261,10 @@ export default async function ProductPage({ params }: Props) {
                   <ul className="grid gap-x-6 gap-y-3 rounded-2xl border bg-card p-5 shadow-sm sm:grid-cols-2">
                     {product.features.map(feature => (
                       <li key={feature} className="flex items-start gap-2.5 text-sm">
-                        <span aria-hidden className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full border text-muted-foreground">
+                        <span
+                          aria-hidden
+                          className="mt-px flex size-5 shrink-0 items-center justify-center rounded-full border text-muted-foreground"
+                        >
                           <Check className="size-3" aria-hidden />
                         </span>
                         <span className="min-w-0" dir="auto">

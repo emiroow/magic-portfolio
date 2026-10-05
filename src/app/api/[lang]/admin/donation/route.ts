@@ -1,7 +1,7 @@
 import { createAdminCrud } from '@/lib/crud';
-import { normalizeDonation } from '@/lib/data';
-import { donationSchema, donationUpdateSchema } from '@/lib/validations';
-import { donationModel } from '@/models/donation';
+import { normalizeDonation } from '@/features/support/queries';
+import { donationSchema, donationUpdateSchema } from '@/features/support/schema';
+import { donationModel } from '@/features/support/donation.model';
 
 // Admin CRUD for payment methods (guarded by session + zod validation). The list is
 // normalized on the way out, so a document saved before destinations existed is

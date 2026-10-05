@@ -1,11 +1,11 @@
-import { getProfile } from '@/lib/data';
+import { getProfile } from '@/features/profile/queries';
 import { estedad, roboto } from '@/lib/fonts';
 import { brandedTitle, site, SITE_DESCRIPTION } from '@/lib/seo';
 import '@/app/globals.css';
 import { Analytics } from '@vercel/analytics/next';
 import type { Metadata, Viewport } from 'next';
 import { getLocale } from 'next-intl/server';
-import GoogleAnalytics from './analytics';
+import GoogleAnalytics from '@/app/analytics';
 
 /** Root metadata: brand comes from the profile (never env); sub-pages inherit `%s | Brand`. */
 export async function generateMetadata(): Promise<Metadata> {

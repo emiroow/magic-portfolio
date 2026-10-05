@@ -3,8 +3,8 @@
 import { AlertTriangle } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ReactNode } from 'react';
-import { Button } from './button';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './dialog';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 
 export type ConfirmDialogProps = {
   open: boolean;
@@ -30,7 +30,9 @@ export function ConfirmDialog({ open, onOpenChange, title, confirmText, cancelTe
             <AlertTriangle className={danger ? 'h-5 w-5 text-destructive' : 'h-5 w-5'} />
             <span>{title ?? t('confirmTitle')}</span>
           </DialogTitle>
-          <DialogDescription>{itemName ? <span className="font-semibold break-words text-foreground">{itemName}</span> : t('confirmDescription')}</DialogDescription>
+          <DialogDescription>
+            {itemName ? <span className="font-semibold break-words text-foreground">{itemName}</span> : t('confirmDescription')}
+          </DialogDescription>
         </DialogHeader>
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>

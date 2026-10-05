@@ -1,6 +1,6 @@
 import { apiError, apiJson, requireAdmin } from '@/lib/api';
 import { connectDB } from '@/config/dbConnection';
-import { profileModel } from '@/models/profile';
+import { profileModel } from '@/features/profile/model';
 import { langSchema } from '@/lib/validations';
 import { del, put } from '@vercel/blob';
 import { constants } from 'fs';

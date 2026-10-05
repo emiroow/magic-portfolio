@@ -1,5 +1,5 @@
-import { projectModel } from '@/models/project';
-import { withBothLangs, type Persona } from './personas/types';
+import { projectModel } from '@/features/projects/model';
+import { withBothLangs, type Persona } from '@/seed/personas/types';
 
 /**
  * Portfolio projects with long-form case studies.

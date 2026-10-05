@@ -1,16 +1,12 @@
-import { getBlogList, getProfile } from '@/lib/data';
+import { getBlogList } from '@/features/blog/queries';
+import { getProfile } from '@/features/profile/queries';
 import { site } from '@/lib/seo';
 import type { AppLocale } from '@/types';
 import { NextRequest, NextResponse } from 'next/server';
 
 /** Escape text for XML feed content. */
 function escapeXml(unsafe: string) {
-  return unsafe
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+  return unsafe.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
 }
 
 /** Feed labels per locale; drafts never reach this route. */
@@ -36,9 +32,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ loc
   const items = posts
     .map(post => {
       const link = `${base}/${locale}/blog/${post.slug}`;
-      const categories = (post.tags ?? [])
-        .map(tag => `        <category>${escapeXml(tag)}</category>`)
-        .join('\n');
+      const categories = (post.tags ?? []).map(tag => `        <category>${escapeXml(tag)}</category>`).join('\n');
 
       return `    <item>
       <title>${escapeXml(post.title)}</title>

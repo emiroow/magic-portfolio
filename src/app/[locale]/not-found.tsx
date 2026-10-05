@@ -1,5 +1,5 @@
 import BlurFade from '@/components/magicui/blur-fade';
-import { eyebrowClass } from '@/components/sections/section-header';
+import { eyebrowClass } from '@/components/section-header';
 import { Button } from '@/components/ui/button';
 import { Compass, Home } from 'lucide-react';
 import type { Metadata } from 'next';

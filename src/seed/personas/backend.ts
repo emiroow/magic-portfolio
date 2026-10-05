@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from './types';
+import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Kian Rahmani — back-end engineer working on payments and event pipelines.

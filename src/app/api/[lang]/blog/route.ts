@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api';
-import { getBlogList } from '@/lib/data';
+import { getBlogList } from '@/features/blog/queries';
 import { langSchema } from '@/lib/validations';
 
 /** Public blog list for a locale (content stripped). */

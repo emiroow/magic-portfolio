@@ -1,5 +1,5 @@
 import { apiError, apiJson } from '@/lib/api';
-import { getPortfolioData } from '@/lib/data';
+import { getPortfolioData } from '@/features/portfolio/queries';
 import { langSchema } from '@/lib/validations';
 
 /**

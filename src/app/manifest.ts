@@ -1,4 +1,4 @@
-import { getProfile } from '@/lib/data';
+import { getProfile } from '@/features/profile/queries';
 import { brandedTitle, SITE_DESCRIPTION } from '@/lib/seo';
 import type { MetadataRoute } from 'next';
 

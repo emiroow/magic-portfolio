@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import useAuth from '@/hooks/useAuth';
+import useAuth from '@/features/auth/useAuth';
 import { Link } from '@/i18n/routing';
 import { AlertCircle, ArrowLeft, Eye, EyeOff, Loader2, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -94,10 +94,7 @@ const AuthPage = () => {
       </Card>
 
       <div className="mt-6 text-center">
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-        >
+        <Link href="/" className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground">
           <ArrowLeft className="size-3.5 rtl:-scale-x-100" aria-hidden />
           {t('backHome')}
         </Link>

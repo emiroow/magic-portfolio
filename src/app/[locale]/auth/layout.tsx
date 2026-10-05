@@ -1,4 +1,4 @@
-import { getServerAuthSession } from '@/config/auth';
+import { getServerAuthSession } from '@/features/auth/config';
 import { absoluteUrl } from '@/lib/seo';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';

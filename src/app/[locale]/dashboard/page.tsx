@@ -1,6 +1,6 @@
-import Footer from '@/components/dashboard/footer';
-import Tab from '@/components/dashboard/tab';
-import { SectionHeader } from '@/components/sections/section-header';
+import Footer from '@/features/dashboard/footer';
+import Tab from '@/features/dashboard/tab';
+import { SectionHeader } from '@/components/section-header';
 import { getTranslations } from 'next-intl/server';
 
 /** Admin dashboard: page header, section switcher and control bar. */

@@ -1,15 +1,19 @@
 ﻿import { JsonLd } from '@/components/JsonLd';
 import Navbar from '@/components/navbar';
-import { About } from '@/components/sections/about';
-import { Blog } from '@/components/sections/blog';
-import { Contact } from '@/components/sections/contact';
-import { Education } from '@/components/sections/education';
-import { Experience } from '@/components/sections/experience';
-import { Hero } from '@/components/sections/hero';
-import { Products } from '@/components/sections/products';
-import { Projects } from '@/components/sections/projects';
-import { Skills } from '@/components/sections/skills';
-import { getPortfolioData, getProducts, getProfile, getBlogList, hasDonations } from '@/lib/data';
+import { About } from '@/features/profile/AboutSection';
+import { Blog } from '@/features/blog/BlogSection';
+import { Contact } from '@/features/profile/ContactSection';
+import { Education } from '@/features/education/EducationSection';
+import { Experience } from '@/features/experience/ExperienceSection';
+import { Hero } from '@/features/profile/HeroSection';
+import { Products } from '@/features/products/ProductsSection';
+import { Projects } from '@/features/projects/ProjectsSection';
+import { Skills } from '@/features/skills/SkillsSection';
+import { getPortfolioData } from '@/features/portfolio/queries';
+import { getProducts } from '@/features/products/queries';
+import { getProfile } from '@/features/profile/queries';
+import { getBlogList } from '@/features/blog/queries';
+import { hasDonations } from '@/features/support/queries';
 import { OG_IMAGE_URL, TWITTER_HANDLE, brandedTitle, languageAlternates, localeUrl, site } from '@/lib/seo';
 import { sectionIndex, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
@@ -40,7 +44,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Home shows the full brand as-is; the root template must not append to it.
     title: { absolute: title },
     description,
-    keywords: [profile?.fullName || profile?.name, profile?.jobTitle, 'portfolio', 'developer', locale === 'fa' ? 'نمونه کار' : 'web developer'].filter(Boolean) as string[],
+    keywords: [
+      profile?.fullName || profile?.name,
+      profile?.jobTitle,
+      'portfolio',
+      'developer',
+      locale === 'fa' ? 'نمونه کار' : 'web developer',
+    ].filter(Boolean) as string[],
     alternates: {
       canonical: localeUrl(locale),
       languages: languageAlternates(''),

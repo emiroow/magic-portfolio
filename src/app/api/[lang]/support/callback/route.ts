@@ -1,11 +1,11 @@
 import { tryConnectDB } from '@/config/dbConnection';
-import { captureGatewayPayment, externalIdFromParams, gatewayFromParams, rejectedByGateway } from '@/lib/payments';
-import { donationModel } from '@/models/donation';
-import { supporterModel } from '@/models/supporter';
+import { captureGatewayPayment, externalIdFromParams, gatewayFromParams, rejectedByGateway } from '@/features/support/payments';
+import { donationModel } from '@/features/support/donation.model';
+import { supporterModel } from '@/features/support/supporter.model';
 import { langSchema, objectIdSchema } from '@/lib/validations';
 import { revalidatePath } from 'next/cache';
 import { NextResponse } from 'next/server';
-import type { GatewayId, ISupporter } from '@/types';
+import type { GatewayId, ISupporter } from '@/features/support/types';
 
 /**
  * The gateway's return trip.
@@ -73,10 +73,13 @@ export const GET = async (request: Request, { params }: { params: Promise<{ lang
     return back('success');
   }
 
-  await supporterModel.updateOne({ _id: record._id }, {
-    status: outcome.status,
-    reference: 'reference' in outcome ? outcome.reference : undefined,
-    note: outcome.status === 'failed' ? outcome.message : undefined,
-  });
+  await supporterModel.updateOne(
+    { _id: record._id },
+    {
+      status: outcome.status,
+      reference: 'reference' in outcome ? outcome.reference : undefined,
+      note: outcome.status === 'failed' ? outcome.message : undefined,
+    }
+  );
   return back(outcome.status === 'cancelled' ? 'cancelled' : 'failed');
 };

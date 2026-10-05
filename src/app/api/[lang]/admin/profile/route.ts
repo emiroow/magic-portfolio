@@ -1,7 +1,8 @@
 import { apiError, apiJson, parseBody, requireAdmin } from '@/lib/api';
 import { connectDB } from '@/config/dbConnection';
-import { langSchema, profileSchema } from '@/lib/validations';
-import { profileModel } from '@/models/profile';
+import { langSchema } from '@/lib/validations';
+import { profileSchema } from '@/features/profile/schema';
+import { profileModel } from '@/features/profile/model';
 import { revalidatePath } from 'next/cache';
 
 type RouteContext = { params: Promise<{ lang: string }> };

@@ -133,9 +133,9 @@ export function toDialNumber(value: string | undefined): string {
   const raw = (value || '').trim();
   if (!raw) return '';
 
-  const ascii = raw.replace(/[\u06F0-\u06F9]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d))).replace(/[\u0660-\u0669]/g, d =>
-    String('٠١٢٣٤٥٦٧٨٩'.indexOf(d))
-  );
+  const ascii = raw
+    .replace(/[\u06F0-\u06F9]/g, d => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(d)))
+    .replace(/[\u0660-\u0669]/g, d => String('٠١٢٣٤٥٦٧٨٩'.indexOf(d)));
 
   const plus = ascii.startsWith('+') ? '+' : '';
   return plus + ascii.replace(/[^\d]/g, '');

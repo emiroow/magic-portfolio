@@ -1,6 +1,6 @@
-import { donationModel } from '@/models/donation';
-import type { IDonation } from '@/types';
-import { withBothLangs, type Content, type Localized, type Persona } from './personas/types';
+import { donationModel } from '@/features/support/donation.model';
+import type { IDonation } from '@/features/support/types';
+import { withBothLangs, type Content, type Localized, type Persona } from '@/seed/personas/types';
 
 /**
  * Support methods for the demo persona.

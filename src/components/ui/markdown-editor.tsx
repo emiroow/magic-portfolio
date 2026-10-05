@@ -1,13 +1,13 @@
-"use client";
-import { cn } from "@/lib/utils";
-import { useLocale } from "next-intl";
-import { useTheme } from "next-themes";
-import dynamic from "next/dynamic";
-import { useMemo } from "react";
+'use client';
+import { cn } from '@/lib/utils';
+import { useLocale } from 'next-intl';
+import { useTheme } from 'next-themes';
+import dynamic from 'next/dynamic';
+import { useMemo } from 'react';
 
 // Styles for the editor & preview
-import "@uiw/react-markdown-preview/markdown.css";
-import "@uiw/react-md-editor/markdown-editor.css";
+import '@uiw/react-markdown-preview/markdown.css';
+import '@uiw/react-md-editor/markdown-editor.css';
 
 // Load editor on client only to avoid SSR issues
 type MDEditorProps = {
@@ -21,7 +21,7 @@ type MDEditorProps = {
   textareaProps?: { placeholder?: string; dir?: string };
 };
 
-const MDEditor = dynamic<MDEditorProps>(() => import("@uiw/react-md-editor"), {
+const MDEditor = dynamic<MDEditorProps>(() => import('@uiw/react-md-editor'), {
   ssr: false,
 });
 
@@ -51,28 +51,24 @@ export default function MarkdownEditor({
   hideToolbar,
 }: MarkdownEditorProps) {
   const locale = useLocale();
-  const dir = locale === "fa" ? "rtl" : "ltr";
+  const dir = locale === 'fa' ? 'rtl' : 'ltr';
   const { theme, resolvedTheme } = useTheme();
 
-  const colorMode = useMemo<"light" | "dark">(() => {
-    const current = theme === "system" ? resolvedTheme : theme;
-    return current === "dark" ? "dark" : "light";
+  const colorMode = useMemo<'light' | 'dark'>(() => {
+    const current = theme === 'system' ? resolvedTheme : theme;
+    return current === 'dark' ? 'dark' : 'light';
   }, [theme, resolvedTheme]);
 
   const fallbackPlaceholder = useMemo(
-    () =>
-      placeholder ??
-      (locale === "fa"
-        ? "محتوای خود را اینجا بنویسید..."
-        : "Write your content here..."),
+    () => placeholder ?? (locale === 'fa' ? 'محتوای خود را اینجا بنویسید...' : 'Write your content here...'),
     [placeholder, locale]
   );
 
   const chars = value?.length ?? 0;
-  const limitReached = typeof maxLength === "number" && chars > maxLength;
+  const limitReached = typeof maxLength === 'number' && chars > maxLength;
 
   return (
-    <div className={cn("space-y-1", className)} dir={dir}>
+    <div className={cn('space-y-1', className)} dir={dir}>
       {label && (
         <label className="text-sm font-medium">
           {label}
@@ -84,7 +80,7 @@ export default function MarkdownEditor({
       <div data-color-mode={colorMode} className="rounded-md border">
         <MDEditor
           value={value}
-          onChange={(val: string | undefined) => onChange(val || "")}
+          onChange={(val: string | undefined) => onChange(val || '')}
           height={height}
           hideToolbar={hideToolbar}
           direction={dir}
@@ -94,11 +90,9 @@ export default function MarkdownEditor({
 
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         {error ? <span className="text-destructive">{error}</span> : <span />}
-        {typeof maxLength === "number" && (
-          <span className={cn(limitReached && "text-destructive")}>
-            {locale === "fa"
-              ? `کاراکتر: ${chars}/${maxLength}`
-              : `Characters: ${chars}/${maxLength}`}
+        {typeof maxLength === 'number' && (
+          <span className={cn(limitReached && 'text-destructive')}>
+            {locale === 'fa' ? `کاراکتر: ${chars}/${maxLength}` : `Characters: ${chars}/${maxLength}`}
           </span>
         )}
       </div>

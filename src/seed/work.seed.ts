@@ -1,5 +1,5 @@
-import { workModel } from '@/models/work';
-import { withBothLangs, type Persona } from './personas/types';
+import { workModel } from '@/features/experience/model';
+import { withBothLangs, type Persona } from '@/seed/personas/types';
 
 /** Career history, newest role first, both locales. Returns the inserted count. */
 export const seedWorkData = async (persona: Persona) => {

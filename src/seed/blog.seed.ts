@@ -1,5 +1,5 @@
-import { blogModel } from '@/models/blog';
-import { withBothLangs, type Localized, type Persona, type PersonaPost } from './personas/types';
+import { blogModel } from '@/features/blog/model';
+import { withBothLangs, type Localized, type Persona, type PersonaPost } from '@/seed/personas/types';
 
 const DAY = 24 * 60 * 60 * 1000;
 
