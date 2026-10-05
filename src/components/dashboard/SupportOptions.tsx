@@ -8,22 +8,32 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Loading from '@/components/ui/loading';
 import { Textarea } from '@/components/ui/textarea';
-import { CRYPTO_NETWORKS, DONATION_MODES, DONATION_REGIONS, GATEWAY_IDS, PLATFORM_PROVIDERS, PRODUCT_CURRENCIES } from '@/constants/global';
+import {
+  CRYPTO_NETWORKS,
+  DONATION_MODES,
+  DONATION_REGIONS,
+  GATEWAY_IDS,
+  PLATFORM_PROVIDERS,
+  ACTION_PROVIDERS,
+  PRODUCT_CURRENCIES,
+} from '@/constants/global';
 import useDonations, { numberField } from '@/hooks/dashboard/useDonations';
 import { useFormPanel } from '@/hooks/dashboard/useFormPanel';
+import { handlesMoney } from '@/lib/support';
 import { formatPrice, localizedCount, slugify } from '@/lib/utils';
 import { useValidationMessage } from '@/hooks/useValidationMessage';
 import type { AppLocale, DonationMode, GatewayId, IDonation } from '@/types';
-import { AlertTriangle, Plus, X } from 'lucide-react';
+import { AlertTriangle, Info, Plus, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
 /**
  * Field groups of the method form, in the order they are filled in.
  *
- * A payment method is one decision (which way money travels) plus the places it can
- * arrive at, so the form asks in that order and shows only the fields that decision
- * needs. The ids are the anchor a failed submit scrolls to.
+ * A support method is one decision (which way the backing travels) plus the places it
+ * can arrive at, so the form asks in that order and shows only the fields that
+ * decision needs. A method that takes no money has no amount group at all — there is
+ * nothing to price. The ids are the anchor a failed submit scrolls to.
  */
 const GROUPS = [
   { id: 'identity', label: 'groupIdentity', anchor: 'support-title', fields: ['title', 'slug', 'description'] },
@@ -35,7 +45,7 @@ const GROUPS = [
 type GroupId = (typeof GROUPS)[number]['id'];
 
 /**
- * Payment methods: the CRUD form for the ways this project can be backed, plus the
+ * Support methods: the CRUD form for the ways this project can be backed, plus the
  * list of them.
  *
  * One choice decides everything below it — a method only ever carries the
@@ -84,15 +94,22 @@ const SupportOptions = () => {
   const title = watch('title');
   const editingId = watch('_id');
   const mode = watch('mode') as DonationMode;
+  const money = handlesMoney(mode);
   const currency = watch('currency');
   const suggested = watch('suggestedAmounts') ?? [];
   const variants = watch('variants') ?? [];
 
+  /** An amount-free method has no amount step, and nothing to jump back to. */
+  const groups = money ? GROUPS : GROUPS.filter(group => group.id !== 'amount');
+
   /** Which groups still hold a mistake, so the summary can point at one. */
   const brokenGroups = useMemo(() => {
     const names = Object.keys(errors as Record<string, unknown>);
-    return GROUPS.filter(group => group.fields.some(field => names.includes(field))).map(group => group.id);
-  }, [errors]);
+    return groups.filter(group => group.fields.some(field => names.includes(field))).map(group => group.id);
+  }, [errors, groups]);
+
+  /** The number shown beside a group's heading, in the order the form asks. */
+  const stepOf = (id: GroupId) => groups.findIndex(group => group.id === id) + 1;
 
   const autoSlug = !editingId && title ? slugify(title) : watch('slug');
 
@@ -165,7 +182,14 @@ const SupportOptions = () => {
                   if (!group) return null;
 
                   return (
-                    <Button key={id} type="button" size="sm" variant="outline" className="h-7 rounded-full px-2.5 text-[11px]" onClick={() => focusGroup(id)}>
+                    <Button
+                      key={id}
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 rounded-full px-2.5 text-[11px]"
+                      onClick={() => focusGroup(id)}
+                    >
                       {t(group.label)}
                     </Button>
                   );
@@ -175,7 +199,13 @@ const SupportOptions = () => {
           )}
 
           {/* 1 — what the method is */}
-          <FormGroup id="support-title" index={1} title={t('groupIdentity')} description={t('groupIdentityHint')} broken={brokenGroups.includes('identity')}>
+          <FormGroup
+            id="support-title"
+            index={stepOf('identity')}
+            title={t('groupIdentity')}
+            description={t('groupIdentityHint')}
+            broken={brokenGroups.includes('identity')}
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label={t('methodTitle')} id="support-title" error={errors.title?.message}>
                 <Input id="support-title" {...register('title')} placeholder={t('methodTitlePlaceholder')} dir="auto" />
@@ -195,9 +225,15 @@ const SupportOptions = () => {
             </Field>
           </FormGroup>
 
-          {/* 2 — how the money arrives, and where it lands */}
-          <FormGroup id="support-mode-group" index={2} title={t('groupRail')} description={t('groupRailHint')} broken={brokenGroups.includes('rail')}>
-            <div role="radiogroup" aria-label={t('chooseMethod')} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-4">
+          {/* 2 — how the backing arrives, and where it lands */}
+          <FormGroup
+            id="support-mode-group"
+            index={stepOf('rail')}
+            title={t('groupRail')}
+            description={t('groupRailHint')}
+            broken={brokenGroups.includes('rail')}
+          >
+            <div role="radiogroup" aria-label={t('chooseMethod')} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {DONATION_MODES.map(value => {
                 const Icon = MODE_ICONS[value];
                 const active = mode === value;
@@ -211,12 +247,23 @@ const SupportOptions = () => {
                     onClick={() => setMode(value)}
                     className={
                       active
-                        ? 'flex min-h-11 items-center gap-2 rounded-lg border border-foreground bg-foreground px-3 py-2 text-start text-sm font-medium text-background transition-colors'
-                        : 'flex min-h-11 items-center gap-2 rounded-lg border border-input bg-background px-3 py-2 text-start text-sm font-medium transition-colors hover:border-foreground/40 hover:bg-muted/40'
+                        ? 'flex min-h-11 flex-col items-start gap-1 rounded-lg border border-foreground bg-foreground px-3 py-2.5 text-start transition-colors'
+                        : 'flex min-h-11 flex-col items-start gap-1 rounded-lg border border-input bg-background px-3 py-2.5 text-start transition-colors hover:border-foreground/40 hover:bg-muted/40'
                     }
                   >
-                    <Icon className="size-4 shrink-0" aria-hidden />
-                    <span className="min-w-0 truncate">{ts(`modes.${value}`)}</span>
+                    <span className="flex min-w-0 items-center gap-2">
+                      <Icon className={active ? 'size-4 shrink-0' : 'size-4 shrink-0 text-muted-foreground'} aria-hidden />
+                      <span className={active ? 'min-w-0 truncate text-sm font-medium text-background' : 'min-w-0 truncate text-sm font-medium'}>
+                        {ts(`modes.${value}`)}
+                      </span>
+                    </span>
+                    <span
+                      className={
+                        active ? 'min-w-0 text-[11px] leading-snug text-background/80' : 'min-w-0 text-[11px] leading-snug text-muted-foreground'
+                      }
+                    >
+                      {t(`methodHints.${value}`)}
+                    </span>
                   </button>
                 );
               })}
@@ -232,7 +279,7 @@ const SupportOptions = () => {
               </select>
             </Field>
 
-            {/* Destinations: the places this method can actually be paid into. */}
+            {/* Destinations: the places this method can actually arrive at. */}
             <div className="space-y-3 rounded-lg border bg-muted/20 p-3 sm:p-4">
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -267,74 +314,120 @@ const SupportOptions = () => {
             </div>
           </FormGroup>
 
-          {/* 3 — what it costs */}
-          <FormGroup id="support-amount" index={3} title={t('groupAmount')} description={t('groupAmountHint')} broken={brokenGroups.includes('amount')}>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              <Field label={t('amount')} id="support-amount" error={errors.amount?.message} hint={t('amountHint')}>
-                <Input id="support-amount" type="number" min={0} step={1} inputMode="numeric" dir="ltr" className="tabular-nums" {...register('amount', numberField)} />
-              </Field>
-              <Field label={t('currency')} id="support-currency" error={errors.currency?.message} hint={t('currencyHint')}>
-                <select id="support-currency" {...register('currency')} className="control">
-                  {PRODUCT_CURRENCIES.map(code => (
-                    <option key={code} value={code}>
-                      {tp(code)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t('minAmount')} id="support-min" error={errors.minAmount?.message} hint={t('minAmountHint')}>
-                <Input id="support-min" type="number" min={0} step={1} inputMode="numeric" dir="ltr" className="tabular-nums" {...register('minAmount', numberField)} />
-              </Field>
-              <Field label={t('maxAmount')} id="support-max" error={errors.maxAmount?.message} hint={t('maxAmountHint')}>
-                <Input id="support-max" type="number" min={0} step={1} inputMode="numeric" dir="ltr" className="tabular-nums" {...register('maxAmount', numberField)} />
-              </Field>
-            </div>
-
-            <CheckboxField id="support-custom-amount" label={t('customAmount')} hint={t('customAmountHint')} {...register('customAmount')} />
-
-            {/* Quick-pick amounts, shown as chips on the supporter's amount step. */}
-            <Field label={t('suggested')} error={errors.suggestedAmounts?.message} hint={t('suggestedHint')}>
-              <div className="flex gap-2">
-                <Input
-                  type="number"
-                  min={1}
-                  step={1}
-                  inputMode="numeric"
-                  dir="ltr"
-                  className="tabular-nums"
-                  value={amount}
-                  onChange={event => setAmount(event.target.value)}
-                  placeholder={t('suggestedPlaceholder')}
-                  aria-label={t('suggestedPlaceholder')}
-                  onKeyDown={event => {
-                    if (event.key === 'Enter') {
-                      event.preventDefault();
-                      commitAmount();
-                    }
-                  }}
-                />
-                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={commitAmount}>
-                  {t('add')}
-                </Button>
+          {/* 3 — what it costs, or the note that it costs nothing */}
+          {money ? (
+            <FormGroup
+              id="support-amount"
+              index={stepOf('amount')}
+              title={t('groupAmount')}
+              description={t('groupAmountHint')}
+              broken={brokenGroups.includes('amount')}
+            >
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <Field label={t('amount')} id="support-amount" error={errors.amount?.message} hint={t('amountHint')}>
+                  <Input
+                    id="support-amount"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="tabular-nums"
+                    {...register('amount', numberField)}
+                  />
+                </Field>
+                <Field label={t('currency')} id="support-currency" error={errors.currency?.message} hint={t('currencyHint')}>
+                  <select id="support-currency" {...register('currency')} className="control">
+                    {PRODUCT_CURRENCIES.map(code => (
+                      <option key={code} value={code}>
+                        {tp(code)}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                <Field label={t('minAmount')} id="support-min" error={errors.minAmount?.message} hint={t('minAmountHint')}>
+                  <Input
+                    id="support-min"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="tabular-nums"
+                    {...register('minAmount', numberField)}
+                  />
+                </Field>
+                <Field label={t('maxAmount')} id="support-max" error={errors.maxAmount?.message} hint={t('maxAmountHint')}>
+                  <Input
+                    id="support-max"
+                    type="number"
+                    min={0}
+                    step={1}
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="tabular-nums"
+                    {...register('maxAmount', numberField)}
+                  />
+                </Field>
               </div>
-              {suggested.length > 0 && (
-                <ul className="flex flex-wrap gap-1.5">
-                  {suggested.map((value, index) => (
-                    <li key={`${value}-${index}`}>
-                      <Badge variant="secondary" onDelete={() => removeSuggested(index)}>
-                        {/* Amounts are numeric runs: grouping must never mirror. */}
-                        <bdi dir="ltr">{formatPrice(value, lang)}</bdi>
-                        <span className="ms-1 opacity-70">{tp(currency)}</span>
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Field>
-          </FormGroup>
+
+              <CheckboxField id="support-custom-amount" label={t('customAmount')} hint={t('customAmountHint')} {...register('customAmount')} />
+
+              {/* Quick-pick amounts, shown as chips on the supporter's amount step. */}
+              <Field label={t('suggested')} error={errors.suggestedAmounts?.message} hint={t('suggestedHint')}>
+                <div className="flex gap-2">
+                  <Input
+                    type="number"
+                    min={1}
+                    step={1}
+                    inputMode="numeric"
+                    dir="ltr"
+                    className="tabular-nums"
+                    value={amount}
+                    onChange={event => setAmount(event.target.value)}
+                    placeholder={t('suggestedPlaceholder')}
+                    aria-label={t('suggestedPlaceholder')}
+                    onKeyDown={event => {
+                      if (event.key === 'Enter') {
+                        event.preventDefault();
+                        commitAmount();
+                      }
+                    }}
+                  />
+                  <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={commitAmount}>
+                    {t('add')}
+                  </Button>
+                </div>
+                {suggested.length > 0 && (
+                  <ul className="flex flex-wrap gap-1.5">
+                    {suggested.map((value, index) => (
+                      <li key={`${value}-${index}`}>
+                        <Badge variant="secondary" onDelete={() => removeSuggested(index)}>
+                          {/* Amounts are numeric runs: grouping must never mirror. */}
+                          <bdi dir="ltr">{formatPrice(value, lang)}</bdi>
+                          <span className="ms-1 opacity-70">{tp(currency)}</span>
+                        </Badge>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </Field>
+            </FormGroup>
+          ) : (
+            <p className="flex items-start gap-2.5 rounded-lg border border-dashed px-3.5 py-3 text-xs leading-relaxed text-muted-foreground">
+              <Info className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+              {t('noAmountHint')}
+            </p>
+          )}
 
           {/* 4 — where it shows up */}
-          <FormGroup id="support-active" index={4} title={t('groupPublish')} description={t('groupPublishHint')} broken={brokenGroups.includes('publish')}>
+          <FormGroup
+            id="support-active"
+            index={stepOf('publish')}
+            title={t('groupPublish')}
+            description={t('groupPublishHint')}
+            broken={brokenGroups.includes('publish')}
+          >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <CheckboxField
                 id="support-active"
@@ -344,7 +437,17 @@ const SupportOptions = () => {
                 onChange={event => setValue('active', event.target.checked, { shouldDirty: true, shouldValidate: true })}
               />
               <Field label={t('order')} id="support-order" error={errors.order?.message} hint={t('orderHint')}>
-                <Input id="support-order" type="number" min={0} max={999} step={1} inputMode="numeric" dir="ltr" className="tabular-nums" {...register('order', numberField)} />
+                <Input
+                  id="support-order"
+                  type="number"
+                  min={0}
+                  max={999}
+                  step={1}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  {...register('order', numberField)}
+                />
               </Field>
             </div>
           </FormGroup>
@@ -435,13 +538,27 @@ function FormGroup({
 }
 
 /** Fields a destination row can hold, and the only paths its inputs register. */
-type VariantField = 'label' | 'provider' | 'href' | 'number' | 'iban' | 'holder' | 'qrPayload' | 'network' | 'address' | 'currency' | 'region' | 'active';
+type VariantField =
+  | 'label'
+  | 'provider'
+  | 'href'
+  | 'instruction'
+  | 'number'
+  | 'iban'
+  | 'holder'
+  | 'qrPayload'
+  | 'network'
+  | 'address'
+  | 'currency'
+  | 'region'
+  | 'active';
 
 type VariantErrors = Partial<Record<VariantField, { message?: string }>>;
 
 /**
  * One destination row. The method decides which fields it shows: a wallet asks for a
- * chain and an address, a card for digits, a platform for a page — nothing else.
+ * chain and an address, a card for digits, a platform for a page, a gesture for the
+ * page and the step to take on it — nothing else.
  */
 function VariantRow({
   index,
@@ -489,7 +606,14 @@ function VariantRow({
             {t('on')}
           </label>
           {index > 0 && (
-            <Button type="button" size="icon" variant="ghost" className="size-7 hover:text-destructive" onClick={onRemove} aria-label={t('removeDestination')}>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="size-7 hover:text-destructive"
+              onClick={onRemove}
+              aria-label={t('removeDestination')}
+            >
               <X className="size-3.5" aria-hidden />
             </Button>
           )}
@@ -519,10 +643,23 @@ function VariantRow({
           {mode === 'card' && (
             <>
               <Field label={t('cardNumber')} id={`${path('number')}-input`} error={errors?.number?.message}>
-                <Input id={`${path('number')}-input`} inputMode="numeric" dir="ltr" className="tabular-nums" placeholder={t('cardNumberPlaceholder')} {...register(path('number'))} />
+                <Input
+                  id={`${path('number')}-input`}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  placeholder={t('cardNumberPlaceholder')}
+                  {...register(path('number'))}
+                />
               </Field>
               <Field label={t('iban')} id={`${path('iban')}-input`} error={errors?.iban?.message}>
-                <Input id={`${path('iban')}-input`} dir="ltr" className="tabular-nums" placeholder={t('ibanPlaceholder')} {...register(path('iban'))} />
+                <Input
+                  id={`${path('iban')}-input`}
+                  dir="ltr"
+                  className="tabular-nums"
+                  placeholder={t('ibanPlaceholder')}
+                  {...register(path('iban'))}
+                />
               </Field>
               <Field label={t('cardHolder')} id={`${path('holder')}-input`} optionalLabel={t('optional')}>
                 <Input id={`${path('holder')}-input`} dir="auto" placeholder={t('cardHolderPlaceholder')} {...register(path('holder'))} />
@@ -552,8 +689,18 @@ function VariantRow({
           )}
 
           {mode === 'gateway' && (
-            <Field label={t('gateway')} id={`${path('provider')}-input`} error={errors?.provider?.message} hint={gatewayMissing(variant?.provider) ? t('gatewayMissing') : t('gatewayHint')}>
-              <select id={`${path('provider')}-input`} {...register(path('provider'))} className="control" aria-invalid={gatewayMissing(variant?.provider) || undefined}>
+            <Field
+              label={t('gateway')}
+              id={`${path('provider')}-input`}
+              error={errors?.provider?.message}
+              hint={gatewayMissing(variant?.provider) ? t('gatewayMissing') : t('gatewayHint')}
+            >
+              <select
+                id={`${path('provider')}-input`}
+                {...register(path('provider'))}
+                className="control"
+                aria-invalid={gatewayMissing(variant?.provider) || undefined}
+              >
                 <option value="">—</option>
                 {GATEWAY_IDS.map(value => (
                   <option key={value} value={value}>
@@ -564,12 +711,55 @@ function VariantRow({
               </select>
             </Field>
           )}
+
+          {mode === 'action' && (
+            <>
+              <Field label={t('actionNetwork')} id={`${path('provider')}-input`} error={errors?.provider?.message}>
+                <select id={`${path('provider')}-input`} {...register(path('provider'))} className="control">
+                  <option value="">—</option>
+                  {ACTION_PROVIDERS.map(value => (
+                    <option key={value} value={value}>
+                      {ts(`providers.${value}`)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('actionPage')} id={`${path('href')}-input`} error={errors?.href?.message} hint={t('actionPageHint')}>
+                <Input id={`${path('href')}-input`} type="url" dir="ltr" {...register(path('href'))} placeholder={t('actionPagePlaceholder')} />
+              </Field>
+            </>
+          )}
+
+          {/* The one thing the supporter has to do once they are there, in the owner's words. */}
+          {(mode === 'platform' || mode === 'action') && (
+            <Field
+              label={t('stepInstruction')}
+              id={`${path('instruction')}-input`}
+              error={errors?.instruction?.message}
+              hint={t('stepInstructionHint')}
+              optionalLabel={t('optional')}
+            >
+              <Input
+                id={`${path('instruction')}-input`}
+                dir="auto"
+                maxLength={160}
+                {...register(path('instruction'))}
+                placeholder={t('stepInstructionPlaceholder')}
+              />
+            </Field>
+          )}
         </div>
 
         {/* What the supporter sees, and the two cases where a destination differs
             from its method: the unit it is priced in and the market it serves. */}
         <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-3">
-          <Field label={t('destinationName')} id={`${path('label')}-input`} error={errors?.label?.message} hint={t('destinationNameHint')} optionalLabel={t('optional')}>
+          <Field
+            label={t('destinationName')}
+            id={`${path('label')}-input`}
+            error={errors?.label?.message}
+            hint={t('destinationNameHint')}
+            optionalLabel={t('optional')}
+          >
             <Input id={`${path('label')}-input`} dir="auto" {...register(path('label'))} placeholder={t('destinationNamePlaceholder')} />
           </Field>
           <Field label={t('currencyOverride')} id={`${path('currency')}-input`} optionalLabel={t('optional')}>

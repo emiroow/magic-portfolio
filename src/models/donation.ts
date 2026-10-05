@@ -12,6 +12,7 @@ const supportVariantSchema = new Schema<IDonation['variants'][number]>(
     label: { type: String },
     provider: { type: String },
     href: { type: String },
+    instruction: { type: String, maxlength: 160 },
     number: { type: String },
     iban: { type: String },
     holder: { type: String },
@@ -26,10 +27,13 @@ const supportVariantSchema = new Schema<IDonation['variants'][number]>(
 );
 
 /**
- * A payment method: one way money arrives, the amount policy around it, and the
- * destinations it can be paid into. Support platforms, card-to-card, crypto and an
- * in-site gateway checkout are four separate documents, never four prices for the
- * same act of giving.
+ * A support method: one way backing arrives, the conditions around it and the
+ * destinations it can be paid into. Support platforms, card-to-card, crypto, an
+ * in-site gateway checkout and a free gesture are five separate documents, never
+ * five prices for the same act of giving.
+ *
+ * `action` methods keep the money fields at zero: nothing is charged, so nothing can
+ * be mis-read as a price by the page, the wall or the receipts.
  */
 const donationItemSchema = new Schema<IDonation>(
   {

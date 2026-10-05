@@ -79,13 +79,15 @@ export function ChoiceTile({ group, value, checked, onChange, label, detail, ico
             {monogram}
           </span>
         )}
-        <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-          <span className="break-words text-sm font-medium leading-snug" dir={nameDir(label)}>
-            {label}
+        <span className="flex min-w-0 flex-1 flex-col items-start gap-0.5">
+          {/* The run keeps its own direction, the tile keeps the page's: a Latin host or
+              name still lines up with the reading edge instead of drifting across it. */}
+          <span className="break-words text-sm font-medium leading-snug">
+            <bdi dir={nameDir(label)}>{label}</bdi>
           </span>
           {detail && (
-            <span className="break-words text-[11px] leading-snug text-muted-foreground" dir="auto">
-              {detail}
+            <span className="break-words text-[11px] leading-snug text-muted-foreground">
+              <bdi dir="auto">{detail}</bdi>
             </span>
           )}
         </span>

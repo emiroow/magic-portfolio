@@ -1,15 +1,6 @@
 import { FolderGit2, HandHeart, Home, NotebookText, ShoppingBag } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type {
-  AppLocale,
-  CryptoNetwork,
-  DonationMode,
-  DonationRegion,
-  GatewayId,
-  ProductCurrency,
-  SupportProvider,
-  SupporterStatus,
-} from '@/types';
+import type { AppLocale, CryptoNetwork, DonationMode, DonationRegion, GatewayId, ProductCurrency, SupportProvider, SupporterStatus } from '@/types';
 
 /**
  * A single dock entry. `href` is locale-relative (the localized `Link` wrapper
@@ -84,31 +75,57 @@ export const PRODUCT_CURRENCY_CODES: Record<ProductCurrency, string> = {
 export const SUPPORTER_PAGE_SIZE = 9;
 
 /**
- * Every payment method the dashboard offers. The list backs the method picker,
+ * Every support method the dashboard offers. The list backs the method picker,
  * zod's enum and the `support.modes` labels, so a method can only be added here —
  * one entry, one card on `/support`, one checkout surface.
+ *
+ * The first four carry money; `action` carries a gesture instead (a star, a follow,
+ * a bug report) and is the only method with no amount policy at all.
  */
-export const DONATION_MODES = ['platform', 'card', 'crypto', 'gateway'] as [DonationMode, ...DonationMode[]];
+export const DONATION_MODES = ['platform', 'card', 'crypto', 'gateway', 'action'] as [DonationMode, ...DonationMode[]];
+
+/** Methods that actually move money; `action` is excluded, so nothing is ever charged for it. */
+export const MONEY_MODES = DONATION_MODES.filter(mode => mode !== 'action') as [DonationMode, ...DonationMode[]];
 
 /** Markets the method picker offers; Iranian rails lead the Persian site. */
 export const DONATION_REGIONS = ['ir', 'global'] as [DonationRegion, ...DonationRegion[]];
 
 /**
- * Services a destination can belong to. The support platforms are the two the
- * section hands off to — Buy Me a Coffee abroad, کافی‌بده at home — and the
- * gateways cover both a prepared payment link and an in-site checkout.
+ * Services a destination can belong to. The support platforms are the paid
+ * hand-offs — Buy Me a Coffee abroad, کافی‌بده at home — the gateways cover both a
+ * prepared payment link and an in-site checkout, and the networks are the services
+ * a free gesture is made on.
  *
- * A new platform is one id added to this list plus its label in both catalogues.
+ * A new service is one id added to this list plus its label in both catalogues.
  * `custom` already takes any URL and is named by the destination's own label, so
  * a service can be served before the code catches up with its name.
  */
-export const SUPPORT_PROVIDERS = ['buymeacoffee', 'coffeebede', 'zarinpal', 'idpay', 'stripe', 'paypal', 'custom'] as [
+export const SUPPORT_PROVIDERS = [
+  'buymeacoffee',
+  'coffeebede',
+  'github',
+  'patreon',
+  'kofi',
+  'zarinpal',
+  'idpay',
+  'stripe',
+  'paypal',
+  'youtube',
+  'telegram',
+  'twitter',
+  'instagram',
+  'linkedin',
+  'custom',
+] as [SupportProvider, ...SupportProvider[]];
+
+/** Providers offered to a `platform` destination: the pages that take money for the owner. */
+export const PLATFORM_PROVIDERS = ['buymeacoffee', 'coffeebede', 'github', 'patreon', 'kofi', 'custom'] as [SupportProvider, ...SupportProvider[]];
+
+/** Providers offered to an `action` destination: the networks a gesture is made on. */
+export const ACTION_PROVIDERS = ['github', 'youtube', 'telegram', 'twitter', 'instagram', 'linkedin', 'custom'] as [
   SupportProvider,
   ...SupportProvider[],
 ];
-
-/** Providers offered to a `platform` destination. */
-export const PLATFORM_PROVIDERS = ['buymeacoffee', 'coffeebede', 'custom'] as [SupportProvider, ...SupportProvider[]];
 
 /** Providers offered to a `gateway` destination; each one needs credentials in the environment. */
 export const GATEWAY_IDS = ['zarinpal', 'idpay', 'stripe', 'paypal'] as [GatewayId, ...GatewayId[]];
@@ -129,6 +146,9 @@ export const MAX_VARIANTS = 12;
 /** Longest destination name, so a tile never wraps into a third line. */
 export const MAX_VARIANT_LABEL = 40;
 
+/** Longest per-destination instruction: one step, said in one sentence. */
+export const MAX_VARIANT_INSTRUCTION = 160;
+
 /**
  * Currencies each gateway can actually charge in. The Iranian rails settle in
  * rial, so toman/rial are theirs alone; the international ones need a hard
@@ -142,10 +162,7 @@ export const GATEWAY_CURRENCIES: Record<GatewayId, readonly ProductCurrency[]> =
 };
 
 /** Support record lifecycle, in the order the dashboard filter lists them. */
-export const SUPPORTER_STATUSES = ['pending', 'completed', 'failed', 'cancelled'] as [
-  SupporterStatus,
-  ...SupporterStatus[],
-];
+export const SUPPORTER_STATUSES = ['pending', 'completed', 'failed', 'cancelled'] as [SupporterStatus, ...SupporterStatus[]];
 
 /** Longest supporter message stored and shown, so the wall stays scannable. */
 export const SUPPORTER_MESSAGE_LIMIT = 280;

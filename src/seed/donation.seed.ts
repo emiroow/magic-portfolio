@@ -3,17 +3,19 @@ import type { IDonation } from '@/types';
 import { withBothLangs, type Content, type Localized, type Persona } from './personas/types';
 
 /**
- * Payment methods for the demo persona.
+ * Support methods for the demo persona.
  *
  * Unlike projects or products, a method is not biographical: it is plumbing. So the
  * set is authored once, in both languages, and every method the site can render
- * appears exactly once — the two support platforms (Buy Me a Coffee abroad,
- * کافی‌بده at home), card-to-card, a stablecoin wallet, and an in-site gateway
- * checkout left unpublished until its credentials exist.
+ * appears exactly once — the support platforms (Buy Me a Coffee and GitHub Sponsors
+ * abroad, کافی‌بده at home), card-to-card, a stablecoin wallet, an in-site gateway
+ * checkout left unpublished until its credentials exist, and the block of gestures
+ * that ask for a minute instead of money.
  *
  * Each method carries its own destinations inside it: three chains for the wallet,
- * a card and a sheba for the bank transfer. That is what the supporter picks between
- * in the wizard, and what the dashboard edits.
+ * a card and a sheba for the bank transfer, the pages a free gesture is made on.
+ * That is what the supporter picks between in the wizard, and what the dashboard
+ * edits — a method never shows a destination that belongs to another one.
  *
  * The destinations are obvious placeholders (`your-name`, an all-zero IBAN, a
  * 16-digit fake card), because seeding real coordinates into a demo database would
@@ -32,7 +34,15 @@ const METHODS: Localized<MethodContent> = {
       mode: 'platform',
       region: 'global',
       variants: [
-        { key: 'buymeacoffee', provider: 'buymeacoffee', href: 'https://buymeacoffee.com/your-name', currency: 'usd', region: 'global', active: true },
+        {
+          key: 'buymeacoffee',
+          provider: 'buymeacoffee',
+          href: 'https://buymeacoffee.com/your-name',
+          currency: 'usd',
+          region: 'global',
+          active: true,
+        },
+        { key: 'github', provider: 'github', href: 'https://github.com/sponsors/your-name', currency: 'usd', region: 'global', active: true },
         { key: 'coffeebede', provider: 'coffeebede', href: 'https://coffeebede.com/your-name', currency: 'toman', region: 'ir', active: true },
       ],
       // The method quotes abroad; the Iranian page prices itself in toman.
@@ -102,6 +112,48 @@ const METHODS: Localized<MethodContent> = {
       active: false,
       order: 3,
     },
+    {
+      title: 'Support without money',
+      slug: 'free-support',
+      description: 'A star, a follow or a well-written bug report: these cost nothing and still move the project forward.',
+      mode: 'action',
+      region: 'global',
+      variants: [
+        {
+          key: 'star',
+          provider: 'github',
+          href: 'https://github.com/your-name/portfolio',
+          label: 'Star the repository',
+          instruction: 'Press Star on the repository page — it takes a few seconds and puts the project in front of other developers.',
+          active: true,
+        },
+        {
+          key: 'telegram',
+          provider: 'telegram',
+          href: 'https://t.me/your_channel',
+          label: 'Join the channel',
+          instruction: 'Follow the channel to see the releases as they ship.',
+          active: true,
+        },
+        {
+          key: 'bug-report',
+          provider: 'custom',
+          href: 'https://github.com/your-name/portfolio/issues/new',
+          label: 'Report a bug',
+          instruction: 'Open an issue with the steps to reproduce, the expected result and what you actually saw.',
+          active: true,
+        },
+      ],
+      // A gesture is not a transaction: no amount, no currency choice, no limits.
+      amount: 0,
+      currency: 'toman',
+      customAmount: false,
+      suggestedAmounts: [],
+      minAmount: 0,
+      maxAmount: 0,
+      active: true,
+      order: 4,
+    },
   ],
   fa: [
     {
@@ -111,7 +163,15 @@ const METHODS: Localized<MethodContent> = {
       mode: 'platform',
       region: 'global',
       variants: [
-        { key: 'buymeacoffee', provider: 'buymeacoffee', href: 'https://buymeacoffee.com/your-name', currency: 'usd', region: 'global', active: true },
+        {
+          key: 'buymeacoffee',
+          provider: 'buymeacoffee',
+          href: 'https://buymeacoffee.com/your-name',
+          currency: 'usd',
+          region: 'global',
+          active: true,
+        },
+        { key: 'github', provider: 'github', href: 'https://github.com/sponsors/your-name', currency: 'usd', region: 'global', active: true },
         { key: 'coffeebede', provider: 'coffeebede', href: 'https://coffeebede.com/your-name', currency: 'toman', region: 'ir', active: true },
       ],
       // روش بر حسب دلار قیمت می‌گیرد؛ صفحهٔ ایرانی خودش به تومان.
@@ -180,6 +240,48 @@ const METHODS: Localized<MethodContent> = {
       // بهتر از روشی است که در آخرین گام خطا می‌دهد.
       active: false,
       order: 3,
+    },
+    {
+      title: 'حمایت بدون پول',
+      slug: 'free-support',
+      description: 'یک ستاره، یک دنبال کردن یا یک گزارش باگ دقیق: هیچ‌کدام هزینه ندارد و همه پروژه را جلو می‌برند.',
+      mode: 'action',
+      region: 'global',
+      variants: [
+        {
+          key: 'star',
+          provider: 'github',
+          href: 'https://github.com/your-name/portfolio',
+          label: 'ستاره دادن به مخزن',
+          instruction: 'دکمهٔ Star را در صفحهٔ مخزن بزنید؛ چند ثانیه بیشتر نمی‌گیرد و پروژه را جلوی توسعه‌دهندگان دیگر می‌گذارد.',
+          active: true,
+        },
+        {
+          key: 'telegram',
+          provider: 'telegram',
+          href: 'https://t.me/your_channel',
+          label: 'عضویت در کانال',
+          instruction: 'کانال را دنبال کنید تا نسخه‌های جدید را همان زمان ببینید.',
+          active: true,
+        },
+        {
+          key: 'bug-report',
+          provider: 'custom',
+          href: 'https://github.com/your-name/portfolio/issues/new',
+          label: 'گزارش باگ',
+          instruction: 'یک issue با مراحل بازتولید، نتیجهٔ مورد انتظار و آنچه در عمل دیدید باز کنید.',
+          active: true,
+        },
+      ],
+      // یک اقدام تراکنش نیست: بدون مبلغ، بدون انتخاب واحد پول و بدون حد.
+      amount: 0,
+      currency: 'toman',
+      customAmount: false,
+      suggestedAmounts: [],
+      minAmount: 0,
+      maxAmount: 0,
+      active: true,
+      order: 4,
     },
   ],
 };

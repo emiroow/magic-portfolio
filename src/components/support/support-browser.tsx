@@ -7,8 +7,8 @@ import { SupporterWall } from '@/components/support/supporter-wall';
 import { flexibleMethods, variantLabel } from '@/components/support/support-meta';
 import { Button } from '@/components/ui/button';
 import type { SupportStats } from '@/lib/data';
-import { usableVariants } from '@/lib/support';
-import { documentKey, formatPrice, localizedCount } from '@/lib/utils';
+import { handlesMoney, usableVariants } from '@/lib/support';
+import { cn, documentKey, formatPrice, localizedCount } from '@/lib/utils';
 import type { AppLocale, IDonation, ISupporter } from '@/types';
 import { Check, HandHeart, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -34,20 +34,34 @@ interface SupportBrowserProps {
 }
 
 /**
- * The support page: one card per payment method, the door to an amount of the
- * visitor's own choosing, and the wall of everyone whose support landed.
+ * The support page: one card per method, the door to an amount of the visitor's own
+ * choosing, and the wall of everyone whose support landed.
  *
  * Nothing is decided on the page itself. The method, the destination it pays into
  * and the number are one decision, made in the wizard — the same screen that shows
- * the currency, the limits and the payment details.
+ * the currency, the limits and the payment details. Methods that cost nothing are
+ * kept in their own block, so a visitor can tell a payment from a gesture before
+ * opening either.
  */
-export default function SupportBrowser({ methods, supporters, stats, counts, initialMethod, initialVariantKey, initialAmount, returnStatus }: SupportBrowserProps) {
+export default function SupportBrowser({
+  methods,
+  supporters,
+  stats,
+  counts,
+  initialMethod,
+  initialVariantKey,
+  initialAmount,
+  returnStatus,
+}: SupportBrowserProps) {
   const t = useTranslations('support');
   const tp = useTranslations('pricing');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
   const flexible = flexibleMethods(methods);
+  /** Money rails and free gestures are two kinds of ask; the page says which is which. */
+  const paid = methods.filter(method => handlesMoney(method.mode));
+  const free = methods.filter(method => !handlesMoney(method.mode));
 
   // A deep link (`?option=…`) arrives as `initialMethod`, so the wizard simply
   // starts open; nothing to synchronize after mount.
@@ -77,6 +91,21 @@ export default function SupportBrowser({ methods, supporters, stats, counts, ini
     setActive(option);
     setVariantKey(key);
     setPicked(amount);
+  };
+
+  /** The one door on a card: it opens that method, and only its own destinations. */
+  const cardAction = (method: IDonation) => {
+    const first = usableVariants(method)[0];
+    const named = variantLabel(first, t);
+    // A gesture is offered in the name of the service it happens on; a payment is
+    // offered in the name of the account, wallet or page it lands in.
+    const provider = (method.mode === 'action' && first?.provider ? t(`providers.${first.provider}`) : named) || t(`modes.${method.mode}`);
+
+    return (
+      <Button size="sm" className="rounded-full" onClick={() => openMethod(method)}>
+        {t(`cta.${method.mode}`, { provider })}
+      </Button>
+    );
   };
 
   return (
@@ -125,25 +154,40 @@ export default function SupportBrowser({ methods, supporters, stats, counts, ini
           {/* One door for “an amount of my own”: everything is chosen inside it. */}
           {flexible.length > 0 && <FlexibleSupport methods={flexible} onOpen={openFlexible} />}
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {methods.map(method => {
-              const first = usableVariants(method)[0];
-              const named = variantLabel(first, t);
-
-              return (
+          {paid.length > 0 && (
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {paid.map(method => (
                 <SupportCard
                   key={documentKey(method) || method.title}
                   option={method}
                   supporters={method._id ? counts[method._id] : undefined}
-                  action={
-                    <Button size="sm" className="rounded-full" onClick={() => openMethod(method)}>
-                      {t(`cta.${method.mode}`, { provider: named || t(`modes.${method.mode}`) })}
-                    </Button>
-                  }
+                  action={cardAction(method)}
                 />
-              );
-            })}
-          </div>
+              ))}
+            </div>
+          )}
+
+          {/* The asks that cost nothing, kept apart so they are never read as prices. */}
+          {free.length > 0 && (
+            <section aria-labelledby="free-support-heading" className={cn('space-y-4', paid.length > 0 && 'border-t pt-6')}>
+              <div>
+                <h2 id="free-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight">
+                  {t('freeTitle')}
+                </h2>
+                <p className="mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('freeDescription')}</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {free.map(method => (
+                  <SupportCard
+                    key={documentKey(method) || method.title}
+                    option={method}
+                    supporters={method._id ? counts[method._id] : undefined}
+                    action={cardAction(method)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Trust line: what the page does not do with the supporter's data. */}
           <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">

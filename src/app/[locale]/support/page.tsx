@@ -4,6 +4,7 @@ import { SectionHeader } from '@/components/sections/section-header';
 import SupportBrowser, { type SupportReturnStatus } from '@/components/support/support-browser';
 import { getDonations, getProfile, getSocials, getSupportStats, getSupporterCounts, getSupporters } from '@/lib/data';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
+import { handlesMoney } from '@/lib/support';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { documentKey, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
@@ -90,6 +91,9 @@ export default async function SupportPage({ params, searchParams }: Props) {
   const initialMethod = wanted ? methods.find(method => documentKey(method) === wanted) : undefined;
   const initialVariantKey = firstValue(query.variant) || undefined;
 
+  /** A free gesture is not an offer: only the rails that take money are listed as one. */
+  const priced = methods.filter(method => handlesMoney(method.mode));
+
   return (
     <main>
       <section aria-labelledby="support-heading">
@@ -101,21 +105,25 @@ export default async function SupportPage({ params, searchParams }: Props) {
             description: t('description'),
             url: localeUrl(locale, '/support'),
             inLanguage: locale,
-            potentialAction: {
-              '@type': 'DonateAction',
-              target: {
-                '@type': 'EntryPoint',
-                urlTemplate: localeUrl(locale, '/support'),
-                actionPlatform: 'http://schema.org/DesktopWebPlatform',
-              },
-              offers: methods.map(method => ({
-                '@type': 'Offer',
-                name: method.title,
-                price: method.amount > 0 ? method.amount : 0,
-                priceCurrency: PRODUCT_CURRENCY_CODES[method.currency],
-                availability: 'https://schema.org/InStock',
-              })),
-            },
+            ...(priced.length
+              ? {
+                  potentialAction: {
+                    '@type': 'DonateAction',
+                    target: {
+                      '@type': 'EntryPoint',
+                      urlTemplate: localeUrl(locale, '/support'),
+                      actionPlatform: 'http://schema.org/DesktopWebPlatform',
+                    },
+                    offers: priced.map(method => ({
+                      '@type': 'Offer',
+                      name: method.title,
+                      price: method.amount > 0 ? method.amount : 0,
+                      priceCurrency: PRODUCT_CURRENCY_CODES[method.currency],
+                      availability: 'https://schema.org/InStock',
+                    })),
+                  },
+                }
+              : {}),
           }}
         />
 

@@ -1,25 +1,33 @@
+import { MONEY_MODES } from '@/constants/global';
 import { slugify } from '@/lib/utils';
 import type { DonationMode, IDonation, ProductCurrency, SupportVariant } from '@/types';
 
 /**
- * Shape helpers for the destinations a payment method carries.
+ * Shape helpers for the destinations a support method carries.
  *
  * These know nothing about icons or wording — they only decide what a destination
  * is called, which one a supporter picked and what it is priced in. Both the data
  * layer and the checkout need them, so the answers cannot drift apart.
  */
 
+/** `true` when a method moves money, and therefore has an amount policy to honour. */
+export function handlesMoney(mode: DonationMode): boolean {
+  return MONEY_MODES.includes(mode);
+}
+
 /** Fields of a destination that carry money-moving data, per method. */
 export function variantFields(mode: DonationMode): (keyof SupportVariant)[] {
   switch (mode) {
     case 'platform':
-      return ['provider', 'href'];
+      return ['provider', 'href', 'instruction'];
     case 'card':
       return ['number', 'iban', 'holder', 'qrPayload'];
     case 'crypto':
       return ['network', 'address'];
     case 'gateway':
       return ['provider'];
+    case 'action':
+      return ['provider', 'href', 'instruction'];
   }
 }
 
@@ -36,6 +44,9 @@ export function variantIsUsable(mode: DonationMode, variant: SupportVariant): bo
       return Boolean((variant.address || '').trim());
     case 'gateway':
       return Boolean(variant.provider);
+    case 'action':
+      // A gesture with nowhere to be made is not support, it is a dead button.
+      return Boolean((variant.href || '').trim());
   }
 }
 
@@ -84,6 +95,15 @@ export function withUniqueKeys<T extends VariantSeed>(mode: DonationMode, varian
 /** The destinations a supporter may actually pick, in stored order. */
 export function usableVariants(option: IDonation): SupportVariant[] {
   return (option.variants ?? []).filter(variant => variantIsUsable(option.mode, variant));
+}
+
+/**
+ * Whether the method has anything to offer at all. A method whose destinations are
+ * all incomplete is kept out of the public surfaces: the wizard would open on an
+ * empty choice list and the checkout would have nowhere to send the supporter.
+ */
+export function isOfferable(option: IDonation): boolean {
+  return usableVariants(option).length > 0;
 }
 
 /** The destination a key points at, falling back to the first usable one. */

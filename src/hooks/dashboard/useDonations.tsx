@@ -2,7 +2,7 @@
 
 import { api } from '@/lib/client-api';
 import { donationFormSchema, type DonationFormInput } from '@/lib/validations';
-import { variantFields, withUniqueKeys } from '@/lib/support';
+import { handlesMoney, variantFields, withUniqueKeys } from '@/lib/support';
 import type { DonationMode, IDonation, SupportSettings, SupportVariant } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm } from 'react-hook-form';
@@ -23,6 +23,7 @@ const EMPTY_VARIANT: DonationVariant = {
   label: '',
   provider: '',
   href: '',
+  instruction: '',
   number: '',
   iban: '',
   holder: '',
@@ -132,13 +133,18 @@ const useDonations = () => {
   const save = useMutation({
     mutationFn: (data: DonationForm) => {
       const mode = data.mode;
+      const money = handlesMoney(mode);
       const rows = data.variants.map(variant => cleanVariant(mode, variant)).filter(Boolean);
 
       const body: DonationForm = {
         ...data,
-        amount: whole(data.amount),
-        minAmount: whole(data.minAmount),
-        maxAmount: whole(data.maxAmount),
+        // A method that takes no money is stored without any amount policy at all,
+        // so no surface can read a leftover number as its price.
+        amount: money ? whole(data.amount) : 0,
+        customAmount: money && data.customAmount,
+        minAmount: money ? whole(data.minAmount) : 0,
+        maxAmount: money ? whole(data.maxAmount) : 0,
+        suggestedAmounts: money ? data.suggestedAmounts : [],
         order: whole(data.order),
         // Keys come from what each destination holds, so two rows can never collide.
         variants: withUniqueKeys(mode, rows),
@@ -229,6 +235,7 @@ const useDonations = () => {
             label: variant.label ?? '',
             provider: variant.provider ?? '',
             href: variant.href ?? '',
+            instruction: variant.instruction ?? '',
             number: variant.number ?? '',
             iban: variant.iban ?? '',
             holder: variant.holder ?? '',

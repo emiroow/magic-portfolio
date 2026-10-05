@@ -16,6 +16,10 @@ import type { GatewayId, IDonation, SupportCheckoutResult } from '@/types';
  * answers with what the wizard should do — leave for a platform, show a transfer
  * screen, or hand the supporter to a gateway.
  *
+ * Free gestures are not here: they charge nothing, so the wizard renders their page
+ * straight from the method it already has, and no record is made for money that never
+ * moved. This endpoint refuses one rather than storing a gift of zero.
+ *
  * Nothing here trusts the browser: the method is re-read from the database, the
  * destination is resolved from the stored list by its key, the amount is checked
  * against the method's own bounds, and the currency is the destination's, never the
@@ -79,6 +83,10 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
 
   const chosen = methods.find(item => item._id === body.donationId);
   if (!chosen) return apiError('This payment method is not available.', 404, { code: 'unavailable' });
+
+  // A gesture is not a transaction: refused before anything is written. Naming the
+  // mode here rather than testing it also keeps the switch below exhaustive.
+  if (chosen.mode === 'action') return apiError('This method takes no money.', 400, { code: 'noCheckout' });
 
   // The key decides the address, the page or the gateway; a request can never name
   // a destination the owner did not store.

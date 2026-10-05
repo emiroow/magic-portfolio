@@ -10,8 +10,8 @@ import { socialModel } from '@/models/social';
 import { supporterModel } from '@/models/supporter';
 import { workModel } from '@/models/work';
 import { readingTime } from '@/lib/utils';
-import { withUniqueKeys } from '@/lib/support';
-import { CRYPTO_NETWORKS, REGION_ORDER } from '@/constants/global';
+import { handlesMoney, isOfferable, withUniqueKeys } from '@/lib/support';
+import { CRYPTO_NETWORKS, DONATION_MODES, REGION_ORDER } from '@/constants/global';
 import type {
   AppLocale,
   CryptoNetwork,
@@ -71,7 +71,7 @@ function stripFrontMatter(markdown?: string) {
   return lines
     .slice(end + 1)
     .join(String.fromCharCode(10))
-    .replace( /^\s+/, '');
+    .replace(/^\s+/, '');
 }
 
 export interface PortfolioData {
@@ -119,7 +119,10 @@ export async function getPortfolioData(locale: AppLocale): Promise<PortfolioData
 export async function getBlogList(locale: AppLocale): Promise<IBlog[]> {
   if (!(await tryConnectDB())) return [];
 
-  const docs = await blogModel.find({ lang: locale, ...PUBLISHED }).sort({ createdAt: -1 }).lean();
+  const docs = await blogModel
+    .find({ lang: locale, ...PUBLISHED })
+    .sort({ createdAt: -1 })
+    .lean();
 
   return serializeList<IBlog>(docs as Record<string, unknown>[]).map(post => {
     const { content, ...rest } = post;
@@ -276,9 +279,9 @@ type StoredDonation = Omit<IDonation, 'mode' | 'variants'> & {
 const PROVIDER_ALIASES: Record<string, SupportProvider> = {
   buymeacoffee: 'buymeacoffee',
   coffeebede: 'coffeebede',
-  kofi: 'custom',
-  patreon: 'custom',
-  github: 'custom',
+  kofi: 'kofi',
+  patreon: 'patreon',
+  github: 'github',
   liberapay: 'custom',
   hamyato: 'custom',
   other: 'custom',
@@ -296,7 +299,7 @@ const NETWORK_LABELS: Record<string, string> = { tether: 'Tether (USDT)' };
 function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant | null {
   const trim = (value: unknown) => String(value ?? '').trim();
 
-  if (mode === 'platform') {
+  if (mode === 'platform' || mode === 'action') {
     const href = trim(doc.href);
     if (!href) return null;
     const named = trim(doc.referral) || trim(doc.linkProvider);
@@ -319,7 +322,13 @@ function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant 
 
     const ledger = (CRYPTO_NETWORKS as string[]).includes(network) ? network : undefined;
 
-    return { key: 'destination', network: ledger as CryptoNetwork | undefined, address, label: ledger ? undefined : NETWORK_LABELS[network], active: true };
+    return {
+      key: 'destination',
+      network: ledger as CryptoNetwork | undefined,
+      address,
+      label: ledger ? undefined : NETWORK_LABELS[network],
+      active: true,
+    };
   }
 
   const gateway = trim(doc.gateway);
@@ -333,12 +342,18 @@ function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant 
  * the wizard can read a method without defending every field at every call site.
  * Exported because the admin list runs it too: what the dashboard edits has to be
  * what the public page shows.
+ *
+ * A method that takes no money also gets no money fields: zeroed here rather than
+ * trusted at every surface that reads them.
  */
 export function normalizeDonation(input: unknown): IDonation {
   const doc = input as StoredDonation;
   const amounts = (doc.suggestedAmounts ?? []).filter(amount => Number.isFinite(amount) && amount > 0);
   // `referral` and `link` were two names for leaving the site; both are `platform`.
-  const mode: DonationMode = doc.mode === 'referral' || doc.mode === 'link' ? 'platform' : (doc.mode ?? 'platform');
+  const named = doc.mode === 'referral' || doc.mode === 'link' ? 'platform' : doc.mode;
+  // Anything this build does not know becomes the door that needs no credentials.
+  const mode: DonationMode = named && (DONATION_MODES as string[]).includes(named) ? named : 'platform';
+  const money = handlesMoney(mode);
   const stored = (doc.variants ?? []).filter(variant => variant && typeof variant === 'object');
   // A document from before destinations carried their rail in flat fields.
   const rows: SupportVariant[] = stored.length ? stored : [legacyVariant(mode, doc)].filter((variant): variant is SupportVariant => Boolean(variant));
@@ -349,27 +364,35 @@ export function normalizeDonation(input: unknown): IDonation {
     region: doc.region ?? 'global',
     currency: doc.currency ?? 'toman',
     // Keys are derived, never typed, so an old or hand-written row still resolves.
-    variants: withUniqueKeys(mode, rows.map(variant => ({ ...variant, active: variant.active !== false }))),
-    amount: Number.isFinite(doc.amount) ? doc.amount : 0,
-    customAmount: doc.customAmount !== false,
-    suggestedAmounts: amounts.length ? amounts : Number.isFinite(doc.amount) && doc.amount > 0 ? [doc.amount] : [],
-    minAmount: Number.isFinite(doc.minAmount) ? doc.minAmount : 0,
-    maxAmount: Number.isFinite(doc.maxAmount) ? doc.maxAmount : 0,
+    variants: withUniqueKeys(
+      mode,
+      rows.map(variant => ({ ...variant, active: variant.active !== false }))
+    ),
+    amount: money && Number.isFinite(doc.amount) ? doc.amount : 0,
+    customAmount: money && doc.customAmount !== false,
+    suggestedAmounts: money ? (amounts.length ? amounts : Number.isFinite(doc.amount) && doc.amount > 0 ? [doc.amount] : []) : [],
+    minAmount: money && Number.isFinite(doc.minAmount) ? doc.minAmount : 0,
+    maxAmount: money && Number.isFinite(doc.maxAmount) ? doc.maxAmount : 0,
     order: Number.isFinite(doc.order) ? doc.order : 0,
     active: doc.active !== false,
   };
 }
 
 /**
- * Active payment methods for a locale: the dashboard's `order` first, then the
+ * Active support methods for a locale: the dashboard's `order` first, then the
  * newest, and the locale's own market leads so the Persian site opens on the
  * Iranian rails.
+ *
+ * A method with no complete destination is left out: the page it would appear on
+ * could only ever open a wizard with nothing to choose.
  */
 export async function getDonations(locale: AppLocale): Promise<IDonation[]> {
   if (!(await tryConnectDB())) return [];
 
   const docs = await donationModel.find({ lang: locale, active: true }).sort({ order: 1, createdAt: -1 }).lean();
-  const items = serializeList<StoredDonation>(docs as Record<string, unknown>[]).map(method => normalizeDonation(method));
+  const items = serializeList<StoredDonation>(docs as Record<string, unknown>[])
+    .map(method => normalizeDonation(method))
+    .filter(isOfferable);
 
   const rank = REGION_ORDER[locale];
   return items.sort((a, b) => rank.indexOf(a.region) - rank.indexOf(b.region) || a.order - b.order);
@@ -420,10 +443,7 @@ export interface SupportStats {
 export async function getSupportStats(locale: AppLocale): Promise<SupportStats> {
   if (!(await tryConnectDB())) return { supporters: 0, raised: null, currency: null };
 
-  const rows = await supporterModel
-    .find({ lang: locale, status: 'completed' })
-    .select({ amount: 1, currency: 1 })
-    .lean();
+  const rows = await supporterModel.find({ lang: locale, status: 'completed' }).select({ amount: 1, currency: 1 }).lean();
 
   const currencies = new Set(rows.map(row => row.currency ?? 'toman'));
   const single = currencies.size === 1 ? (rows[0]?.currency ?? 'toman') : null;

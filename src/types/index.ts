@@ -94,19 +94,43 @@ export interface IProduct {
  * - `card`     — card-to-card: a card number and/or IBAN with a scannable QR
  * - `crypto`   — an on-chain address or Lightning destination with a QR
  * - `gateway`  — a full in-site checkout: the site calls the gateway API itself
+ * - `action`   — no money at all: a gesture the supporter performs on another
+ *                service (star a repository, follow a channel, file a bug report)
+ *
+ * `action` is the extension point for every kind of support that is not a payment.
+ * It carries destinations like the link methods do, but no amount policy, so the
+ * money rules of the four rails above never have to be re-asked for a new type.
  */
-export type DonationMode = 'platform' | 'card' | 'crypto' | 'gateway';
+export type DonationMode = 'platform' | 'card' | 'crypto' | 'gateway' | 'action';
 
 /** Market the method is aimed at: drives the order of the methods on the page. */
 export type DonationRegion = 'ir' | 'global';
 
 /**
- * Services a destination can belong to. The two support platforms are the Iranian
- * and the international hand-off; the rest are gateways, used both for a prepared
- * payment link (`platform`) and for an in-site checkout (`gateway`). `custom` is
- * the escape hatch for a service the owner adds without a code change.
+ * Services a destination can belong to — the platform the supporter is sent to, the
+ * gateway the site talks to, or the network a free gesture happens on.
+ *
+ * The support platforms are the paid hand-offs, `custom` is the escape hatch for a
+ * service the owner adds without a code change, and the social networks are only
+ * ever offered to an `action` destination. Which subset a mode may use is decided by
+ * the lists in `src/constants/global.ts`, so one id can serve several methods.
  */
-export type SupportProvider = 'buymeacoffee' | 'coffeebede' | 'zarinpal' | 'idpay' | 'stripe' | 'paypal' | 'custom';
+export type SupportProvider =
+  | 'buymeacoffee'
+  | 'coffeebede'
+  | 'github'
+  | 'patreon'
+  | 'kofi'
+  | 'zarinpal'
+  | 'idpay'
+  | 'stripe'
+  | 'paypal'
+  | 'youtube'
+  | 'telegram'
+  | 'twitter'
+  | 'instagram'
+  | 'linkedin'
+  | 'custom';
 
 /** Gateways the site can talk to directly from `gateway` methods. */
 export type GatewayId = 'zarinpal' | 'idpay' | 'stripe' | 'paypal';
@@ -119,9 +143,10 @@ export type GatewayId = 'zarinpal' | 'idpay' | 'stripe' | 'paypal';
 export type CryptoNetwork = 'tron' | 'ethereum' | 'bitcoin' | 'ton' | 'bsc' | 'lightning';
 
 /**
- * One destination of a payment method: a platform page, a card, a wallet address
- * or a gateway. Which fields carry meaning depends on the method's own `mode`, and
- * the dashboard only ever shows the fields of the mode the method uses.
+ * One destination of a payment method: a platform page, a card, a wallet address,
+ * a gateway or the page a free gesture is made on. Which fields carry meaning
+ * depends on the method's own `mode`, and the dashboard only ever shows the fields
+ * of the mode the method uses.
  */
 export interface SupportVariant {
   _id?: string;
@@ -129,10 +154,12 @@ export interface SupportVariant {
   key: string;
   /** Display name; when empty the destination names itself from its service or ledger. */
   label?: string;
-  /** `platform` and `gateway` only: which service the destination belongs to. */
+  /** `platform`, `gateway` and `action`: which service the destination belongs to. */
   provider?: SupportProvider;
-  /** `platform` only: the page the supporter is sent to. */
+  /** `platform` and `action`: the page the supporter is sent to. */
   href?: string;
+  /** `platform` and `action`: the one step the supporter has to take there. */
+  instruction?: string;
   /** `card` only: digits, stored without spaces. */
   number?: string;
   /** `card` only: IBAN (sheba), stored upper-case without spaces. */
@@ -154,9 +181,9 @@ export interface SupportVariant {
 }
 
 /**
- * A payment method the owner can be supported through: one method, its amount
- * policy, and the destinations money can actually arrive at. Created in the
- * dashboard, rendered on `/support` and spent by the checkout endpoint.
+ * A support method the owner can be backed through: one method, its own conditions
+ * (the amount policy, or the absence of one) and the destinations it can arrive at.
+ * Created in the dashboard, rendered on `/support` and spent by the checkout endpoint.
  */
 export interface IDonation {
   _id?: string;

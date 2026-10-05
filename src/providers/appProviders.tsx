@@ -3,6 +3,7 @@
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { estedad, roboto } from '@/lib/fonts';
 import { queryClient } from '@/lib/queryClient';
+import { MotionConfig } from 'framer-motion';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { SessionProvider } from 'next-auth/react';
 import { NextIntlClientProvider, useLocale, type Messages } from 'next-intl';
@@ -14,24 +15,20 @@ import { Toaster } from 'sonner';
 const LOCALE_FONTS = { fa: estedad, en: roboto } as const;
 
 /** The single client provider tree (session, theme, react-query, tooltips, toasts). */
-export default function AppProviders({
-  children,
-  locale,
-  messages,
-}: {
-  children: React.ReactNode;
-  locale: string;
-  messages: Messages;
-}) {
+export default function AppProviders({ children, locale, messages }: { children: React.ReactNode; locale: string; messages: Messages }) {
   return (
     <NextIntlClientProvider locale={locale} messages={messages} timeZone="UTC">
       <SessionProvider>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <QueryClientProvider client={queryClient}>
             <TooltipProvider>
-              <HtmlTypography />
-              {children}
-              <ThemedToaster />
+              {/* framer-motion writes transforms from JavaScript, so the CSS guard in
+                  globals.css cannot reach it: reduced motion has to be honoured here. */}
+              <MotionConfig reducedMotion="user">
+                <HtmlTypography />
+                {children}
+                <ThemedToaster />
+              </MotionConfig>
             </TooltipProvider>
           </QueryClientProvider>
         </ThemeProvider>

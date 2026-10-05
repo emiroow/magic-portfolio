@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import Loading from '@/components/ui/loading';
 import { cn, documentKey } from '@/lib/utils';
-import { usableVariants } from '@/lib/support';
+import { handlesMoney, usableVariants } from '@/lib/support';
 import type { IDonation } from '@/types';
 import { ExternalLink, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -26,7 +26,7 @@ interface SupportOptionRowProps {
 }
 
 /**
- * Dashboard list item for one payment method: what it costs, where the money lands,
+ * Dashboard list item for one support method: what it costs, where the money lands,
  * and whether it can actually be paid into. An empty destination list is the one
  * mistake a method can make, so it is said here rather than at checkout.
  */
@@ -75,7 +75,12 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
           >
             {togglingActive ? <Loading size="sm" /> : published ? <Eye className="size-4" aria-hidden /> : <EyeOff className="size-4" aria-hidden />}
           </Button>
-          <Link href={href} target="_blank" aria-label={t('viewSupport')} className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'size-8')}>
+          <Link
+            href={href}
+            target="_blank"
+            aria-label={t('viewSupport')}
+            className={cn(buttonVariants({ variant: 'ghost', size: 'icon' }), 'size-8')}
+          >
             <ExternalLink className="size-4" aria-hidden />
           </Link>
           <Button size="icon" variant="ghost" className="size-8" onClick={() => onEdit(method)} aria-label={t('edit')}>
@@ -102,7 +107,9 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {method.amount > 0 ? (
+          {!handlesMoney(method.mode) ? (
+            <Tag>{ts('freePrice')}</Tag>
+          ) : method.amount > 0 ? (
             <PriceTag amount={method.amount} currency={method.currency} className="text-sm font-semibold" />
           ) : (
             <Tag>{ts('anyPrice')}</Tag>

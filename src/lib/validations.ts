@@ -1,9 +1,11 @@
 import {
+  ACTION_PROVIDERS,
   CRYPTO_NETWORKS,
   DONATION_MODES,
   DONATION_REGIONS,
   GATEWAY_IDS,
   MAX_VARIANTS,
+  MAX_VARIANT_INSTRUCTION,
   MAX_VARIANT_LABEL,
   PLATFORM_PROVIDERS,
   PRODUCT_CURRENCIES,
@@ -174,15 +176,17 @@ const optionalAmountSchema = z
   .max(999_999_999_999, 'That amount is too large');
 
 /** Quick-pick amounts. Twelve is already more than the dialog can show in one row. */
-const suggestedAmountsSchema = z
-  .array(z.number({ invalid_type_error: 'Price is required' }).min(0).max(999_999_999_999))
-  .max(12);
+const suggestedAmountsSchema = z.array(z.number({ invalid_type_error: 'Price is required' }).min(0).max(999_999_999_999)).max(12);
 
 /** Card numbers are stored as bare digits; spaces and Persian digits are a display concern. */
 const cardNumberSchema = z
   .string()
   .trim()
-  .transform(value => value.replace(/[\s\u200c\u0660-\u0669\u06F0-\u06F9-]/g, match => (/[\u0660-\u0669]/.test(match) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(match)) : /[\u06F0-\u06F9]/.test(match) ? String('۰۱۲۳۴۵۶۷۸۹'.indexOf(match)) : '')))
+  .transform(value =>
+    value.replace(/[\s\u200c\u0660-\u0669\u06F0-\u06F9-]/g, match =>
+      /[\u0660-\u0669]/.test(match) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(match)) : /[\u06F0-\u06F9]/.test(match) ? String('۰۱۲۳۴۵۶۷۸۹'.indexOf(match)) : ''
+    )
+  )
   .pipe(z.string().regex(/^$|^[\d]{16}$|^\d{16}(\d{6,9})?$/, 'Enter a 16-digit card number'));
 
 /** Iranian IBAN: `IR` plus 24 check digits, spaces tolerated on input. */
@@ -211,6 +215,7 @@ const supportVariantSchema = z.object({
   label: z.string().trim().max(MAX_VARIANT_LABEL, 'The name is too long').optional().or(z.literal('')),
   provider: z.enum(SUPPORT_PROVIDERS).optional().or(z.literal('')),
   href: optionalUrl(),
+  instruction: z.string().trim().max(MAX_VARIANT_INSTRUCTION, 'The instruction is too long').optional().or(z.literal('')),
   number: cardNumberSchema.optional(),
   iban: ibanSchema.optional(),
   holder: z.string().trim().max(60).optional(),
@@ -247,9 +252,10 @@ const donationShape = {
 export const donationBaseSchema = z.object(donationShape);
 
 /**
- * A payment method must carry, in at least one of its destinations, what that
- * method spends money with. Checking it here means a half-built method can never
- * reach the public page, where the wizard would have nothing to show.
+ * A support method must carry, in at least one of its destinations, what that
+ * method spends money with — or, for a free gesture, the page the gesture is made
+ * on. Checking it here means a half-built method can never reach the public page,
+ * where the wizard would have nothing to show.
  */
 function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.RefinementCtx) {
   const at = (path: (string | number)[], message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
@@ -285,6 +291,14 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
         if (!variant.provider) row('provider', 'Choose the gateway to charge through');
         else if (!GATEWAY_IDS.includes(variant.provider as (typeof GATEWAY_IDS)[number])) row('provider', 'That service is not a gateway');
         break;
+      case 'action': {
+        // A gesture is its page plus the one step to take there; with neither name
+        // nor service the tile would be an empty button.
+        if (!(variant.href || '').trim()) row('href', 'Add the page the supporter should open');
+        if (!variant.provider) row('provider', 'Choose where the gesture happens');
+        if ((!variant.provider || variant.provider === 'custom') && !(variant.label || '').trim()) row('label', 'Name this action');
+        break;
+      }
     }
   });
 
@@ -297,11 +311,13 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
     at(['minAmount'], 'The minimum amount is above the maximum');
   }
 
-  // A platform method may only hand off to a support platform or a prepared link.
-  if (value.mode === 'platform') {
+  // A platform method may only hand off to a support platform or a prepared link,
+  // and a free gesture only to a network its own picker offers.
+  const allowed = value.mode === 'platform' ? PLATFORM_PROVIDERS : value.mode === 'action' ? ACTION_PROVIDERS : null;
+  if (allowed) {
     value.variants.forEach((variant, index) => {
-      if (variant.provider && !PLATFORM_PROVIDERS.includes(variant.provider as (typeof PLATFORM_PROVIDERS)[number])) {
-        at(['variants', index, 'provider'], 'Choose a support platform');
+      if (variant.provider && !allowed.includes(variant.provider as (typeof allowed)[number])) {
+        at(['variants', index, 'provider'], value.mode === 'action' ? 'Choose where the gesture happens' : 'Choose a support platform');
       }
     });
   }

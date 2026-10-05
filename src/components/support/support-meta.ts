@@ -1,5 +1,5 @@
 import type { DonationMode, IDonation, ProductCurrency, SupportVariant } from '@/types';
-import { Coins, Coffee, CreditCard, Landmark } from 'lucide-react';
+import { Coins, Coffee, CreditCard, Landmark, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { usableVariants, variantCurrency, variantRegion } from '@/lib/support';
 import { CRYPTO_NETWORKS, SUPPORT_PROVIDERS } from '@/constants/global';
@@ -17,6 +17,8 @@ export const MODE_ICONS: Record<DonationMode, LucideIcon> = {
   card: CreditCard,
   crypto: Coins,
   gateway: Landmark,
+  // The only method that asks for attention instead of money.
+  action: Star,
 };
 
 /** Anything the wording of the catalogues, narrowed to what a tile needs. */
@@ -43,8 +45,8 @@ export function variantLabel(variant: SupportVariant | undefined, t: Label): str
 
 /**
  * Second line of a destination tile: the part of it a supporter checks before
- * sending money — the last digits of a card, the head of an address, the host of a
- * platform page. Empty when the name already says everything.
+ * sending money or clicking through — the last digits of a card, the head of an
+ * address, the host of a page. Empty when the name already says everything.
  */
 export function variantDetail(variant: SupportVariant | undefined): string {
   if (!variant) return '';
@@ -55,6 +57,15 @@ export function variantDetail(variant: SupportVariant | undefined): string {
   if (variant.href) return linkHost(variant.href);
 
   return '';
+}
+
+/**
+ * The one step a link destination asks for: what to actually do once the page is
+ * open. Only the paid and free hand-offs carry one, and an empty one is simply not
+ * shown rather than replaced by a filler sentence.
+ */
+export function variantInstruction(variant: SupportVariant | undefined): string {
+  return (variant?.instruction || '').trim();
 }
 
 /**
