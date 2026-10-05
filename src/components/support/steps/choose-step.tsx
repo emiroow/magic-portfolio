@@ -12,8 +12,8 @@ import { Info } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface ChooseStepProps {
-  /** Every method the wizard can offer, in page order. */
-  methods: IDonation[];
+  /** The methods this window offers to choose between; empty when it belongs to one. */
+  choices: IDonation[];
   option: IDonation;
   /** Only the destinations of `option`; nothing else can ever be listed here. */
   destinations: SupportVariant[];
@@ -35,15 +35,15 @@ interface ChooseStepProps {
 }
 
 /**
- * The first stop: the way the money travels, the place it lands and the number.
+ * The first stop: the way the support travels, the place it lands and the number.
  *
- * The three decisions are stacked in the order they are made, and the destination
- * list is drawn inside its method instead of beside it, so a supporter cannot pick a
- * wallet that belongs to another method — the list they are looking at is the one the
- * picked method carries, and nothing else.
+ * The groups are stacked in the order they are decided, and the destination list is
+ * drawn inside its method instead of beside it, so a supporter cannot pick an account
+ * that belongs to another item. The method list appears only in the box that asks for
+ * a choice: a card's own window shows that card's destinations and nothing else.
  */
 export function ChooseStep({
-  methods,
+  choices,
   option,
   destinations,
   variant,
@@ -73,10 +73,10 @@ export function ChooseStep({
 
   return (
     <div className="space-y-5">
-      {/* 1 — the way the support travels. Hidden when there is only one to choose from. */}
-      {methods.length > 1 && (
+      {/* 1 — the way the support travels. Only the chooser box has several to pick from. */}
+      {choices.length > 1 && (
         <ChoiceGroup legend={td('chooseMethod')}>
-          {methods.map(method => {
+          {choices.map(method => {
             const Icon = MODE_ICONS[method.mode];
             const modeLabel = t(`modes.${method.mode}`);
             // Each tile speaks for its own method: a price in its own unit, or the

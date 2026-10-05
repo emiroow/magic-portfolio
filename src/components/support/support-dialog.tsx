@@ -21,8 +21,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
 
 interface SupportDialogProps {
-  /** Every method the wizard can offer, in page order. */
-  methods: IDonation[];
+  /**
+   * The methods this window offers a choice between. One card on `/support` passes
+   * none — its window belongs to that card alone and shows only its own payment
+   * destinations. Only the “your own amount” box hands over a list to pick from.
+   */
+  choices: IDonation[];
+  /** The heading of the box the window was opened from, when it is not one method. */
+  heading?: { title: string; description: string };
   /** The method the visitor came in on; `null` opens on the chooser. */
   option: IDonation | null;
   open: boolean;
@@ -39,20 +45,20 @@ interface SupportDialogProps {
 }
 
 /**
- * The checkout wizard: a method, one of its destinations and an amount, the
- * supporter's details, then whatever the chosen method asks for.
+ * The checkout wizard: one support item, the payment destinations that item carries,
+ * and whatever its own conditions ask for.
  *
- * The flow belongs to the method, not to the wizard: a rail that moves money walks
+ * The window is drawn from the item, not from the page: a card's wizard never lists
+ * the other cards, because a method's currency, limits, destinations and steps are
+ * its own. Only the box that asks the visitor to choose adds a step for choosing,
+ * and it offers the methods that take an open amount — nothing else.
+ *
+ * The flow belongs to the method too: a rail that moves money walks
  * `choose → details → payment`, a free gesture walks `choose → action` and never
- * reaches the checkout endpoint at all. Destinations are only ever read from the
- * method in `option`, so a supporter cannot be shown a page that belongs elsewhere.
- *
- * Steps move strictly top-to-bottom and the surface mirrors with CSS logical
- * utilities only, so the Persian layout needs no direction checks. Every money
- * decision belongs to the server: this component sends a candidate amount and
- * renders what comes back.
+ * reaches the checkout endpoint at all. Every money decision belongs to the server:
+ * this component sends a candidate amount and renders what comes back.
  */
-export function SupportDialog({ methods, option, open, onOpenChange, initialAmount, initialVariantKey, onSelect }: SupportDialogProps) {
+export function SupportDialog({ choices, heading, option, open, onOpenChange, initialAmount, initialVariantKey, onSelect }: SupportDialogProps) {
   const t = useTranslations('support');
   const td = useTranslations('support.dialog');
   const locale = useLocale();
@@ -84,6 +90,8 @@ export function SupportDialog({ methods, option, open, onOpenChange, initialAmou
   const flow = stepsFor(option?.mode);
   /** A method switch can land on a step the new flow does not have; fold it back. */
   const current = clampStep(step, flow);
+  /** Whether this window is the chooser box rather than one item of its own. */
+  const picking = choices.length > 1;
 
   const destinations = useMemo(() => (option ? usableVariants(option) : []), [option]);
 
@@ -244,6 +252,18 @@ export function SupportDialog({ methods, option, open, onOpenChange, initialAmou
 
   const close = () => onOpenChange(false);
   const back = flow[flow.indexOf(current) - 1];
+  const modeLabel = option ? t(`modes.${option.mode}`) : '';
+  /** The name under the title: the method in view inside the box, the destination on a card. */
+  const subtitle = option ? (picking ? option.title : destination && destination !== modeLabel ? destination : '') : '';
+  /** The first step is named for what it actually asks on this item. */
+  const firstStepTitle = picking
+    ? td('steps.choose')
+    : !money
+      ? td('actionWhere')
+      : destinations.length > 1
+        ? td('steps.destination')
+        : td('steps.amount');
+  const stepTitle = (item: Step) => (item === 'choose' ? firstStepTitle : td(`steps.${item}`));
 
   return (
     <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
@@ -253,25 +273,25 @@ export function SupportDialog({ methods, option, open, onOpenChange, initialAmou
           <>
             <DialogHeader>
               <DialogTitle className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base">
-                <span className="break-words" dir={nameDir(option.title)}>
-                  {option.title}
+                <span className="break-words" dir={nameDir(picking ? (heading?.title ?? option.title) : option.title)}>
+                  {picking ? (heading?.title ?? option.title) : option.title}
                 </span>
-                {destination && destination !== t(`modes.${option.mode}`) && (
-                  <span className="min-w-0 max-w-full truncate text-sm font-normal text-muted-foreground" dir={nameDir(destination)}>
-                    {destination}
+                {subtitle && (
+                  <span className="min-w-0 max-w-full truncate text-sm font-normal text-muted-foreground" dir={nameDir(subtitle)}>
+                    {subtitle}
                   </span>
                 )}
               </DialogTitle>
               <DialogDescription>
-                {t(`modes.${option.mode}`)}
+                {picking ? (heading?.description ?? modeLabel) : modeLabel}
                 <span aria-live="polite" className="sr-only">
                   {td('stepOf', { current: localizedCount(flow.indexOf(current) + 1, lang), total: localizedCount(flow.length, lang) })}
                 </span>
               </DialogDescription>
             </DialogHeader>
 
-            {/* Step rail: one mark per step of this method's flow, the reached ones solid. */}
-            <StepRail steps={flow} current={current} />
+            {/* Step rail: one mark per step of this item's flow, the reached ones solid. */}
+            <StepRail steps={flow} current={current} titleFor={stepTitle} />
 
             <AnimatePresence mode="wait" initial={false}>
               <motion.div
@@ -286,7 +306,7 @@ export function SupportDialog({ methods, option, open, onOpenChange, initialAmou
                   <Thanks note={td('donePending')} onClose={close} />
                 ) : current === 'choose' ? (
                   <ChooseStep
-                    methods={methods}
+                    choices={choices}
                     option={option}
                     destinations={destinations}
                     variant={variant}

@@ -279,6 +279,8 @@
     "dialog": {
       "steps": {
         "choose": "Method and amount",
+        "destination": "Destination and amount",
+        "amount": "Amount",
         "details": "Your details",
         "method": "Payment",
         "action": "What to do"
@@ -384,7 +386,10 @@
     },
     "flexible": {
       "choose": "Choose method and amount",
-      "customPlaceholder": "Enter an amount"
+      "customPlaceholder": "Enter an amount",
+      "dialogHint": "Pick the method here, then the place it lands and an amount of your own.",
+      "offers": "Methods inside this window",
+      "more": "+{count} more"
     }
   },
   "NotFoundPage": {

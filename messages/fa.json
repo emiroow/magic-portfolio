@@ -279,6 +279,8 @@
     "dialog": {
       "steps": {
         "choose": "روش و مبلغ",
+        "destination": "مقصد و مبلغ",
+        "amount": "مبلغ",
         "details": "مشخصات شما",
         "method": "پرداخت",
         "action": "چه کار کنم"
@@ -384,7 +386,10 @@
     },
     "flexible": {
       "choose": "انتخاب روش و مبلغ",
-      "customPlaceholder": "مبلغ را وارد کنید"
+      "customPlaceholder": "مبلغ را وارد کنید",
+      "dialogHint": "این‌جا اول روش را انتخاب کنید، بعد مقصد رسیدن مبلغ و عدد دلخواه خود را.",
+      "offers": "روش‌های داخل این پنجره",
+      "more": "{count} مورد دیگر"
     }
   },
   "NotFoundPage": {

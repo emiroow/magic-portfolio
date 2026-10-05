@@ -1,12 +1,15 @@
 'use client';
 
 import { SupportMark } from '@/components/support/support-mark';
+import { MODE_ICONS } from '@/components/support/support-meta';
 import { Tag } from '@/components/support/support-tile';
 import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { MODE_ICONS } from '@/components/support/support-meta';
-import type { IDonation } from '@/types';
-import { useTranslations } from 'next-intl';
+import { cn, localizedCount } from '@/lib/utils';
+import type { AppLocale, IDonation } from '@/types';
+import { useLocale, useTranslations } from 'next-intl';
+
+/** Methods named on the door before the count of the ones left behind takes over. */
+const SHOWN_METHODS = 4;
 
 interface FlexibleSupportProps {
   /** Methods that accept an amount the owner did not pre-set. */
@@ -20,14 +23,20 @@ interface FlexibleSupportProps {
  * The door to supporting at an amount of the visitor's own choosing.
  *
  * It asks for nothing on the page: the method, the destination and the number are
- * one decision, and the wizard is where that decision is made — the same screen
- * that shows the currency, the limits and the payment details. What is listed here
- * is only which doors are open.
+ * one decision, made in the window this door opens — and that window is the only
+ * place a choice between methods is offered. What is named here is the set of
+ * methods this door leads to, so the box reads as its own thing rather than as a
+ * copy of the cards below it.
  */
 export default function FlexibleSupport({ methods, onOpen, className }: FlexibleSupportProps) {
   const t = useTranslations('support');
+  const locale = useLocale();
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
   if (!methods.length) return null;
+
+  const named = methods.slice(0, SHOWN_METHODS);
+  const hidden = methods.length - named.length;
 
   return (
     <section
@@ -43,20 +52,27 @@ export default function FlexibleSupport({ methods, onOpen, className }: Flexible
           </h2>
           <p className="max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('anyAmountDescription')}</p>
 
-          {/* What can be chosen inside the wizard, not a control here. */}
-          <ul className="flex flex-wrap gap-1.5 pt-1">
-            {methods.map(method => {
+          {/* Which methods the window offers to choose between, not a control here. */}
+          <ul className="flex flex-wrap items-center gap-1.5 pt-1" aria-label={t('flexible.offers')}>
+            {named.map(method => {
               const Icon = MODE_ICONS[method.mode];
 
               return (
                 <li key={method._id ?? method.slug ?? method.title}>
-                  <Tag>
+                  <Tag className="max-w-44">
                     <Icon className="size-3 shrink-0" aria-hidden />
-                    {t(`modes.${method.mode}`)}
+                    <span className="min-w-0 truncate" dir="auto">
+                      {method.title}
+                    </span>
                   </Tag>
                 </li>
               );
             })}
+            {hidden > 0 && (
+              <li>
+                <Tag>{t('flexible.more', { count: localizedCount(hidden, lang) })}</Tag>
+              </li>
+            )}
           </ul>
         </div>
       </div>

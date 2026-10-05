@@ -37,11 +37,11 @@ interface SupportBrowserProps {
  * The support page: one card per method, the door to an amount of the visitor's own
  * choosing, and the wall of everyone whose support landed.
  *
- * Nothing is decided on the page itself. The method, the destination it pays into
- * and the number are one decision, made in the wizard — the same screen that shows
- * the currency, the limits and the payment details. Methods that cost nothing are
- * kept in their own block, so a visitor can tell a payment from a gesture before
- * opening either.
+ * Nothing is decided on the page itself, and no window is shared between cards: a
+ * card opens a wizard holding that card's own destinations, currency, limits and
+ * steps, while the “your own amount” box opens one that first asks between the
+ * methods accepting an open amount. Methods that cost nothing are kept in their own
+ * block, so a visitor can tell a payment from a gesture before opening either.
  */
 export default function SupportBrowser({
   methods,
@@ -69,9 +69,12 @@ export default function SupportBrowser({
   const [dialogOpen, setDialogOpen] = useState(Boolean(initialMethod));
   const [picked, setPicked] = useState<number | undefined>(initialAmount);
   const [variantKey, setVariantKey] = useState<string | undefined>(initialVariantKey);
+  /** Which door the window was opened from: a card of its own, or the chooser box. */
+  const [scope, setScope] = useState<'card' | 'box'>('card');
 
   /** A card opens its own method, with nothing decided about the amount yet. */
   const openMethod = (option: IDonation) => {
+    setScope('card');
     setActive(option);
     setPicked(undefined);
     setVariantKey(undefined);
@@ -80,6 +83,7 @@ export default function SupportBrowser({
 
   /** The flexible door opens on the first method that takes an open amount. */
   const openFlexible = () => {
+    setScope('box');
     setActive(flexible[0] ?? null);
     setPicked(undefined);
     setVariantKey(undefined);
@@ -212,7 +216,8 @@ export default function SupportBrowser({
       </section>
 
       <SupportDialog
-        methods={methods}
+        choices={scope === 'box' ? flexible : []}
+        heading={scope === 'box' ? { title: t('anyAmountTitle'), description: t('flexible.dialogHint') } : undefined}
         option={active}
         open={dialogOpen}
         onOpenChange={setDialogOpen}
