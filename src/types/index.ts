@@ -83,45 +83,94 @@ export interface IProduct {
 }
 
 /**
- * How a support option actually collects money. Every option is exactly one of
- * these, which is what keeps the checkout dialog honest: it only ever shows the
- * surface belonging to the option's own mode.
+ * How a support method actually collects money — the four ways a gift can travel.
  *
- * - `referral`  — hand off to a creator-support platform (Buy Me a Coffee, Ko-fi, حمیاتو…)
- * - `link`      — a checkout page built in advance inside a gateway (ZarinPal/IDPay links, PayPal.me, Stripe link)
- * - `card`      — card-to-card: a card number and/or IBAN with a scannable QR
- * - `crypto`    — an on-chain address or Lightning destination with a QR
- * - `gateway`   — a full in-site checkout: the site calls the gateway API itself
+ * The dashboard offers exactly one item per method, so a supporter never compares
+ * three prices for the same act of giving. What the method can be paid *into* is a
+ * list of destinations (`SupportVariant`), picked inside the checkout wizard.
+ *
+ * - `platform` — hand off to a support platform (Buy Me a Coffee, کافی‌بده) or a
+ *                payment page prepared in a gateway
+ * - `card`     — card-to-card: a card number and/or IBAN with a scannable QR
+ * - `crypto`   — an on-chain address or Lightning destination with a QR
+ * - `gateway`  — a full in-site checkout: the site calls the gateway API itself
  */
-export type DonationMode = 'referral' | 'link' | 'card' | 'crypto' | 'gateway';
+export type DonationMode = 'platform' | 'card' | 'crypto' | 'gateway';
 
-/** Market the option is aimed at: drives the order of the methods on the page. */
+/** Market the method is aimed at: drives the order of the methods on the page. */
 export type DonationRegion = 'ir' | 'global';
 
-/** Creator-support platforms a `referral` option can point at. */
-export type ReferralProvider = 'buymeacoffee' | 'kofi' | 'patreon' | 'github' | 'liberapay' | 'hamyato';
+/**
+ * Services a destination can belong to. The two support platforms are the Iranian
+ * and the international hand-off; the rest are gateways, used both for a prepared
+ * payment link (`platform`) and for an in-site checkout (`gateway`). `custom` is
+ * the escape hatch for a service the owner adds without a code change.
+ */
+export type SupportProvider = 'buymeacoffee' | 'coffeebede' | 'zarinpal' | 'idpay' | 'stripe' | 'paypal' | 'custom';
 
-/** Hosted checkout links a `link` option can point at. */
-export type LinkProvider = 'zarinpal' | 'idpay' | 'paypalme' | 'stripe' | 'other';
-
-/** Gateways the site can talk to directly from `gateway` options. */
+/** Gateways the site can talk to directly from `gateway` methods. */
 export type GatewayId = 'zarinpal' | 'idpay' | 'stripe' | 'paypal';
 
-/** Ledgers a `crypto` option can receive on. */
+/**
+ * Ledgers a crypto destination can receive on. A stablecoin is named by the chain
+ * it moves on, which is the choice that actually decides whether the money lands:
+ * the asset itself is spelled out in the destination's own label.
+ */
 export type CryptoNetwork = 'tron' | 'ethereum' | 'bitcoin' | 'ton' | 'bsc' | 'lightning';
 
 /**
- * A support option (one coffee, ten coffees, a monthly pledge…). Created in the
- * dashboard, rendered on `/support` and inside the home-page section.
+ * One destination of a payment method: a platform page, a card, a wallet address
+ * or a gateway. Which fields carry meaning depends on the method's own `mode`, and
+ * the dashboard only ever shows the fields of the mode the method uses.
+ */
+export interface SupportVariant {
+  _id?: string;
+  /** Stable identifier carried in the deep link and the checkout payload. */
+  key: string;
+  /** Display name; when empty the destination names itself from its service or ledger. */
+  label?: string;
+  /** `platform` and `gateway` only: which service the destination belongs to. */
+  provider?: SupportProvider;
+  /** `platform` only: the page the supporter is sent to. */
+  href?: string;
+  /** `card` only: digits, stored without spaces. */
+  number?: string;
+  /** `card` only: IBAN (sheba), stored upper-case without spaces. */
+  iban?: string;
+  /** `card` only: name the account is in. */
+  holder?: string;
+  /** `card` only: override for the QR payload; empty encodes the card number. */
+  qrPayload?: string;
+  /** `crypto` only: the ledger the address lives on. */
+  network?: CryptoNetwork;
+  /** `crypto` only: address, `lnurl…` or Lightning destination. */
+  address?: string;
+  /** Set when this destination is priced in another unit than its method. */
+  currency?: ProductCurrency;
+  /** Set when this destination serves another market than its method. */
+  region?: DonationRegion;
+  /** `false` hides this destination without deleting it. */
+  active: boolean;
+}
+
+/**
+ * A payment method the owner can be supported through: one method, its amount
+ * policy, and the destinations money can actually arrive at. Created in the
+ * dashboard, rendered on `/support` and spent by the checkout endpoint.
  */
 export interface IDonation {
   _id?: string;
   title: string;
   /** URL-free identifier kept for analytics and stable ordering. */
   slug?: string;
-  /** Short pitch under the title on the card. */
+  /** One line under the title: what this method is good for. */
   description?: string;
-  /** `0` means "the supporter chooses": the dialog starts on the amount step. */
+  mode: DonationMode;
+  /** The method's own market; a destination may override it. */
+  region: DonationRegion;
+  /** Where the money lands, in the order the supporter is shown them. */
+  variants: SupportVariant[];
+  /** `0` means "the supporter chooses": the wizard starts on the amount step. */
   amount: number;
   currency: ProductCurrency;
   /** Allow an amount the owner did not pre-set. */
@@ -132,32 +181,8 @@ export interface IDonation {
   minAmount: number;
   /** Largest accepted amount; `0` defers to the site default. */
   maxAmount: number;
-  mode: DonationMode;
-  region: DonationRegion;
-  /** `referral` only. */
-  referral?: ReferralProvider;
-  /** `link` and `referral`: where the button leads. */
-  href?: string;
-  /** `link` only: which gateway the prepared link belongs to. */
-  linkProvider?: LinkProvider;
-  /** `card` only. Digits are stored without spaces. */
-  card?: { number?: string; holder?: string; iban?: string };
-  /** `card`: override for the QR payload; empty encodes the card number. */
-  cardQrPayload?: string;
-  /** `crypto` only. */
-  crypto?: { network?: CryptoNetwork; address?: string };
-  /** `gateway` only: which configured gateway charges the supporter. */
-  gateway?: GatewayId;
-  /** Optional funding target; when set the card shows a progress bar. */
-  goal?: number;
-  /** Repeat the gift every month, where the destination supports it. */
-  recurring: boolean;
-  /** Number of coffees the option represents — drawn as the cup row on the card. */
-  cups: number;
-  /** `false` keeps the option out of every public surface. */
+  /** `false` keeps the method out of every public surface. */
   active: boolean;
-  /** Picked for the home page section; `active` still controls visibility. */
-  featured?: boolean;
   /** Position on `/support`; lower numbers lead. */
   order: number;
   lang: AppLocale;
@@ -175,9 +200,12 @@ export type SupporterStatus = 'pending' | 'completed' | 'failed' | 'cancelled';
  */
 export interface ISupporter {
   _id?: string;
-  /** Option the gift was for; the id may one day be gone, so the title is stored too. */
+  /** Method the gift was for; the id may one day be gone, so the title is stored too. */
   donationId?: string;
   donationTitle?: string;
+  /** Destination the supporter picked inside the method, kept for the receipt line. */
+  variantKey?: string;
+  variantLabel?: string;
   name?: string;
   /** `true` hides the name on the wall behind the anonymous label. */
   anonymous: boolean;
@@ -281,11 +309,11 @@ export interface SupportSettings {
 }
 
 /**
- * What the checkout endpoint hands back, one shape per rail:
+ * What the checkout endpoint hands back, one shape per method:
  *
- * - `external`   — leave for a platform or a prepared gateway link
- * - `instructions` — transfer it yourself; the QR and destination are included
- * - `redirect`   — a gateway session was created; send the supporter there
+ * - `external`     — leave for a support platform or a prepared payment page
+ * - `instructions` — transfer it yourself; the QR and the destination are included
+ * - `redirect`     — a gateway session was created; send the supporter there
  */
 export type SupportCheckoutResult =
   | { kind: 'external'; orderId: string; url: string }

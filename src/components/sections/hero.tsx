@@ -2,7 +2,7 @@ import BlurFade from '@/components/magicui/blur-fade';
 import { eyebrowClass } from '@/components/sections/section-header';
 import { Button } from '@/components/ui/button';
 import { isOptimizableImage } from '@/lib/utils';
-import { Coffee, Mail } from 'lucide-react';
+import { HandHeart, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { IProfile } from '@/types';
@@ -13,9 +13,9 @@ interface HeroProps {
   greeting: string;
   /** Label for the mailto shortcut; the button is hidden without it. */
   emailLabel?: string;
-  /** Label for the buy-me-a-coffee shortcut; hidden without it. */
+  /** Label for the support shortcut; hidden without it. */
   supportLabel?: string;
-  /** Localized `/support` page the coffee button leads to. */
+  /** Localized `/support` page the support button leads to. */
   supportHref?: string;
   /** Base delay for the entrance stagger. */
   delay?: number;
@@ -35,7 +35,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
   const monogram = (name || '?').charAt(0);
   const avatar = profile.avatarUrl;
   const mailto = profile.email && emailLabel ? `mailto:${profile.email}` : undefined;
-  const coffee = supportLabel && supportHref ? { label: supportLabel, href: supportHref } : undefined;
+  const support = supportLabel && supportHref ? { label: supportLabel, href: supportHref } : undefined;
 
   return (
     <section id="hero" aria-labelledby="hero-heading">
@@ -66,16 +66,16 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
             </BlurFade>
           )}
 
-          {(mailto || coffee) && (
+          {(mailto || support) && (
             <BlurFade delay={delay + 0.24}>
-              {/* Two shortcuts, one row: the paid one leads and is filled, the
+              {/* Two shortcuts, one row: the support one leads and is filled, the
                   written one follows as an outline. */}
               <div className="mt-7 flex flex-wrap gap-2.5">
-                {coffee && (
+                {support && (
                   <Button asChild size="sm" className="rounded-full px-5">
-                    <Link href={coffee.href}>
-                      <Coffee className="me-2 size-4" aria-hidden />
-                      {coffee.label}
+                    <Link href={support.href}>
+                      <HandHeart className="me-2 size-4" aria-hidden />
+                      {support.label}
                     </Link>
                   </Button>
                 )}

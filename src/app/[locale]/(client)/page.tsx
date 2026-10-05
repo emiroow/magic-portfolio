@@ -9,11 +9,9 @@ import { Hero } from '@/components/sections/hero';
 import { Products } from '@/components/sections/products';
 import { Projects } from '@/components/sections/projects';
 import { Skills } from '@/components/sections/skills';
-import { Support } from '@/components/sections/support';
-import { getBlogList, getDonationProgress, getDonations, getPortfolioData, getProducts, getProfile, getSupporters } from '@/lib/data';
+import { getPortfolioData, getProducts, getProfile, getBlogList, hasDonations } from '@/lib/data';
 import { OG_IMAGE_URL, TWITTER_HANDLE, brandedTitle, languageAlternates, localeUrl, site } from '@/lib/seo';
 import { sectionIndex, localizedCount } from '@/lib/utils';
-import { HOME_SUPPORTER_STRIP } from '@/constants/global';
 import type { AppLocale } from '@/types';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
@@ -76,17 +74,14 @@ export default async function Page({ params }: Props) {
   const { locale } = await params;
   const lang = asLocale(locale);
 
-  const [t, tSections, data, products, posts, donations, supporters] = await Promise.all([
+  const [t, tSections, data, products, posts, supported] = await Promise.all([
     getTranslations({ locale }),
     getTranslations({ locale, namespace: 'sections' }),
     getPortfolioData(lang),
     getProducts(lang),
     getBlogList(lang),
-    getDonations(lang),
-    getSupporters(lang, HOME_SUPPORTER_STRIP),
+    hasDonations(lang),
   ]);
-
-  const progress = await getDonationProgress(lang, donations);
 
   const { profile, projects, works, educations, skills, socials } = data;
 
@@ -118,7 +113,6 @@ export default async function Page({ params }: Props) {
     projects: projects.some(project => project.active),
     products: products.length > 0,
     blog: posts.length > 0,
-    support: donations.length > 0,
     contact: Boolean(profile.email?.trim() || profile.tel?.trim() || socials.some(social => social.url)),
   };
   const renderedKeys = (Object.keys(rendered) as (keyof typeof rendered)[]).filter(key => rendered[key]);
@@ -155,7 +149,7 @@ export default async function Page({ params }: Props) {
         profile={profile}
         greeting={tSections('hero.greeting')}
         emailLabel={profile.email ? tSections('hero.emailCta') : undefined}
-        supportLabel={donations.length ? tSections('support.pay') : undefined}
+        supportLabel={supported ? t('support.pay') : undefined}
         supportHref={`/${locale}/support`}
       />
       <About
@@ -229,21 +223,6 @@ export default async function Page({ params }: Props) {
         lang={lang}
         viewAllLabel={tSections('blog.viewAll')}
         delay={0.4}
-      />
-      <Support
-        index={ordinal('support')}
-        label={tSections('support.label')}
-        title={tSections('support.title')}
-        description={tSections('support.description')}
-        meta={tSections('support.count', { count: localizedCount(donations.length, lang) })}
-        options={donations}
-        supporters={supporters}
-        progress={progress}
-        locale={locale}
-        lang={lang}
-        wallLabel={tSections('support.wallLabel')}
-        viewAllLabel={tSections('support.viewAll')}
-        delay={0.45}
       />
       <Contact
         index={ordinal('contact')}

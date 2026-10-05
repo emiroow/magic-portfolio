@@ -6,11 +6,16 @@ import mongoose, { Schema } from 'mongoose';
  * either by a gateway callback or by the owner. The wall on `/support` reads
  * completed, opted-in records from here, so the supporter's name and message are
  * stored with the money rather than being reconstructed later.
+ *
+ * The method and the destination it was paid into are stored as text too: a
+ * receipt has to keep saying what it was for after the method is edited away.
  */
 const supporterSchema = new Schema<ISupporter>(
   {
     donationId: { type: String, index: true },
     donationTitle: { type: String },
+    variantKey: { type: String },
+    variantLabel: { type: String },
     name: { type: String },
     anonymous: { type: Boolean, default: false },
     email: { type: String },

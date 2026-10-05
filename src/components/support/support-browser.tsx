@@ -1,15 +1,16 @@
 'use client';
 
-import { CoffeeMark } from '@/components/support/coffee-mark';
+import FlexibleSupport from '@/components/support/flexible-support';
 import { SupportCard } from '@/components/support/support-card';
 import { SupportDialog } from '@/components/support/support-dialog';
 import { SupporterWall } from '@/components/support/supporter-wall';
-import { destinationKey } from '@/components/support/support-meta';
+import { flexibleMethods, variantLabel } from '@/components/support/support-meta';
 import { Button } from '@/components/ui/button';
-import type { DonationProgress, SupportStats } from '@/lib/data';
-import { formatPrice, localizedCount } from '@/lib/utils';
+import type { SupportStats } from '@/lib/data';
+import { usableVariants } from '@/lib/support';
+import { documentKey, formatPrice, localizedCount } from '@/lib/utils';
 import type { AppLocale, IDonation, ISupporter } from '@/types';
-import { Check, Coffee, HandHeart, ShieldCheck } from 'lucide-react';
+import { Check, HandHeart, ShieldCheck } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 
@@ -17,65 +18,76 @@ import { useState } from 'react';
 export type SupportReturnStatus = 'success' | 'cancelled' | 'failed' | 'error';
 
 interface SupportBrowserProps {
-  options: IDonation[];
+  methods: IDonation[];
   supporters: ISupporter[];
   stats: SupportStats;
-  progress: Record<string, DonationProgress>;
+  /** Confirmed supporters per method, keyed by method id. */
+  counts: Record<string, number>;
   /** Opened straight away when the visitor arrived through `?option=`. */
-  initialOption?: IDonation;
+  initialMethod?: IDonation;
+  /** Destination a shared link points at. */
+  initialVariantKey?: string;
+  /** Amount already chosen, carried by `?amount=`. */
+  initialAmount?: number;
   /** Banner shown after a gateway sends the supporter back. */
   returnStatus?: SupportReturnStatus;
 }
 
 /**
- * The support page: every rail in one grid, the flexible amount called out on its
- * own, and the wall of everyone whose gift landed.
+ * The support page: one card per payment method, the door to an amount of the
+ * visitor's own choosing, and the wall of everyone whose support landed.
  *
- * The “choose your own amount” tile is not a fake option — it is a real one whose
- * price is `0`, so it charges through whatever rail its owner picked.
+ * Nothing is decided on the page itself. The method, the destination it pays into
+ * and the number are one decision, made in the wizard — the same screen that shows
+ * the currency, the limits and the payment details.
  */
-export default function SupportBrowser({ options, supporters, stats, progress, initialOption, returnStatus }: SupportBrowserProps) {
+export default function SupportBrowser({ methods, supporters, stats, counts, initialMethod, initialVariantKey, initialAmount, returnStatus }: SupportBrowserProps) {
   const t = useTranslations('support');
   const tp = useTranslations('pricing');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
-  const flexible = options.find(option => option.amount === 0);
-  const fixed = options.filter(option => option.amount !== 0);
+  const flexible = flexibleMethods(methods);
 
-  // A deep link (`?option=…`) arrives as `initialOption`, so the dialog simply
+  // A deep link (`?option=…`) arrives as `initialMethod`, so the wizard simply
   // starts open; nothing to synchronize after mount.
-  const [active, setActive] = useState<IDonation | null>(initialOption ?? null);
-  const [open, setOpen] = useState(Boolean(initialOption));
+  const [active, setActive] = useState<IDonation | null>(initialMethod ?? null);
+  const [dialogOpen, setDialogOpen] = useState(Boolean(initialMethod));
+  const [picked, setPicked] = useState<number | undefined>(initialAmount);
+  const [variantKey, setVariantKey] = useState<string | undefined>(initialVariantKey);
 
-  const labels = (option: IDonation) => {
-    const key = destinationKey(option);
-    const entry = option._id ? progress[option._id] : undefined;
-    const percent = option.goal && option.goal > 0 ? Math.round(((entry?.raised ?? 0) / option.goal) * 100) : null;
+  /** A card opens its own method, with nothing decided about the amount yet. */
+  const openMethod = (option: IDonation) => {
+    setActive(option);
+    setPicked(undefined);
+    setVariantKey(undefined);
+    setDialogOpen(true);
+  };
 
-    return {
-      modeLabel: t(`modes.${option.mode}`),
-      destinationLabel: key ? t(`providers.${key}`) : undefined,
-      regionLabel: t(`regions.${option.region}`),
-      cadenceLabel: option.recurring ? t('monthly') : t('oneTime'),
-      anyPriceLabel: t('anyPrice'),
-      progressPercent: percent ?? undefined,
-      progressLabel:
-        percent !== null && option.goal
-          ? t('progress', {
-              percent: `${new Intl.NumberFormat(lang === 'fa' ? 'fa-IR' : 'en-US').format(percent)}${t('percent')}`,
-              amount: `${formatPrice(option.goal, lang)} ${tp(option.currency)}`,
-            })
-          : undefined,
-      supportersLabel: entry && entry.count > 0 ? t('stats.supporters', { count: localizedCount(entry.count, lang) }) : undefined,
-    };
+  /** The flexible door opens on the first method that takes an open amount. */
+  const openFlexible = () => {
+    setActive(flexible[0] ?? null);
+    setPicked(undefined);
+    setVariantKey(undefined);
+    setDialogOpen(true);
+  };
+
+  /** Switching inside the wizard is the same decision, so the page keeps up with it. */
+  const syncChoice = (option: IDonation, key: string, amount: number) => {
+    setActive(option);
+    setVariantKey(key);
+    setPicked(amount);
   };
 
   return (
     <div className="flex flex-col gap-10">
       {returnStatus && (
         <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5" role="status">
-          {returnStatus === 'success' ? <Check className="mt-0.5 size-4 shrink-0" aria-hidden /> : <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />}
+          {returnStatus === 'success' ? (
+            <Check className="mt-0.5 size-4 shrink-0" aria-hidden />
+          ) : (
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
+          )}
           <p className="min-w-0 text-sm leading-relaxed">{t(`status.${returnStatus}`)}</p>
         </div>
       )}
@@ -98,83 +110,51 @@ export default function SupportBrowser({ options, supporters, stats, progress, i
               <span className="text-muted-foreground">{t('stats.raisedLabel')}</span>
             </p>
           )}
-          {supporters.length > 0 && <p className="text-muted-foreground">{t('stats.wall')}</p>}
         </div>
       )}
 
-      {options.length === 0 ? (
+      {methods.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
-          <span aria-hidden className="flex size-12 items-center justify-center rounded-full border">
-            <Coffee className="size-5 text-muted-foreground" />
+          <span aria-hidden className="flex size-10 items-center justify-center rounded-lg border bg-muted/40">
+            <HandHeart className="size-4 text-muted-foreground" />
           </span>
           <p className="max-w-md px-6 text-sm leading-relaxed text-muted-foreground">{t('empty')}</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {fixed.map(option => (
-            <SupportCard
-              key={option._id ?? option.title}
-              option={option}
-              {...labels(option)}
-              headingLevel="h2"
-              action={
-                <Button
-                  size="sm"
-                  className="rounded-full"
-                  onClick={() => {
-                    setActive(option);
-                    setOpen(true);
-                  }}
-                >
-                  {t('pay')}
-                </Button>
-              }
-            />
-          ))}
-        </div>
-      )}
+        <div className="space-y-4">
+          {/* One door for “an amount of my own”: everything is chosen inside it. */}
+          {flexible.length > 0 && <FlexibleSupport methods={flexible} onOpen={openFlexible} />}
 
-      {flexible && (
-        <div className="rounded-xl border bg-card">
-          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-            <div className="flex min-w-0 items-start gap-4">
-              <CoffeeMark className="size-12 shrink-0 text-muted-foreground" />
-              <div className="min-w-0">
-                <h2 className="text-base font-bold leading-tight ltr:tracking-tight sm:text-lg">{t('anyAmountTitle')}</h2>
-                <p className="mt-2 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('anyAmountDescription')}</p>
-                <p className="mt-2 text-xs text-muted-foreground">
-                  {t(`modes.${flexible.mode}`)}
-                  <span aria-hidden className="mx-1.5">
-                    ·
-                  </span>
-                  <span className="text-muted-foreground/80">{t('anyPrice')}</span>
-                </p>
-              </div>
-            </div>
-            <Button
-              className="shrink-0 rounded-full"
-              onClick={() => {
-                setActive(flexible);
-                setOpen(true);
-              }}
-            >
-              <HandHeart className="me-2 size-4" aria-hidden />
-              {t('anyAmountPay', { amount: t('anyPrice') })}
-            </Button>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {methods.map(method => {
+              const first = usableVariants(method)[0];
+              const named = variantLabel(first, t);
+
+              return (
+                <SupportCard
+                  key={documentKey(method) || method.title}
+                  option={method}
+                  supporters={method._id ? counts[method._id] : undefined}
+                  action={
+                    <Button size="sm" className="rounded-full" onClick={() => openMethod(method)}>
+                      {t(`cta.${method.mode}`, { provider: named || t(`modes.${method.mode}`) })}
+                    </Button>
+                  }
+                />
+              );
+            })}
           </div>
-        </div>
-      )}
 
-      {/* Trust line: what the page does not do with the supporter's data. */}
-      {options.length > 0 && (
-        <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">
-          {(['noAccount', 'private', 'monochrome'] as const).map(key => (
-            <li key={key} className="flex items-center gap-1.5">
-              <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-              {t(`trust.${key}`)}
-            </li>
-          ))}
-        </ul>
+          {/* Trust line: what the page does not do with the supporter's data. */}
+          <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">
+            {(['noAccount', 'private', 'monochrome'] as const).map(key => (
+              <li key={key} className="flex items-center gap-1.5">
+                <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
+                {t(`trust.${key}`)}
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <section aria-labelledby="supporters-heading" className="space-y-5">
@@ -187,7 +167,15 @@ export default function SupportBrowser({ options, supporters, stats, progress, i
         <SupporterWall supporters={supporters} />
       </section>
 
-      <SupportDialog option={active} open={open} onOpenChange={setOpen} />
+      <SupportDialog
+        methods={methods}
+        option={active}
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        initialAmount={picked}
+        initialVariantKey={variantKey}
+        onSelect={syncChoice}
+      />
     </div>
   );
 }

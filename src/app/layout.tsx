@@ -44,10 +44,14 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const dir = locale === 'fa' ? 'rtl' : 'ltr';
 
   return (
-    <html lang={locale} dir={dir} data-scroll-behavior="smooth" suppressHydrationWarning>
-      <body
-        className={`relative ${locale === 'fa' ? estedad.className : roboto.className} bg-background text-foreground antialiased`}
-      >
+    <html
+      lang={locale}
+      dir={dir}
+      data-scroll-behavior="smooth"
+      className={locale === 'fa' ? estedad.className : roboto.className}
+      suppressHydrationWarning
+    >
+      <body className="relative bg-background text-foreground antialiased">
         {/* Static hairline grid backdrop; content is layered above it. */}
         <div aria-hidden className="surface-grid pointer-events-none absolute inset-x-0 top-0 -z-10 h-64" />
         {children}

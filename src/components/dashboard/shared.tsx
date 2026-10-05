@@ -137,12 +137,18 @@ export function FormPanel({ open, title, onClose, children }: { open: boolean; t
   );
 }
 
-/** Label + control + inline error text. */
+/**
+ * Label + control + inline error text.
+ *
+ * `optionalLabel` marks a field the form accepts empty, so an owner never has to
+ * guess whether a blank limit is a mistake or a choice.
+ */
 export function Field({
   label,
   id,
   error,
   hint,
+  optionalLabel,
   children,
   className,
 }: {
@@ -152,6 +158,8 @@ export function Field({
   error?: string;
   /** Muted helper line under the control. */
   hint?: string;
+  /** Word shown beside the label when the field may stay empty. */
+  optionalLabel?: string;
   children: ReactNode;
   className?: string;
 }) {
@@ -159,8 +167,9 @@ export function Field({
 
   return (
     <div className={cn('flex flex-col gap-2', className)}>
-      <label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+      <label htmlFor={id} className="flex flex-wrap items-baseline gap-x-2 text-xs font-medium text-muted-foreground">
         {label}
+        {optionalLabel && !error && <span className="text-[10px] font-normal opacity-70">{optionalLabel}</span>}
       </label>
       {children}
       {hint && !error && <p className="text-xs text-muted-foreground/80">{hint}</p>}

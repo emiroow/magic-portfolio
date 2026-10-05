@@ -2,52 +2,93 @@
 
 import { api } from '@/lib/client-api';
 import { donationFormSchema, type DonationFormInput } from '@/lib/validations';
-import type { IDonation, SupportSettings } from '@/types';
+import { variantFields, withUniqueKeys } from '@/lib/support';
+import type { DonationMode, IDonation, SupportSettings, SupportVariant } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { useFieldArray, useForm } from 'react-hook-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
-import { useForm } from 'react-hook-form';
 import { useToastMessages } from './useToastMessages';
 
-// The API's own option schema, widened by the document id when editing.
+// The API's own method shape, widened by the document id when editing.
 type DonationForm = DonationFormInput;
+type DonationVariant = DonationForm['variants'][number];
 
 /**
- * A fresh option: Iranian rails lead the Persian site, so the defaults describe
- * the most common case — a fixed-price coffee paid through a platform link.
+ * A fresh destination. Which of these fields mean anything is decided by the
+ * method's own mode, so the form shows a handful at a time.
+ */
+const EMPTY_VARIANT: DonationVariant = {
+  key: '',
+  label: '',
+  provider: '',
+  href: '',
+  number: '',
+  iban: '',
+  holder: '',
+  qrPayload: '',
+  network: '',
+  address: '',
+  currency: '',
+  region: '',
+  active: true,
+};
+
+/**
+ * A fresh method. The default is the door that needs no credentials: a page on a
+ * support platform, with an amount the supporter names.
  */
 const EMPTY: DonationForm = {
   title: '',
   slug: '',
   description: '',
+  mode: 'platform',
+  region: 'global',
+  variants: [{ ...EMPTY_VARIANT, provider: 'buymeacoffee' }],
   amount: 0,
   currency: 'toman',
   customAmount: true,
   suggestedAmounts: [],
   minAmount: 0,
   maxAmount: 0,
-  mode: 'referral',
-  region: 'global',
-  referral: '',
-  href: '',
-  linkProvider: '',
-  card: { number: '', holder: '', iban: '' },
-  cardQrPayload: '',
-  crypto: { network: '', address: '' },
-  gateway: '',
-  recurring: false,
-  cups: 1,
   active: true,
-  featured: false,
   order: 0,
 };
 
-/** Numbers arrive from `valueAsNumber`, so a cleared field must not become NaN. */
+/**
+ * Number inputs report a cleared field as `NaN`, which would fail validation for a
+ * value the schema already treats as “none”. Folding it to `0` keeps an emptied
+ * limit mean exactly what the hint says.
+ */
+export const numberField = { setValueAs: (value: unknown) => (value === '' || value === null || value === undefined ? 0 : Number(value)) } as const;
+
+/** Numbers arrive from `numberField`, so a cleared field is already `0`. */
 function whole(value: unknown, fallback = 0): number {
   return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
-/** Support options list + CRUD for the dashboard. */
+/**
+ * One row as it is stored: only the fields its own method spends money with, with
+ * empty strings dropped so a document never carries `iban: ""`.
+ */
+function cleanVariant(mode: DonationMode, row: DonationVariant): SupportVariant {
+  const keep = new Set<string>(['key', 'label', 'active', 'currency', 'region', ...variantFields(mode)]);
+  const out: Record<string, unknown> = { active: row.active !== false };
+
+  for (const [field, value] of Object.entries(row)) {
+    if (!keep.has(field)) continue;
+    if (typeof value === 'string') {
+      const trimmed = value.trim();
+      if (trimmed) out[field] = trimmed;
+    } else if (typeof value === 'boolean') {
+      out[field] = value;
+    }
+  }
+
+  return out as unknown as SupportVariant;
+}
+
+/** Support methods list + CRUD for the dashboard. */
 const useDonations = () => {
   const locale = useLocale();
   const { ok, fail } = useToastMessages();
@@ -59,12 +100,16 @@ const useDonations = () => {
     watch,
     reset,
     getValues,
+    control,
     formState: { errors },
   } = useForm<DonationForm>({
     resolver: zodResolver(donationFormSchema),
     defaultValues: EMPTY,
     mode: 'onTouched',
   });
+
+  /** The destinations of the method being edited, in the order the page shows them. */
+  const variantList = useFieldArray({ control, name: 'variants' });
 
   const {
     data: donations,
@@ -86,22 +131,19 @@ const useDonations = () => {
 
   const save = useMutation({
     mutationFn: (data: DonationForm) => {
+      const mode = data.mode;
+      const rows = data.variants.map(variant => cleanVariant(mode, variant)).filter(Boolean);
+
       const body: DonationForm = {
         ...data,
         amount: whole(data.amount),
         minAmount: whole(data.minAmount),
         maxAmount: whole(data.maxAmount),
-        cups: whole(data.cups, 1),
         order: whole(data.order),
-        // A blank goal means “no target”, not “zero”.
-        goal: typeof data.goal === 'number' && Number.isFinite(data.goal) ? data.goal : undefined,
-        card: {
-          number: data.card?.number?.trim() || '',
-          holder: data.card?.holder?.trim() || '',
-          iban: data.card?.iban?.trim() || '',
-        },
-        crypto: { network: data.crypto?.network || '', address: data.crypto?.address?.trim() || '' },
+        // Keys come from what each destination holds, so two rows can never collide.
+        variants: withUniqueKeys(mode, rows),
       };
+
       return body._id ? api.put<IDonation>(`/api/${locale}/admin/donation`, body) : api.post<IDonation>(`/api/${locale}/admin/donation`, body);
     },
     onSuccess: () => {
@@ -126,49 +168,7 @@ const useDonations = () => {
    * so a long-form body open in the edit panel is never rewritten by mistake.
    */
   const toggleActive = useMutation({
-    mutationFn: (option: IDonation) => api.put<IDonation>(`/api/${locale}/admin/donation`, { _id: option._id, active: !option.active }),
-    onSuccess: () => {
-      ok();
-      refetchDonations();
-    },
-    onError: () => fail(),
-  });
-
-  /**
-   * Home flag from the list row, without the form's `reset()` — an open panel may
-   * hold unsaved edits that a row toggle must not throw away.
-   */
-  const toggleFeatured = useMutation({
-    mutationFn: (option: IDonation) => {
-      const { _id, title, slug, description, amount, currency, customAmount, suggestedAmounts, minAmount, maxAmount, mode, region, referral, href, linkProvider, card, cardQrPayload, crypto, gateway, goal, recurring, cups, active, order } = option;
-      return api.put<IDonation>(`/api/${locale}/admin/donation`, {
-        _id,
-        title,
-        slug: slug ?? '',
-        description: description ?? '',
-        amount,
-        currency,
-        customAmount,
-        suggestedAmounts: suggestedAmounts ?? [],
-        minAmount,
-        maxAmount,
-        mode,
-        region,
-        referral: referral ?? '',
-        href: href ?? '',
-        linkProvider: linkProvider ?? '',
-        card: card ?? {},
-        cardQrPayload: cardQrPayload ?? '',
-        crypto: crypto ?? {},
-        gateway: gateway ?? '',
-        goal: goal ?? undefined,
-        recurring,
-        cups,
-        active,
-        order,
-        featured: !option.featured,
-      });
-    },
+    mutationFn: (method: IDonation) => api.put<IDonation>(`/api/${locale}/admin/donation`, { _id: method._id, active: !method.active }),
     onSuccess: () => {
       ok();
       refetchDonations();
@@ -194,29 +194,54 @@ const useDonations = () => {
     );
   };
 
-  const startEdit = (option: IDonation) => {
+  /**
+   * Changing the method keeps the identity and the money policy and throws the
+   * destinations away: a wallet address is not a card number, and a row that
+   * quietly changes what it holds is worse than an empty one.
+   */
+  const setMode = (mode: DonationMode) => {
+    setValue('mode', mode, { shouldValidate: true, shouldDirty: true });
+    variantList.replace([{ ...EMPTY_VARIANT }]);
+  };
+
+  const addVariant = () => variantList.append({ ...EMPTY_VARIANT });
+
+  const removeVariant = (index: number) => {
+    // The last destination is the method: without it there is nothing to pay into.
+    if (variantList.fields.length <= 1) return;
+    variantList.remove(index);
+  };
+
+  const startEdit = (method: IDonation) => {
     // `.lean()` returns stored documents as they are, so an old record can lack a field.
     reset({
       ...EMPTY,
-      ...option,
-      description: option.description ?? '',
-      amount: whole(option.amount),
-      minAmount: whole(option.minAmount),
-      maxAmount: whole(option.maxAmount),
-      suggestedAmounts: option.suggestedAmounts ?? [],
-      referral: option.referral ?? '',
-      href: option.href ?? '',
-      linkProvider: option.linkProvider ?? '',
-      card: { number: option.card?.number ?? '', holder: option.card?.holder ?? '', iban: option.card?.iban ?? '' },
-      cardQrPayload: option.cardQrPayload ?? '',
-      crypto: { network: option.crypto?.network ?? '', address: option.crypto?.address ?? '' },
-      gateway: option.gateway ?? '',
-      recurring: Boolean(option.recurring),
-      cups: whole(option.cups, 1),
-      active: option.active !== false,
-      featured: Boolean(option.featured),
-      order: whole(option.order),
-      _id: option._id,
+      ...method,
+      description: method.description ?? '',
+      amount: whole(method.amount),
+      minAmount: whole(method.minAmount),
+      maxAmount: whole(method.maxAmount),
+      suggestedAmounts: method.suggestedAmounts ?? [],
+      variants: (method.variants ?? []).length
+        ? method.variants.map(variant => ({
+            ...EMPTY_VARIANT,
+            ...variant,
+            label: variant.label ?? '',
+            provider: variant.provider ?? '',
+            href: variant.href ?? '',
+            number: variant.number ?? '',
+            iban: variant.iban ?? '',
+            holder: variant.holder ?? '',
+            qrPayload: variant.qrPayload ?? '',
+            network: variant.network ?? '',
+            address: variant.address ?? '',
+            currency: variant.currency ?? '',
+            region: variant.region ?? '',
+            active: variant.active !== false,
+          }))
+        : [{ ...EMPTY_VARIANT }],
+      order: whole(method.order),
+      _id: method._id,
     });
   };
 
@@ -238,9 +263,13 @@ const useDonations = () => {
     deleteDonation,
     deleting,
     toggleActive,
-    toggleFeatured,
     addSuggested,
     removeSuggested,
+    setMode,
+    addVariant,
+    removeVariant,
+    variantFieldsArray: variantList,
+    emptyVariant: EMPTY_VARIANT,
     startEdit,
     empty: EMPTY,
     onSubmit: (data: DonationForm, onSaved?: () => void) => save.mutate(data, { onSuccess: onSaved }),

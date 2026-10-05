@@ -1,141 +1,107 @@
-import { CupRow } from '@/components/support/coffee-mark';
-import { MODE_ICONS } from '@/components/support/support-meta';
+'use client';
+
 import { PriceTag } from '@/components/products/price-tag';
-import { Badge } from '@/components/ui/badge';
+import { IconTile, Tag } from '@/components/support/support-tile';
+import { MODE_ICONS, nameDir, variantDetail, variantLabel } from '@/components/support/support-meta';
 import { Card } from '@/components/ui/card';
-import { cn } from '@/lib/utils';
-import type { IDonation } from '@/types';
-import Link from 'next/link';
+import { cn, localizedCount } from '@/lib/utils';
+import { usableVariants } from '@/lib/support';
+import type { AppLocale, IDonation } from '@/types';
+import { useLocale, useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
+
+/** Destinations listed on the card before the count takes over. */
+const SHOWN_DESTINATIONS = 3;
 
 interface SupportCardProps {
   option: IDonation;
-  /** Name of the rail, e.g. `Card to card`. */
-  modeLabel: string;
-  /** Name of the destination platform, when the rail has one. */
-  destinationLabel?: string;
-  /** `Iran` or `International`. */
-  regionLabel: string;
-  /** `One time` or `Every month`. */
-  cadenceLabel: string;
-  /** Shown in the price slot when the option lets the supporter name their own amount. */
-  anyPriceLabel: string;
-  /** Ready-made `% of goal` sentence, or `undefined` when no goal is set. */
-  progressLabel?: string;
-  /** `0…100`, drawn as the hairline bar under the pitch. */
-  progressPercent?: number;
-  /** Confirmed supporters for this option; the line is hidden at zero. */
-  supportersLabel?: string;
-  /** Archive-style deep link for the title; the home section links on to `/support`. */
-  detailHref?: string;
-  /** The call to action: a link or a button, supplied by the caller. */
+  /** Confirmed supporters for this method; the line is hidden at zero. */
+  supporters?: number;
+  /** The call to action: a button, supplied by the page. */
   action: ReactNode;
   className?: string;
-  headingLevel?: 'h2' | 'h3';
 }
 
 /**
- * A support option as one card: what it buys, what it costs, which rail the
- * money travels on, and how far it has come.
+ * One payment method as one card: what it is, where the money actually lands, and
+ * what it costs. There is exactly one of these per method, so the page never asks a
+ * supporter to compare three prices for the same act of giving.
  *
- * The header is the only place the section gets any illustration, and it is a
- * hairline grid with a drawn cup — colour would break the monochrome palette, so
- * emphasis comes from the inverted border on hover instead.
+ * The card shares its parts — the framed icon, the hairline footer, the trailing
+ * tags — with the tiles inside the wizard and the supporters wall, so the whole
+ * section reads as one system.
  */
-export function SupportCard({
-  option,
-  modeLabel,
-  destinationLabel,
-  regionLabel,
-  cadenceLabel,
-  anyPriceLabel,
-  progressLabel,
-  progressPercent,
-  supportersLabel,
-  detailHref,
-  action,
-  className,
-  headingLevel: Heading = 'h3',
-}: SupportCardProps) {
+export function SupportCard({ option, supporters, action, className }: SupportCardProps) {
+  const t = useTranslations('support');
+  const tp = useTranslations('pricing');
+  const locale = useLocale();
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
+
   const Icon = MODE_ICONS[option.mode];
-  const percent = typeof progressPercent === 'number' ? Math.min(Math.max(progressPercent, 0), 100) : null;
+  const destinations = usableVariants(option);
+  const named = destinations.slice(0, SHOWN_DESTINATIONS).map(variant => variantLabel(variant, t) || variantDetail(variant));
+  const hidden = destinations.length - named.length;
+  const meta = [
+    destinations.length > 1 ? t('destinations', { count: localizedCount(destinations.length, lang) }) : '',
+    supporters && supporters > 0 ? t('stats.supporters', { count: localizedCount(supporters, lang) }) : '',
+  ].filter(Boolean);
 
   return (
-    <Card
-      className={cn(
-        'group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30',
-        className
-      )}
-    >
-      {/* Header: the drawn cup, the cup count, and the rail it is paid through. */}
-      <div className="surface-grid relative flex items-start justify-between gap-3 border-b px-4 py-4">
-        <div className="min-w-0">
-          <Icon className="size-4 text-muted-foreground transition-colors group-hover:text-foreground" aria-hidden />
-          <CupRow count={option.cups} className="mt-2.5" />
+    <Card className={cn('group relative flex h-full flex-col gap-3 overflow-hidden rounded-xl p-4 transition-colors hover:border-foreground/30', className)}>
+      <div className="flex items-start gap-3">
+        <IconTile icon={Icon} className="transition-colors group-hover:text-foreground" />
+        <div className="min-w-0 flex-1">
+          <h3 className="break-words text-sm font-semibold leading-snug" dir={nameDir(option.title)}>
+            {option.title}
+          </h3>
+          <p className="mt-0.5 break-words text-xs leading-snug text-muted-foreground" dir="auto">
+            {t(`modes.${option.mode}`)}
+          </p>
         </div>
-        <div className="flex shrink-0 flex-col items-end gap-1.5">
-          <Badge variant="outline" className="text-[10px] font-normal">
-            {modeLabel}
-          </Badge>
-          {destinationLabel && (
-            <span className="text-[11px] text-muted-foreground" dir="auto">
-              {destinationLabel}
-            </span>
-          )}
-        </div>
+        <Tag className="mt-0.5">{t(`regions.${option.region}`)}</Tag>
       </div>
 
-      <div className="flex grow flex-col p-4">
-        <Heading className="min-w-0 text-sm font-semibold leading-snug">
-          {detailHref ? (
-            <Link
-              href={detailHref}
-              className="decoration-muted-foreground/50 underline-offset-2 transition-colors after:absolute after:inset-0 after:content-[''] hover:underline"
-            >
-              {option.title}
-            </Link>
-          ) : (
-            option.title
-          )}
-        </Heading>
-
-        {option.description && (
-          <p className="mt-2 line-clamp-3 text-pretty text-xs leading-relaxed text-muted-foreground">{option.description}</p>
-        )}
-
-        {progressLabel && percent !== null && (
-          <div className="mt-3 space-y-1.5">
-            <div role="progressbar" aria-valuenow={percent} aria-valuemin={0} aria-valuemax={100} className="h-1 w-full overflow-hidden rounded-full bg-muted">
-              <span aria-hidden className="block h-full rounded-full bg-foreground/85 transition-[width] duration-500" style={{ width: `${percent}%` }} />
-            </div>
-            <p className="text-[11px] tabular-nums text-muted-foreground">{progressLabel}</p>
-          </div>
-        )}
-
-        <p className="mt-2 text-[11px] text-muted-foreground">
-          {regionLabel}
-          <span aria-hidden className="mx-1.5">
-            ·
-          </span>
-          {cadenceLabel}
-          {supportersLabel && (
-            <>
-              <span aria-hidden className="mx-1.5">
-                ·
-              </span>
-              <span className="tabular-nums">{supportersLabel}</span>
-            </>
-          )}
+      {option.description && (
+        <p className="line-clamp-2 text-pretty text-xs leading-relaxed text-muted-foreground" dir="auto">
+          {option.description}
         </p>
+      )}
+
+      {/* Where the money lands: the names the supporter will meet inside the wizard. */}
+      <div className="mt-auto space-y-2">
+        {named.length > 0 && (
+          <ul className="flex flex-wrap gap-1.5">
+            {named.map((label, index) => (
+              <li key={`${label}-${index}`}>
+                <Tag dir={nameDir(label)}>{label || destinations[index].key}</Tag>
+              </li>
+            ))}
+            {hidden > 0 && <Tag dir="ltr">+{hidden}</Tag>}
+          </ul>
+        )}
+
+        {meta.length > 0 && (
+          <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
+            {meta.map((line, index) => (
+              <span key={line} className="flex items-center gap-2">
+                {index > 0 && <span aria-hidden className="opacity-50">·</span>}
+                <span className="tabular-nums">{line}</span>
+              </span>
+            ))}
+          </p>
+        )}
 
         {/* Price and action share the bottom edge, so cards of any text length align. */}
-        <div className="mt-auto flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           {option.amount > 0 ? (
             <PriceTag amount={option.amount} currency={option.currency} className="text-sm font-semibold" />
           ) : (
-            <span className="text-sm font-semibold">{anyPriceLabel}</span>
+            // An open amount still needs its unit: a number means nothing on its own.
+            <span className="flex items-baseline gap-1.5 text-sm font-semibold">
+              {t('anyPrice')}
+              <span className="text-[11px] font-normal text-muted-foreground">{tp(option.currency)}</span>
+            </span>
           )}
-          {/* Above the card-wide stretched link, so the button stays pressable. */}
           <span className="relative z-[1]">{action}</span>
         </div>
       </div>

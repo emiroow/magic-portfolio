@@ -10,9 +10,12 @@ import { socialModel } from '@/models/social';
 import { supporterModel } from '@/models/supporter';
 import { workModel } from '@/models/work';
 import { readingTime } from '@/lib/utils';
-import { REGION_ORDER } from '@/constants/global';
+import { withUniqueKeys } from '@/lib/support';
+import { CRYPTO_NETWORKS, REGION_ORDER } from '@/constants/global';
 import type {
   AppLocale,
+  CryptoNetwork,
+  DonationMode,
   IBlog,
   IDonation,
   IEducation,
@@ -24,6 +27,8 @@ import type {
   ISupporter,
   IWork,
   ProductCurrency,
+  SupportProvider,
+  SupportVariant,
 } from '@/types';
 import mongoose from 'mongoose';
 
@@ -247,37 +252,116 @@ export async function getProductCategories(locale: AppLocale): Promise<string[]>
 }
 
 /* ------------------------------------------------------------------
- * Buy-me-a-coffee / financial support
+ * Financial support
  * ------------------------------------------------------------------ */
 
 /**
- * Fill in whatever an older or externally-written document lacks. The page
- * renders `suggestedAmounts` and the amount directly, so both are defaulted here
- * rather than at every call site.
+ * A stored method, read before this release's shape was applied to it. Destinations
+ * used to live in one field per mode, so the fold below keeps an existing database
+ * payable instead of emptying the page.
  */
-function normalizeDonation(donation: IDonation): IDonation {
-  const amounts = (donation.suggestedAmounts ?? []).filter(amount => Number.isFinite(amount) && amount > 0);
+type StoredDonation = Omit<IDonation, 'mode' | 'variants'> & {
+  mode?: DonationMode | 'referral' | 'link';
+  variants?: SupportVariant[];
+  referral?: string;
+  href?: string;
+  linkProvider?: string;
+  card?: { number?: string; holder?: string; iban?: string };
+  cardQrPayload?: string;
+  crypto?: { network?: string; address?: string };
+  gateway?: string;
+};
+
+/** Services renamed or folded away; an unknown one becomes a custom destination. */
+const PROVIDER_ALIASES: Record<string, SupportProvider> = {
+  buymeacoffee: 'buymeacoffee',
+  coffeebede: 'coffeebede',
+  kofi: 'custom',
+  patreon: 'custom',
+  github: 'custom',
+  liberapay: 'custom',
+  hamyato: 'custom',
+  other: 'custom',
+  zarinpal: 'zarinpal',
+  idpay: 'idpay',
+  stripe: 'stripe',
+  paypal: 'paypal',
+  paypalme: 'paypal',
+};
+
+/** Ledgers that were listed as coins; the address is kept, the name becomes a label. */
+const NETWORK_LABELS: Record<string, string> = { tether: 'Tether (USDT)' };
+
+/** The single destination an old document carried, in the shape the page expects. */
+function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant | null {
+  const trim = (value: unknown) => String(value ?? '').trim();
+
+  if (mode === 'platform') {
+    const href = trim(doc.href);
+    if (!href) return null;
+    const named = trim(doc.referral) || trim(doc.linkProvider);
+
+    return { key: 'destination', provider: PROVIDER_ALIASES[named] ?? 'custom', href, active: true };
+  }
+
+  if (mode === 'card') {
+    const number = trim(doc.card?.number);
+    const iban = trim(doc.card?.iban);
+    if (!number && !iban) return null;
+
+    return { key: 'destination', number, iban, holder: trim(doc.card?.holder), qrPayload: trim(doc.cardQrPayload), active: true };
+  }
+
+  if (mode === 'crypto') {
+    const address = trim(doc.crypto?.address);
+    const network = trim(doc.crypto?.network);
+    if (!address) return null;
+
+    const ledger = (CRYPTO_NETWORKS as string[]).includes(network) ? network : undefined;
+
+    return { key: 'destination', network: ledger as CryptoNetwork | undefined, address, label: ledger ? undefined : NETWORK_LABELS[network], active: true };
+  }
+
+  const gateway = trim(doc.gateway);
+  if (!gateway) return null;
+
+  return { key: 'destination', provider: PROVIDER_ALIASES[gateway] ?? 'custom', active: true };
+}
+
+/**
+ * Fill in whatever a stored or externally-written document lacks, so the page and
+ * the wizard can read a method without defending every field at every call site.
+ * Exported because the admin list runs it too: what the dashboard edits has to be
+ * what the public page shows.
+ */
+export function normalizeDonation(input: unknown): IDonation {
+  const doc = input as StoredDonation;
+  const amounts = (doc.suggestedAmounts ?? []).filter(amount => Number.isFinite(amount) && amount > 0);
+  // `referral` and `link` were two names for leaving the site; both are `platform`.
+  const mode: DonationMode = doc.mode === 'referral' || doc.mode === 'link' ? 'platform' : (doc.mode ?? 'platform');
+  const stored = (doc.variants ?? []).filter(variant => variant && typeof variant === 'object');
+  // A document from before destinations carried their rail in flat fields.
+  const rows: SupportVariant[] = stored.length ? stored : [legacyVariant(mode, doc)].filter((variant): variant is SupportVariant => Boolean(variant));
 
   return {
-    ...donation,
-    amount: Number.isFinite(donation.amount) ? donation.amount : 0,
-    currency: donation.currency ?? 'toman',
-    customAmount: donation.customAmount !== false,
-    suggestedAmounts: amounts.length ? amounts : donation.amount > 0 ? [donation.amount] : [],
-    minAmount: Number.isFinite(donation.minAmount) ? donation.minAmount : 0,
-    maxAmount: Number.isFinite(donation.maxAmount) ? donation.maxAmount : 0,
-    mode: donation.mode ?? 'referral',
-    region: donation.region ?? 'global',
-    recurring: Boolean(donation.recurring),
-    cups: Math.min(Math.max(Number(donation.cups) || 1, 1), 12),
-    order: Number.isFinite(donation.order) ? donation.order : 0,
-    active: donation.active !== false,
-    featured: Boolean(donation.featured),
+    ...doc,
+    mode,
+    region: doc.region ?? 'global',
+    currency: doc.currency ?? 'toman',
+    // Keys are derived, never typed, so an old or hand-written row still resolves.
+    variants: withUniqueKeys(mode, rows.map(variant => ({ ...variant, active: variant.active !== false }))),
+    amount: Number.isFinite(doc.amount) ? doc.amount : 0,
+    customAmount: doc.customAmount !== false,
+    suggestedAmounts: amounts.length ? amounts : Number.isFinite(doc.amount) && doc.amount > 0 ? [doc.amount] : [],
+    minAmount: Number.isFinite(doc.minAmount) ? doc.minAmount : 0,
+    maxAmount: Number.isFinite(doc.maxAmount) ? doc.maxAmount : 0,
+    order: Number.isFinite(doc.order) ? doc.order : 0,
+    active: doc.active !== false,
   };
 }
 
 /**
- * Active support options for a locale: the dashboard's `order` first, then the
+ * Active payment methods for a locale: the dashboard's `order` first, then the
  * newest, and the locale's own market leads so the Persian site opens on the
  * Iranian rails.
  */
@@ -285,10 +369,18 @@ export async function getDonations(locale: AppLocale): Promise<IDonation[]> {
   if (!(await tryConnectDB())) return [];
 
   const docs = await donationModel.find({ lang: locale, active: true }).sort({ order: 1, createdAt: -1 }).lean();
-  const items = serializeList<IDonation>(docs as Record<string, unknown>[]).map(normalizeDonation);
+  const items = serializeList<StoredDonation>(docs as Record<string, unknown>[]).map(method => normalizeDonation(method));
 
   const rank = REGION_ORDER[locale];
   return items.sort((a, b) => rank.indexOf(a.region) - rank.indexOf(b.region) || a.order - b.order);
+}
+
+/** Whether the locale has anything to support at all; the hero button asks this. */
+export async function hasDonations(locale: AppLocale): Promise<boolean> {
+  if (!(await tryConnectDB())) return false;
+
+  const doc = await donationModel.findOne({ lang: locale, active: true }).select('_id').lean();
+  return Boolean(doc);
 }
 
 /**
@@ -313,7 +405,7 @@ export async function getSupporters(locale: AppLocale, limit = 60): Promise<ISup
 }
 
 export interface SupportStats {
-  /** Confirmed gifts, whatever their rail. */
+  /** Confirmed gifts, whatever their method. */
   supporters: number;
   /**
    * Total raised, but only while the confirmed gifts sit on one scale: a
@@ -324,7 +416,7 @@ export interface SupportStats {
   currency: ProductCurrency | null;
 }
 
-/** Headline numbers for the support page and the home section. */
+/** Headline numbers for the support page. */
 export async function getSupportStats(locale: AppLocale): Promise<SupportStats> {
   if (!(await tryConnectDB())) return { supporters: 0, raised: null, currency: null };
 
@@ -340,48 +432,28 @@ export async function getSupportStats(locale: AppLocale): Promise<SupportStats> 
   return { supporters: rows.length, raised, currency: single };
 }
 
-export interface DonationProgress {
-  /** Confirmed gifts that belong to this option, in its own currency only. */
-  raised: number;
-  /** How many supporters picked this option. */
-  count: number;
-}
-
 /**
- * Per-option totals, for the progress bar and the “already bought” line.
+ * Confirmed supporters per method, keyed by method id.
  *
- * A gift counts toward the raised sum only while it is in the option's own
- * currency: adding a dollar gift to a toman goal would draw a bar that means
- * nothing. The count still includes every currency, because a supporter is a
- * supporter.
+ * A card that says how many people already picked it is a fact the site can know;
+ * amounts are not added up here, because gifts on different scales cannot be summed.
  */
-export async function getDonationProgress(
-  locale: AppLocale,
-  options: IDonation[]
-): Promise<Record<string, DonationProgress>> {
-  if (!(await tryConnectDB()) || !options.length) return {};
+export async function getSupporterCounts(locale: AppLocale, methods: IDonation[]): Promise<Record<string, number>> {
+  if (!(await tryConnectDB()) || !methods.length) return {};
 
-  const rows = await supporterModel
-    .find({ lang: locale, status: 'completed' })
-    .select({ donationId: 1, amount: 1, currency: 1 })
-    .lean();
+  const rows = await supporterModel.find({ lang: locale, status: 'completed' }).select({ donationId: 1 }).lean();
 
-  const byId = new Map(options.map(option => [String(option._id ?? ''), option]));
-  const totals: Record<string, DonationProgress> = {};
+  const wanted = new Set(methods.map(method => String(method._id ?? '')));
+  const counts: Record<string, number> = {};
 
   for (const row of rows) {
     const key = String(row.donationId ?? '');
-    const option = byId.get(key);
-    if (!option) continue;
+    if (!wanted.has(key)) continue;
 
-    const entry = (totals[key] ??= { raised: 0, count: 0 });
-    entry.count += 1;
-    if ((row.currency ?? 'toman') === option.currency && Number.isFinite(row.amount)) {
-      entry.raised += row.amount;
-    }
+    counts[key] = (counts[key] ?? 0) + 1;
   }
 
-  return totals;
+  return counts;
 }
 
 /** Profile document only (used by metadata/OG generation). */

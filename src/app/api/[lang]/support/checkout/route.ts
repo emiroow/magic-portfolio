@@ -4,20 +4,22 @@ import { getDonations } from '@/lib/data';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { cardQrPayload, cryptoQrPayload, qrDataUrl } from '@/lib/qr';
 import { createGatewaySession, gatewaySupports, isGatewayConfigured } from '@/lib/payments';
+import { resolveVariant, variantCurrency, variantName, variantRegion } from '@/lib/support';
 import { langSchema, supporterSubmitSchema } from '@/lib/validations';
 import { supporterModel } from '@/models/supporter';
 import { site } from '@/lib/seo';
 import { revalidatePath } from 'next/cache';
-import type { IDonation, SupportCheckoutResult } from '@/types';
+import type { GatewayId, IDonation, SupportCheckoutResult } from '@/types';
 
 /**
- * Public checkout: one endpoint for every rail. It records the gift, then answers
- * with what the dialog should do — leave for a platform, show a transfer screen,
- * or hand the supporter to a gateway.
+ * Public checkout: one endpoint for every payment method. It records the gift, then
+ * answers with what the wizard should do — leave for a platform, show a transfer
+ * screen, or hand the supporter to a gateway.
  *
- * Nothing here trusts the browser: the option is re-read from the database, the
- * amount is checked against that option's own bounds, and the currency is the
- * option's, never the request's.
+ * Nothing here trusts the browser: the method is re-read from the database, the
+ * destination is resolved from the stored list by its key, the amount is checked
+ * against the method's own bounds, and the currency is the destination's, never the
+ * request's.
  */
 
 export const dynamic = 'force-dynamic';
@@ -28,21 +30,21 @@ const WINDOW_MS = 5 * 60 * 1000;
 
 /**
  * Decide the amount that will actually be charged.
- * Returns a stable code so the dialog can say it in the visitor's own language.
+ * Returns a stable code so the wizard can say it in the visitor's own language.
  */
-function resolveAmount(option: IDonation, requested: number): { amount: number } | { code: string; message: string } {
-  // A fixed-price option only ever takes its own price.
-  if (!option.customAmount) {
-    const accepted = option.amount > 0 ? [option.amount] : option.suggestedAmounts;
+function resolveAmount(method: IDonation, requested: number): { amount: number } | { code: string; message: string } {
+  // A fixed-price method only ever takes its own price.
+  if (!method.customAmount) {
+    const accepted = method.amount > 0 ? [method.amount] : method.suggestedAmounts;
     if (accepted.includes(requested)) return { amount: requested };
-    return { code: 'fixed', message: 'This option has a fixed amount.' };
+    return { code: 'fixed', message: 'This method has a fixed amount.' };
   }
 
-  if (option.minAmount > 0 && requested < option.minAmount) {
-    return { code: 'min', message: 'The amount is below the minimum for this option.' };
+  if (method.minAmount > 0 && requested < method.minAmount) {
+    return { code: 'min', message: 'The amount is below the minimum for this method.' };
   }
-  if (option.maxAmount > 0 && requested > option.maxAmount) {
-    return { code: 'max', message: 'The amount is above the maximum for this option.' };
+  if (method.maxAmount > 0 && requested > method.maxAmount) {
+    return { code: 'max', message: 'The amount is above the maximum for this method.' };
   }
 
   return { amount: requested };
@@ -73,26 +75,34 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
   if (!(await tryConnectDB())) return apiError('Support is unavailable right now.', 503, { code: 'database' });
 
   const body = parsed.data;
-  const options = await getDonations(parsedLang.data);
+  const methods = await getDonations(parsedLang.data);
 
-  const chosen = options.find(item => item._id === body.donationId);
-  if (!chosen) return apiError('This support option is not available.', 404, { code: 'unavailable' });
+  const chosen = methods.find(item => item._id === body.donationId);
+  if (!chosen) return apiError('This payment method is not available.', 404, { code: 'unavailable' });
+
+  // The key decides the address, the page or the gateway; a request can never name
+  // a destination the owner did not store.
+  const variant = resolveVariant(chosen, body.variantKey);
+  if (!variant) return apiError('This method has no destination set up yet.', 502, { code: 'notConfigured' });
 
   const amount = resolveAmount(chosen, body.amount);
   if ('code' in amount) return apiError(amount.message, 400, { code: amount.code });
 
+  const currency = variantCurrency(chosen, variant);
   const anonymous = Boolean(body.anonymous) || !body.name;
   const record = await supporterModel.create({
     donationId: chosen._id,
     donationTitle: chosen.title,
+    variantKey: variant.key,
+    variantLabel: variantName(variant),
     name: anonymous ? '' : body.name,
     anonymous,
     email: body.email || undefined,
     message: body.message || undefined,
     amount: amount.amount,
-    currency: chosen.currency,
+    currency,
     mode: chosen.mode,
-    region: chosen.region,
+    region: variantRegion(chosen, variant),
     status: 'pending',
     reference: body.reference?.trim() || undefined,
     showOnWall: body.showOnWall !== false,
@@ -104,19 +114,18 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
   const orderId = String(record._id);
 
   switch (chosen.mode) {
-    case 'referral':
-    case 'link': {
-      const url = (chosen.href || '').trim();
-      if (!url) return fail(record, 'notConfigured', 'This option has no destination configured.');
+    case 'platform': {
+      const url = (variant.href || '').trim();
+      if (!url) return fail(record, 'notConfigured', 'This method has no destination configured.');
       return apiJson({ data: { kind: 'external' as const, orderId, url } }, { status: 201 });
     }
 
     case 'card': {
-      const number = chosen.card?.number?.trim();
-      const iban = chosen.card?.iban?.trim();
-      if (!number && !iban) return fail(record, 'notConfigured', 'Card-to-card is not configured for this option.');
+      const number = variant.number?.trim();
+      const iban = variant.iban?.trim();
+      if (!number && !iban) return fail(record, 'notConfigured', 'Card-to-card is not configured for this method.');
 
-      const qr = await qrDataUrl(cardQrPayload({ number, iban, override: chosen.cardQrPayload }));
+      const qr = await qrDataUrl(cardQrPayload({ number, iban, override: variant.qrPayload }));
       return apiJson(
         {
           data: {
@@ -124,7 +133,7 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
             orderId,
             instruction: 'card' as const,
             qr,
-            card: { number, holder: chosen.card?.holder?.trim(), iban },
+            card: { number, holder: variant.holder?.trim(), iban },
           } satisfies SupportCheckoutResult,
         },
         { status: 201 }
@@ -132,9 +141,9 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
     }
 
     case 'crypto': {
-      const address = chosen.crypto?.address?.trim();
-      const network = chosen.crypto?.network;
-      if (!address) return fail(record, 'notConfigured', 'No crypto destination is configured for this option.');
+      const address = variant.address?.trim();
+      const network = variant.network;
+      if (!address) return fail(record, 'notConfigured', 'No crypto destination is configured for this method.');
 
       const qr = await qrDataUrl(cryptoQrPayload(network, address));
       return apiJson(
@@ -152,9 +161,9 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
     }
 
     case 'gateway': {
-      const gateway = chosen.gateway;
-      if (!gateway || !isGatewayConfigured(gateway)) return fail(record, 'gatewayUnconfigured', 'The gateway for this option is not configured.');
-      if (!gatewaySupports(gateway, chosen.currency)) return fail(record, 'gatewayCurrency', 'This option currency cannot be charged through that gateway.');
+      const gateway = variant.provider as GatewayId | undefined;
+      if (!gateway || !isGatewayConfigured(gateway)) return fail(record, 'gatewayUnconfigured', 'The gateway for this method is not configured.');
+      if (!gatewaySupports(gateway, currency)) return fail(record, 'gatewayCurrency', 'This method currency cannot be charged through that gateway.');
 
       const url = callbackUrl(parsedLang.data, orderId);
       if (!url) return fail(record, 'siteUrl', 'The site address is not configured.');
@@ -163,8 +172,8 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
         const session = await createGatewaySession(gateway, {
           orderId,
           amount: amount.amount,
-          currency: chosen.currency,
-          description: `${chosen.title} — ${amount.amount.toLocaleString('en-US')}`,
+          currency,
+          description: `${chosen.title}${variantName(variant) ? ` · ${variantName(variant)}` : ''} — ${amount.amount.toLocaleString('en-US')}`,
           callbackUrl: url,
           email: body.email,
         });

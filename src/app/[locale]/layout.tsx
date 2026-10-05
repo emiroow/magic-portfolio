@@ -1,12 +1,13 @@
 import { routing } from '@/i18n/routing';
-import { estedad, roboto } from '@/lib/fonts';
-import { cn } from '@/lib/utils';
 import MainProvider from '@/providers/mainProvider';
 import { notFound } from 'next/navigation';
 
 /**
- * Locale layout: validates `[locale]` and applies direction/font on a wrapper
- * (updates correctly on client-side locale switches, unlike `<html dir>`).
+ * Locale layout: validates `[locale]` and applies direction on a wrapper (updates
+ * correctly on client-side locale switches, unlike `<html dir>`).
+ *
+ * The face itself lives on `<html>` — see `appProviders` — because dialogs and
+ * other portals mount on `<body>`, outside this wrapper.
  */
 export default async function LocaleLayout({
   children,
@@ -24,10 +25,7 @@ export default async function LocaleLayout({
   const direction = locale === 'fa' ? 'rtl' : 'ltr';
 
   return (
-    <div
-      dir={direction}
-      className={cn('relative min-h-screen text-foreground antialiased', locale === 'fa' ? estedad.className : roboto.className)}
-    >
+    <div dir={direction} className="relative min-h-screen text-foreground antialiased">
       <MainProvider locale={locale}>{children}</MainProvider>
     </div>
   );

@@ -22,9 +22,14 @@ export interface CrudConfig {
   updateSchema: z.ZodTypeAny;
   /** Optional sort applied to the listing query. */
   sort?: Record<string, SortOrder>;
+  /**
+   * Optional read-time shaping for a resource whose stored documents may predate
+   * the current shape, so the dashboard edits exactly what the public page shows.
+   */
+  transform?: (doc: unknown) => unknown;
 }
 
-export function createAdminCrud({ model, createSchema, updateSchema, sort }: CrudConfig) {
+export function createAdminCrud({ model, createSchema, updateSchema, sort, transform }: CrudConfig) {
   async function prepareLocale(context: RouteContext) {
     const guard = await requireAdmin();
     if (!guard.ok) return guard;
@@ -45,7 +50,8 @@ export function createAdminCrud({ model, createSchema, updateSchema, sort }: Cru
 
     try {
       const docs = await model.find({ lang: prepared.lang }).sort(sort ?? {}).lean();
-      return apiJson({ data: JSON.parse(JSON.stringify(docs)) });
+      const items = docs.map(doc => (transform ? transform(doc) : doc));
+      return apiJson({ data: JSON.parse(JSON.stringify(items)) });
     } catch (error) {
       console.error('[api/admin] list failed:', error);
       return apiError('Internal Server Error', 500);

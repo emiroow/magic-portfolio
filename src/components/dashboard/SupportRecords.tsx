@@ -9,6 +9,7 @@ import Loading from '@/components/ui/loading';
 import { EmptyState, ErrorState, LoadingRows, SectionShell } from '@/components/dashboard/shared';
 import { FilterChip } from '@/components/ui/filter-chip';
 import { PriceTag } from '@/components/products/price-tag';
+import { storedVariantName, nameDir } from '@/components/support/support-meta';
 import { SUPPORTER_STATUSES } from '@/constants/global';
 import useSupporters from '@/hooks/dashboard/useSupporters';
 import { cn, formatYearMonthLocal, localizedCount } from '@/lib/utils';
@@ -19,14 +20,14 @@ import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 /**
- * Supporters: every gift a visitor started, in every state.
+ * Support records: every act of support a visitor started, in every state.
  *
  * Card-to-card and crypto transfers arrive as `pending` — the site cannot see the
  * bank — so this is where the owner matches a reference against a statement and
  * confirms it. Confirming is what puts a name on the public wall.
  */
-const Supporters = () => {
-  const t = useTranslations('dashboard.supporters');
+const SupportRecords = () => {
+  const t = useTranslations('dashboard.support.records');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
@@ -173,9 +174,8 @@ function SupporterRow({
   onDelete: () => void;
   deleting: boolean;
 }) {
-  const t = useTranslations('dashboard.supporters');
+  const t = useTranslations('dashboard.support.records');
   const ts = useTranslations('support');
-  const locale = useLocale();
   const [note, setNote] = useState(record.note ?? '');
 
   const completed = record.status === 'completed';
@@ -189,12 +189,23 @@ function SupporterRow({
     <Card className="transition-colors hover:border-foreground/30">
       <CardHeader className="flex-row items-center justify-between space-y-0 p-4 sm:p-5">
         <div className="min-w-0 space-y-0.5">
-          <h3 className="truncate text-sm font-semibold sm:text-base" dir="auto">
+          <h3 className="break-words text-sm font-semibold sm:text-base" dir={nameDir(display)}>
             {display}
           </h3>
-          <p className="truncate text-[11px] text-muted-foreground">
-            {record.donationTitle ? `${record.donationTitle} · ` : ''}
-            {ts(`modes.${record.mode}`)} · {formatYearMonthLocal(record.createdAt, lang)}
+          <p className="text-[11px] leading-snug text-muted-foreground">
+            {ts(`modes.${record.mode}`)}
+            {record.variantLabel && (
+              <>
+                <span aria-hidden className="mx-1.5">
+                  ·
+                </span>
+                <span dir={nameDir(record.variantLabel)}>{storedVariantName(record.variantLabel, ts)}</span>
+              </>
+            )}
+            <span aria-hidden className="mx-1.5">
+              ·
+            </span>
+            {formatYearMonthLocal(record.createdAt, lang)}
           </p>
         </div>
         <div className="flex shrink-0 gap-1">
@@ -299,9 +310,6 @@ function SupporterRow({
               {record.email || t('noEmail')}
             </span>
           </span>
-          <Link href={`/${locale}/support`} target="_blank" className="underline underline-offset-4 transition-opacity hover:opacity-70">
-            {t('openSupport')}
-          </Link>
         </div>
 
         {/* A private note: which statement the gift was matched against, and so on. */}
@@ -332,4 +340,4 @@ function SupporterRow({
   );
 }
 
-export default Supporters;
+export default SupportRecords;

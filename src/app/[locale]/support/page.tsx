@@ -2,7 +2,7 @@ import Navbar from '@/components/navbar';
 import { JsonLd } from '@/components/JsonLd';
 import { SectionHeader } from '@/components/sections/section-header';
 import SupportBrowser, { type SupportReturnStatus } from '@/components/support/support-browser';
-import { getDonationProgress, getDonations, getProfile, getSocials, getSupportStats, getSupporters } from '@/lib/data';
+import { getDonations, getProfile, getSocials, getSupportStats, getSupporterCounts, getSupporters } from '@/lib/data';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { documentKey, localizedCount } from '@/lib/utils';
@@ -29,6 +29,15 @@ function asReturnStatus(value: string | string[] | undefined): SupportReturnStat
 
 function firstValue(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
+}
+
+/** `?amount=` carries a number chosen on the home page; junk is ignored. */
+function asAmount(value: string | string[] | undefined): number | undefined {
+  const raw = firstValue(value);
+  if (!raw) return undefined;
+
+  const parsed = Number(raw.replace(/[^\d]/g, ''));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -63,8 +72,9 @@ export default async function SupportPage({ params, searchParams }: Props) {
   const [{ locale }, query] = await Promise.all([params, searchParams]);
   const lang = asLocale(locale);
   const returnStatus = asReturnStatus(query.status);
+  const initialAmount = asAmount(query.amount);
 
-  const [t, options, supporters, stats, socials] = await Promise.all([
+  const [t, methods, supporters, stats, socials] = await Promise.all([
     getTranslations({ locale, namespace: 'support' }),
     getDonations(lang),
     getSupporters(lang),
@@ -72,11 +82,13 @@ export default async function SupportPage({ params, searchParams }: Props) {
     getSocials(lang),
   ]);
 
-  const progress = await getDonationProgress(lang, options);
+  const counts = await getSupporterCounts(lang, methods);
 
-  // `?option=` opens one dialog straight away, for a link shared from anywhere.
+  // `?option=` opens one method straight away, for a link shared from anywhere;
+  // `?variant=` points at one destination of it and `?amount=` adds the number.
   const wanted = firstValue(query.option);
-  const initialOption = wanted ? options.find(option => documentKey(option) === wanted) : undefined;
+  const initialMethod = wanted ? methods.find(method => documentKey(method) === wanted) : undefined;
+  const initialVariantKey = firstValue(query.variant) || undefined;
 
   return (
     <main>
@@ -96,11 +108,11 @@ export default async function SupportPage({ params, searchParams }: Props) {
                 urlTemplate: localeUrl(locale, '/support'),
                 actionPlatform: 'http://schema.org/DesktopWebPlatform',
               },
-              offers: options.map(option => ({
+              offers: methods.map(method => ({
                 '@type': 'Offer',
-                name: option.title,
-                price: option.amount > 0 ? option.amount : 0,
-                priceCurrency: PRODUCT_CURRENCY_CODES[option.currency],
+                name: method.title,
+                price: method.amount > 0 ? method.amount : 0,
+                priceCurrency: PRODUCT_CURRENCY_CODES[method.currency],
                 availability: 'https://schema.org/InStock',
               })),
             },
@@ -113,16 +125,18 @@ export default async function SupportPage({ params, searchParams }: Props) {
           label={t('eyebrow')}
           title={t('title')}
           description={t('description')}
-          meta={options.length ? t('count', { count: localizedCount(options.length, lang) }) : undefined}
+          meta={methods.length ? t('count', { count: localizedCount(methods.length, lang) }) : undefined}
           delay={0.04}
         />
 
         <SupportBrowser
-          options={options}
+          methods={methods}
           supporters={supporters}
           stats={stats}
-          progress={progress}
-          initialOption={initialOption}
+          counts={counts}
+          initialMethod={initialMethod}
+          initialVariantKey={initialVariantKey}
+          initialAmount={initialMethod ? initialAmount : undefined}
           returnStatus={returnStatus}
         />
 

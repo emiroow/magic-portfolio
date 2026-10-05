@@ -29,7 +29,7 @@ A portfolio that reads like a printed page: one monochrome palette, one heading 
 - [Scripts](#scripts)
 - [Environment variables](#environment-variables)
 - [Demo content](#demo-content)
-- [Buy me a coffee and payments](#buy-me-a-coffee-and-payments)
+- [Support and payments](#support-and-payments)
 - [Project structure](#project-structure)
 - [Architecture notes](#architecture-notes)
 - [Design system](#design-system)
@@ -44,8 +44,8 @@ A portfolio that reads like a printed page: one monochrome palette, one heading 
 
 | Area | What you get |
 | --- | --- |
-| **Public site** | Hero, about, work experience, education, skills, projects, contact — plus a project archive with search and technology filters, project detail pages, a product catalogue with prices, search, category filters and product pages, a blog with tags, drafts and an RSS feed, and a buy-me-a-coffee page with five payment rails and a supporters wall. Which projects the home page shows is a dashboard setting. |
-| **Admin dashboard** | Every content type at `/{locale}/dashboard`: profile, work experience, education, skills, projects, products, socials, a Markdown blog editor, the support options and the list of supporters with their confirmations. Validation, loading, error and empty states everywhere; image upload with in-browser cropping. |
+| **Public site** | Hero, about, work experience, education, skills, projects, contact — plus a project archive with search and technology filters, project detail pages, a product catalogue with prices, search, category filters and product pages, a blog with tags, drafts and an RSS feed, and a support page where each payment method is one card with the destinations it can be paid into, plus a supporters wall. Which projects the home page shows is a dashboard setting. |
+| **Admin dashboard** | Every content type at `/{locale}/dashboard`: profile, work experience, education, skills, projects, products, socials, a Markdown blog editor, and one support section holding the payment methods — each with its own destinations — and the supporters with their confirmations. Validation, loading, error and empty states everywhere; image upload with in-browser cropping. |
 | **Two languages** | English (default, `/`) and Persian (`/fa`) with real RTL: mirrored icons and arrows, Persian digits, Jalali (Solar Hijri) dates, and typography tuned for the Persian script. |
 | **Strictly monochrome UI** | Black-and-white shadcn/ui tokens, light and dark themes, and CSS-only reveal animations that respect `prefers-reduced-motion`. |
 | **Secure by default** | All admin APIs require a session; credentials live in server-only env vars with no demo or fallback accounts; every request body is validated with Zod on the server. |
@@ -139,29 +139,33 @@ Notes on what gets written:
 
 > The site title and meta description are **not** environment variables — they are built from the profile document you edit in the dashboard, as `Name | Job Title | Portfolio` (in Persian: `نام | عنوان شغلی | سایت شخصی`).
 
-## Buy me a coffee and payments
+## Support and payments
 
-`/{locale}/support` is a standalone page, reachable from the hero button, the dock menu, the home section after the blog and the sitemap. The owner creates **support options** in the dashboard; each option is exactly one *rail*, which is what keeps the checkout dialog honest — it never shows a field that cannot take money.
+`/{locale}/support` is a standalone page, reachable from the hero button, the dock menu and the sitemap — the home page carries no support section, only that button. Its subject is support in general: a coffee is one way of showing it, never the name of the section.
 
-| Rail | What happens | Needs |
+The owner creates **payment methods** in the dashboard, and there is exactly one method per kind, never three prices for the same act of giving. A method carries an amount policy and the **destinations** money can actually land in, which the supporter picks between inside the checkout wizard.
+
+| Method | What happens | Destinations it can hold |
 | --- | --- | --- |
-| `referral` | Hand-off to a creator-support platform: Buy Me a Coffee, Ko-fi, Patreon, GitHub Sponsors, Liberapay or Hamyato. The gift is completed and charged there. | Just the URL |
-| `link` | A checkout page built in advance inside a gateway — a ZarinPal/IDPay payment link, a Stripe link or PayPal.me. | Just the URL |
-| `card` | Card-to-card: card number, holder and IBAN with a server-generated QR, plus the supporter's own transfer reference. Confirmed by hand in the dashboard. | A card number or an IBAN |
-| `crypto` | TRON (TRC-20), Ethereum (ERC-20), Bitcoin, TON, BNB Chain or Lightning: address plus QR, with a network warning before sending. | An address |
-| `gateway` | A full in-site checkout: the site calls ZarinPal v4, IDPay REST, Stripe Checkout or PayPal Orders v2 itself, redirects the supporter, then **verifies** the payment server-to-server on the way back. | Gateway credentials in the environment |
+| `platform` | Hand-off to a support platform — Buy Me a Coffee abroad, Coffeebede (کافی‌بده) in Iran — or to a payment page prepared in a gateway. The gift is completed and charged there. | A platform and its page URL |
+| `card` | Card-to-card: card number and/or IBAN with a server-generated QR, plus the supporter's own transfer reference. Confirmed by hand in the dashboard. | As many cards or shebas as the owner holds |
+| `crypto` | An on-chain address or Lightning destination with a QR, and a network warning before sending. Ledger names are shown in both Persian and English. | One address per chain (USDT on TRON, ERC-20, TON …) |
+| `gateway` | A full in-site checkout: the site calls ZarinPal v4, IDPay REST, Stripe Checkout or PayPal Orders v2 itself, redirects the supporter, then **verifies** the payment server-to-server on the way back. | One configured gateway per destination |
 
 Behaviour worth knowing:
 
-- **Nothing is trusted from the browser.** The dialog sends a candidate amount; the server re-reads the option and refuses anything outside its own `minAmount`/`maxAmount`, and the currency is always the option's. An amount entered by hand cannot become a different charge.
+- **Nothing is trusted from the browser.** The wizard sends a candidate amount and a destination key; the server re-reads the method, resolves the key against the stored destinations, and refuses anything outside its own `minAmount`/`maxAmount`. A hand-edited request can neither change the sum nor pick an address the owner did not store.
+- **Method, destination and amount are one decision.** The “your own amount” panel appears wherever a method accepts a custom amount, and everything is chosen in the window it opens: a number is only meaningful in the currency of the destination that carries it, and a destination may price itself in another unit than its method (`variant.currency`), or serve another market (`variant.region`).
+- **A new platform is one line of code.** `SUPPORT_PROVIDERS` in `src/constants/global.ts` plus its label in both catalogues; until then `custom` takes any URL and is named by the destination's own label.
+- **Recurring gifts are out of scope.** Every checkout is a single act of support; a platform that handles subscriptions on its own page is reached through the `platform` method instead.
 - **Verification, not arrival.** A gateway redirect proves nothing; a gift is only marked `completed` after the verify/capture call succeeds. The callback is idempotent — a refreshed or replayed return trip cannot double-count a gift.
-- **The supporters wall.** Each checkout records the supporter's name (or anonymous), message and their choice about being shown. Only `completed` records with the wall flag on appear publicly, and an anonymous name is dropped in the data layer so it never reaches the browser. Card-to-card and crypto gifts stay `pending` until the owner confirms them from the dashboard, where the reference is shown next to the amount.
+- **The supporters wall.** Each checkout records the supporter's name (or anonymous), message and their choice about being shown, plus the method and the destination it was paid into. Only `completed` records with the wall flag on appear publicly, and an anonymous name is dropped in the data layer so it never reaches the browser. Card-to-card and crypto gifts stay `pending` until the owner confirms them from the dashboard, where the reference is shown next to the amount.
 - **QR codes are generated on the server** (`qrcode`, as a PNG data URL), so no third-party QR host is contacted and no supporter data leaves the site.
-- **Unconfigured is invisible.** A `gateway` option whose keys are missing reports the reason at checkout and is flagged in the dashboard list; options with no destination at all are refused by validation before they can be saved.
-- **Abuse guard.** The public endpoints are rate-limited per address, carry a honeypot field and cap message length; the amount, currency and destination always come from the stored option.
-- **Iranian and international rails sit side by side.** The Persian site lists the Iranian rails first, the English site the international ones (`REGION_ORDER`), and both markets can be offered at once.
+- **Unconfigured is invisible.** A `gateway` destination whose keys are missing is marked in the dashboard and reports the reason at checkout; a method with no usable destination is refused by validation before it can be saved.
+- **Abuse guard.** The public endpoints are rate-limited per address, carry a honeypot field and cap message length; the amount, currency and destination always come from the stored method.
+- **Iranian and international sit side by side.** The Persian site lists Iranian methods first, the English site the international ones (`REGION_ORDER`), and one method can span both markets when its destinations do — the wizard then tags each destination with its market.
 
-Demo options for every rail are seeded by `npm run seed`, with obvious placeholder destinations (`your-name`, an all-zero IBAN, `TExampleWalletAddress…`) that must be replaced in the dashboard before going live.
+Demo methods are seeded by `npm run seed`, with obvious placeholder destinations (`your-name`, an all-zero IBAN, `TExampleWalletAddress…`) that must be replaced in the dashboard before going live. Documents saved before destinations existed are folded into a single destination when they are read, so an existing database stays payable.
 
 ## Project structure
 
@@ -174,7 +178,7 @@ src/
 │   │   ├── blog/            # Blog list, post pages and the RSS route
 │   │   ├── projects/        # Project archive and /projects/[slug] pages
 │   │   ├── products/        # Product catalogue and /products/[slug] pages
-│   │   ├── support/         # Buy-me-a-coffee page (five rails + supporters wall)
+│   │   ├── support/         # Support page (one card per method + supporters wall)
 │   │   └── dashboard/       # Admin dashboard (session protected)
 │   ├── api/
 │   │   ├── [lang]/          # Public JSON API (portfolio data, blog)
@@ -189,7 +193,7 @@ src/
 │   ├── blog/ & projects/    # Listing views
 │   ├── products/            # Catalogue grid, product card, price tag
 │   ├── magicui/             # Blur-fade reveal
-│   ├── support/             # Support cards, checkout dialog, wall, QR helpers
+│   ├── support/             # Method cards, checkout wizard, wall, QR helpers
 │   └── ui/                  # shadcn/ui primitives + shared listing parts
 ├── config/                  # NextAuth options + cached DB connection
 ├── constants/               # Route table used by the dock and the footer
@@ -210,8 +214,8 @@ src/
 - **Uploads.** Development writes to `public/{type}/{lang}`; production uses Vercel Blob. Images are cropped in the browser before upload, and a cache-busting query keeps the preview fresh without polluting the stored URL.
 - **Editing flow.** Each dashboard section owns one slide-in panel: opening it scrolls the section back into view (the panel always sits above the list), a save that lands closes it, `Escape` dismisses it, and a rejected save leaves it open so nothing typed is lost.
 - **Home page selection.** `active` publishes a project to the site; `featured` curates the home section, which has three slots. Curated picks lead the row and any leftover slot is filled by the newest published project, so the section never renders half empty — and with nothing curated at all, the three newest published projects show. Manage it from the project row's pin button (it saves instantly and numbers the picks `صفحه اصلی · ۱`), or from the edit panel; either way the counter says how many slots are left, and a control that cannot be used says why — an unpublished project must be published first, and a fourth pick is refused while three are already pinned.
-- **Data model.** `profile`, `work`, `education`, `skill`, `social`, `project`, `product`, `blog`, `donation` and `supporter` in `src/models`, mirrored by types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; products carry a price, a currency, a category, feature bullets and an availability flag; blog posts support tags, covers and a published/draft flag; donation options carry one payment mode with only that mode's credentials, and supporters record the gift, its state and what may be shown publicly.
-- **Payments stay server-side.** `src/lib/payments.ts` holds the gateway adapters (ZarinPal v4, IDPay REST, Stripe Checkout, PayPal Orders v2) as plain `fetch` calls behind a timeout, and every amount is derived from the stored option. `src/lib/qr.ts` renders QR codes as PNG data URLs and `src/lib/rate-limit.ts` keeps the public write endpoints from being hammered.
+- **Data model.** `profile`, `work`, `education`, `skill`, `social`, `project`, `product`, `blog`, `donation` and `supporter` in `src/models`, mirrored by types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; products carry a price, a currency, a category, feature bullets and an availability flag; blog posts support tags, covers and a published/draft flag; a donation document is one payment method — its amount policy plus the list of destinations it can be paid into — and supporters record the gift, the method and destination it used, its state and what may be shown publicly.
+- **Payments stay server-side.** `src/lib/payments.ts` holds the gateway adapters (ZarinPal v4, IDPay REST, Stripe Checkout, PayPal Orders v2) as plain `fetch` calls behind a timeout, and every amount is derived from the stored method. `src/lib/qr.ts` renders QR codes as PNG data URLs and `src/lib/rate-limit.ts` keeps the public write endpoints from being hammered.
 - **Prices stay readable in both languages.** A product price is stored as a number plus a currency code, formatted with `Intl.NumberFormat` — Persian digits and separators on `/fa`, Latin on `/en` — and rendered inside a `<bdi dir="ltr">` run so grouping can never reverse inside an RTL sentence. `0` is shown as the localized “Free”, and the catalogue only offers a price ordering while every product sits on one scale (a single currency, or the rial/toman pair).
 
 ## Design system
@@ -228,7 +232,7 @@ src/
 | --- | --- |
 | Metadata | Per-page title/description, canonical URL, `hreflang` alternates for both locales, Open Graph and Twitter cards. |
 | OG images | `/api/og` renders a branded 1200×630 image per page and per language. |
-| JSON-LD | `Person` and `BreadcrumbList` on the home page, `CollectionPage` on archives, `SoftwareApplication` on project pages, `Product` + `Offer` (price, ISO 4217 currency, stock availability) on product pages, `Blog` + `BlogPosting` on articles, and a `WebPage` with a `DonateAction` and one `Offer` per support option on `/support`. |
+| JSON-LD | `Person` and `BreadcrumbList` on the home page, `CollectionPage` on archives, `SoftwareApplication` on project pages, `Product` + `Offer` (price, ISO 4217 currency, stock availability) on product pages, `Blog` + `BlogPosting` on articles, and a `WebPage` with a `DonateAction` and one `Offer` per payment method on `/support`. |
 | Discovery | Localized `sitemap.ts`, `robots.ts`, RSS at `/blog/rss.xml`, and a web manifest for installability. |
 | ISR | Public pages revalidate hourly; an admin write calls `revalidatePath`, so edits appear immediately. |
 
@@ -260,8 +264,8 @@ In production, uploads go to Vercel Blob; in development they are saved under `p
 | Sign-in always fails                      | `ADMIN_EMAIL` / `ADMIN_PASSWORD` must be set; there are no fallback accounts |
 | Persian dates look Gregorian              | Node >= 20 with full ICU (the official builds include it)                 |
 | `npm run seed` says file `.env.local` not found | Create `.env.local` first (it is required by the seed script)        |
-| An `on-site payment` option fails at checkout | That gateway's keys are missing from `.env.local` — see the table above |
-| A card or crypto option is missing from the page | Its card number / IBAN / address is empty in the dashboard; validation refuses to publish it |
+| The `gateway` method fails at checkout | That gateway's keys are missing from `.env.local` — see the table above |
+| A card or crypto method is missing from the page | None of its destinations has a card number / IBAN / address filled in; validation refuses to save it that way |
 
 ## Contributing
 

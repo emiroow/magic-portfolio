@@ -1,4 +1,17 @@
-import { CRYPTO_NETWORKS, DONATION_MODES, DONATION_REGIONS, GATEWAY_IDS, LINK_PROVIDERS, PRODUCT_CURRENCIES, REFERRAL_PROVIDERS, SUPPORTER_MESSAGE_LIMIT, SUPPORTER_STATUSES } from '@/constants/global';
+import {
+  CRYPTO_NETWORKS,
+  DONATION_MODES,
+  DONATION_REGIONS,
+  GATEWAY_IDS,
+  MAX_VARIANTS,
+  MAX_VARIANT_LABEL,
+  PLATFORM_PROVIDERS,
+  PRODUCT_CURRENCIES,
+  SUPPORT_PROVIDERS,
+  SUPPORTER_MESSAGE_LIMIT,
+  SUPPORTER_STATUSES,
+} from '@/constants/global';
+import { withUniqueKeys } from '@/lib/support';
 import { z } from 'zod';
 
 /** Zod schemas shared by API handlers and dashboard forms. */
@@ -141,21 +154,31 @@ export const blogSchema = z.object({
 });
 
 /* ------------------------------------------------------------------
- * Buy-me-a-coffee / financial support
+ * Financial support
  * ------------------------------------------------------------------ */
 
 /** Amount in whole units of the chosen currency; `0` means “the supporter picks”. */
 const donationAmountSchema = z
   .number({ invalid_type_error: 'Price is required', required_error: 'Price is required' })
   .min(0, 'Price cannot be negative')
-  .max(999_999_999_999);
+  .max(999_999_999_999, 'That amount is too large');
+
+/**
+ * An optional bound. `0` is the stored “none” value, so a cleared input means
+ * “no limit” instead of failing validation; the surfaces that read these fields
+ * all test for a positive number before using them.
+ */
+const optionalAmountSchema = z
+  .number({ invalid_type_error: 'Enter the amount as a number' })
+  .min(0, 'Amount cannot be negative')
+  .max(999_999_999_999, 'That amount is too large');
 
 /** Quick-pick amounts. Twelve is already more than the dialog can show in one row. */
 const suggestedAmountsSchema = z
   .array(z.number({ invalid_type_error: 'Price is required' }).min(0).max(999_999_999_999))
   .max(12);
 
-/** Card numbers are stored as bare digits; spaces are a display concern. */
+/** Card numbers are stored as bare digits; spaces and Persian digits are a display concern. */
 const cardNumberSchema = z
   .string()
   .trim()
@@ -169,7 +192,7 @@ const ibanSchema = z
   .transform(value => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())
   .pipe(z.string().regex(/^$|^IR\d{24}$/, 'Enter a valid IBAN (IR followed by 24 digits)'));
 
-/** A crypto destination is an address, a `lnurl…` string or a Lightning invite. */
+/** A crypto destination is an address, a `lnurl…` string or a Lightning invoice destination. */
 const cryptoAddressSchema = z
   .string()
   .trim()
@@ -177,85 +200,110 @@ const cryptoAddressSchema = z
   .max(120, 'The address is too long')
   .regex(/^[A-Za-z0-9:_+.\-]+$/, 'The address contains unsupported characters');
 
+/**
+ * One destination of a payment method. Every field is optional here because a
+ * destination only means something inside its own method: the refinement below
+ * asks each method for exactly the fields it spends money with.
+ */
+const supportVariantSchema = z.object({
+  /** Derived from the destination's own content on save; an owner never types it. */
+  key: z.string().trim().max(40).optional().or(z.literal('')),
+  label: z.string().trim().max(MAX_VARIANT_LABEL, 'The name is too long').optional().or(z.literal('')),
+  provider: z.enum(SUPPORT_PROVIDERS).optional().or(z.literal('')),
+  href: optionalUrl(),
+  number: cardNumberSchema.optional(),
+  iban: ibanSchema.optional(),
+  holder: z.string().trim().max(60).optional(),
+  qrPayload: z.string().trim().max(500).optional().or(z.literal('')),
+  network: z.enum(CRYPTO_NETWORKS).optional().or(z.literal('')),
+  address: z.string().trim().max(120).optional(),
+  currency: z.enum(PRODUCT_CURRENCIES).optional().or(z.literal('')),
+  region: z.enum(DONATION_REGIONS).optional().or(z.literal('')),
+  active: z.boolean(),
+});
+
 const donationShape = {
   title: z.string().min(1, 'Title is required'),
   slug: slugSchema.optional().or(z.literal('')),
   description: optional(),
-  amount: donationAmountSchema,
-  currency: z.enum(PRODUCT_CURRENCIES, { errorMap: () => ({ message: 'Choose a currency' }) }),
-  customAmount: z.boolean(),
-  suggestedAmounts: suggestedAmountsSchema,
-  minAmount: donationAmountSchema,
-  maxAmount: donationAmountSchema,
   mode: z.enum(DONATION_MODES, { errorMap: () => ({ message: 'Choose a payment method' }) }),
   region: z.enum(DONATION_REGIONS, { errorMap: () => ({ message: 'Choose a market' }) }),
-  referral: z.enum(REFERRAL_PROVIDERS).optional().or(z.literal('')),
-  href: optionalUrl(),
-  linkProvider: z.enum(LINK_PROVIDERS).optional().or(z.literal('')),
-  card: z
-    .object({
-      number: cardNumberSchema.optional(),
-      holder: z.string().trim().max(60).optional(),
-      iban: ibanSchema.optional(),
-    })
-    .optional(),
-  cardQrPayload: z.string().trim().max(500).optional().or(z.literal('')),
-  crypto: z
-    .object({
-      network: z.enum(CRYPTO_NETWORKS).optional().or(z.literal('')),
-      address: z.string().trim().max(120).optional(),
-    })
-    .optional(),
-  gateway: z.enum(GATEWAY_IDS).optional().or(z.literal('')),
-  goal: z.number({ invalid_type_error: 'Goal must be a number' }).min(0).max(999_999_999_999).optional().or(z.literal('')),
-  recurring: z.boolean(),
-  cups: z.number({ invalid_type_error: 'Cups is required' }).int().min(1, 'At least one cup').max(12),
+  variants: z.array(supportVariantSchema).min(1, 'Add at least one destination').max(MAX_VARIANTS, 'That is too many destinations for one method'),
+  amount: donationAmountSchema,
+  currency: productCurrencySchema,
+  customAmount: z.boolean(),
+  suggestedAmounts: suggestedAmountsSchema,
+  minAmount: optionalAmountSchema,
+  maxAmount: optionalAmountSchema,
   active: z.boolean(),
-  // Optional: documents stored before this field simply keep their current value.
-  featured: z.boolean().optional(),
-  order: z.number({ invalid_type_error: 'Order is required' }).int().min(0).max(999),
+  order: z
+    .number({ invalid_type_error: 'Enter the order as a number' })
+    .int('Order must be a whole number')
+    .min(0, 'Order cannot be negative')
+    .max(999, 'Order must be 999 or lower'),
 };
 
-/** The option shape on its own, so the dashboard form can extend it. */
+/** The method shape on its own, so the dashboard form can extend it. */
 export const donationBaseSchema = z.object(donationShape);
 
 /**
- * A support option must carry the credentials its own mode spends money with.
- * Checking that here means a half-filled option can never reach the public page,
- * where the dialog would have nothing to show.
+ * A payment method must carry, in at least one of its destinations, what that
+ * method spends money with. Checking it here means a half-built method can never
+ * reach the public page, where the wizard would have nothing to show.
  */
 function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.RefinementCtx) {
-  const at = (path: string, message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path: [path], message });
+  const at = (path: (string | number)[], message: string) => ctx.addIssue({ code: z.ZodIssueCode.custom, path, message });
 
-  const href = (value.href || '').trim();
-  const card = value.card ?? {};
-  const crypto = value.crypto ?? {};
+  const active = value.variants.filter(variant => variant.active !== false);
+  if (!active.length) at(['variants', 0], 'Turn on at least one destination');
 
-  switch (value.mode) {
-    case 'referral':
-      if (!href) at('href', 'Add the platform page supporters should open');
-      if (!value.referral) at('referral', 'Choose the platform');
-      break;
-    case 'link':
-      if (!href) at('href', 'Add the checkout link you prepared');
-      if (!value.linkProvider) at('linkProvider', 'Choose the gateway the link belongs to');
-      break;
-    case 'card':
-      if (!card.number && !card.iban) at('card', 'Add a card number or an IBAN');
-      break;
-    case 'crypto':
-      if (!crypto.network) at('crypto', 'Choose the network');
-      if (!crypto.address?.trim()) at('crypto', 'Add the receiving address');
-      else if (cryptoAddressSchema.safeParse(crypto.address).success === false) at('crypto', 'Enter a valid address');
-      break;
-    case 'gateway':
-      if (!value.gateway) at('gateway', 'Choose the gateway to charge through');
-      break;
+  // Every field is reported at its own row, so the form can put the message under
+  // the input that caused it instead of under the first one.
+  value.variants.forEach((variant, index) => {
+    if (variant.active === false) return;
+
+    const row = (field: string, message: string) => at(['variants', index, field], message);
+
+    switch (value.mode) {
+      case 'platform': {
+        const href = (variant.href || '').trim();
+        if (!variant.provider) row('provider', 'Choose the platform');
+        if (!href) row('href', 'Add the page supporters should open');
+        // `custom` has no catalogue name, so its own label is the only title it can show.
+        if (variant.provider === 'custom' && !(variant.label || '').trim()) row('label', 'Name this platform');
+        break;
+      }
+      case 'card':
+        if (!variant.number && !variant.iban) row('number', 'Add a card number or an IBAN');
+        break;
+      case 'crypto':
+        if (!variant.network) row('network', 'Choose the network');
+        if (!(variant.address || '').trim()) row('address', 'Add the receiving address');
+        else if (!cryptoAddressSchema.safeParse(variant.address).success) row('address', 'Enter a valid address');
+        break;
+      case 'gateway':
+        if (!variant.provider) row('provider', 'Choose the gateway to charge through');
+        else if (!GATEWAY_IDS.includes(variant.provider as (typeof GATEWAY_IDS)[number])) row('provider', 'That service is not a gateway');
+        break;
+    }
+  });
+
+  // Two destinations that would be stored under one key cannot be told apart in a link.
+  const keys = withUniqueKeys(value.mode, value.variants).map(variant => variant.key);
+  if (new Set(keys).size !== keys.length) at(['variants'], 'Two destinations share one name');
+
+  // A floor above the ceiling is a mistake, and the wizard would refuse every amount.
+  if (value.minAmount > 0 && value.maxAmount > 0 && value.minAmount > value.maxAmount) {
+    at(['minAmount'], 'The minimum amount is above the maximum');
   }
 
-  // A floor above the ceiling is a mistake, and the dialog would refuse every amount.
-  if (value.minAmount && value.maxAmount && value.minAmount > value.maxAmount) {
-    at('minAmount', 'The minimum amount is above the maximum');
+  // A platform method may only hand off to a support platform or a prepared link.
+  if (value.mode === 'platform') {
+    value.variants.forEach((variant, index) => {
+      if (variant.provider && !PLATFORM_PROVIDERS.includes(variant.provider as (typeof PLATFORM_PROVIDERS)[number])) {
+        at(['variants', index, 'provider'], 'Choose a support platform');
+      }
+    });
   }
 }
 
@@ -263,22 +311,25 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
 export const donationSchema = donationBaseSchema.superRefine(refineDonation);
 
 /**
- * Update body for an option. Deliberately unrefined: a row-level switch in the
- * dashboard sends only the flipped flag, and the mode-credential check belongs to
- * the full form. The API still refuses a missing or malformed `_id`.
+ * Update body for a method. Deliberately unrefined: a row-level switch in the
+ * dashboard sends only the flipped flag, and the destination check belongs to the
+ * full form. The API still refuses a missing or malformed `_id`.
  */
 export const donationUpdateSchema = z.object({ _id: objectIdSchema }).merge(donationBaseSchema.partial());
 
-/** Dashboard form: the full option plus the document id when editing. */
+/** Dashboard form: the full method plus the document id when editing. */
 export const donationFormSchema = donationBaseSchema.extend({ _id: objectIdSchema.optional() }).superRefine(refineDonation);
 
 /**
  * What a visitor may send when starting a checkout. The amount arrives as a
- * candidate: the server re-reads the option and only accepts a value inside that
- * option's own bounds, so a hand-edited request can never charge a different sum.
+ * candidate and the destination as a key: the server re-reads the method and only
+ * accepts a value inside its own bounds, so a hand-edited request can never charge
+ * a different sum or be pointed at a different wallet.
  */
 export const supporterSubmitSchema = z.object({
   donationId: objectIdSchema,
+  /** Which destination of the method the supporter picked; empty takes the first. */
+  variantKey: z.string().trim().max(40).optional().or(z.literal('')),
   amount: z
     .number({ invalid_type_error: 'Price is required', required_error: 'Price is required' })
     .positive('Enter an amount above zero')

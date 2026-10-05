@@ -10,6 +10,11 @@
  */
 @layer base {
   :root {
+    /* Tells native widgets (select popups, spinners, checkboxes, scrollbars, date
+       pickers) which palette to paint with. Without it a dark page gets a light
+       dropdown, and the option text lands on the wrong surface. */
+    color-scheme: light;
+
     --background: 0 0% 100%;
     --foreground: 0 0% 5%;
 
@@ -42,6 +47,8 @@
   }
 
   .dark {
+    color-scheme: dark;
+
     --background: 0 0% 4%;
     --foreground: 0 0% 97%;
 
@@ -224,9 +231,19 @@
 
   /* Shared form-control surface: inputs, selects and the month pickers. */
   .control {
-    @apply flex h-10 w-full items-center rounded-lg border border-input bg-transparent px-3 py-2 text-sm shadow-sm transition-colors
+    @apply flex h-10 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors
       placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
       disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  /*
+   * An open option list paints with the element's own colours in some engines, so
+   * the pair is stated rather than inherited: a transparent field would leave the
+   * Persian label floating on whatever sits behind the popup.
+   */
+  select.control option {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
   }
 
   /* Hairline rule that fades out toward the end of the reading direction. */
@@ -292,4 +309,46 @@
 
 .w-md-editor .w-md-editor-text-pre > code {
   font-family: inherit !important;
+}
+
+/*
+ * Checkout wizard: it drops in from the top of the screen and leaves back the way
+ * it came. The keyframes own the whole transform — including the `-50%` centring —
+ * because a slide utility would fight the positioning translate and send the
+ * surface drifting sideways while it fades.
+ *
+ * `[role='dialog']` is part of the selector on purpose: the fade classes shadcn puts
+ * on the same element carry one class plus one attribute, so an equal-specificity
+ * rule would lose on source order and the wizard would keep the default fade.
+ */
+[role='dialog'].sheet-from-top[data-state='open'] {
+  animation: sheet-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[role='dialog'].sheet-from-top[data-state='closed'] {
+  animation: sheet-out 0.22s ease-in forwards;
+}
+
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 22px)) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
+
+@keyframes sheet-out {
+  from {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(-50%, calc(-50% - 22px)) scale(0.985);
+  }
 }

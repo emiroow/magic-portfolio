@@ -5,14 +5,13 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Blog from './Blog';
-import Donation from './Donation';
 import EducationExperience from './Education';
 import Profile from './Profile';
 import Products from './Products';
 import Projects from './Projects';
 import Skills from './Skills';
 import Socials from './Socials';
-import Supporters from './Supporters';
+import Support from './Support';
 import WorkExperience from './WorkExperience';
 
 /** Ordered dashboard sections; `trans` is a key under `dashboard.menu`. */
@@ -25,8 +24,7 @@ const TABS = [
   { trans: 'Products', component: Products },
   { trans: 'Socials', component: Socials },
   { trans: 'Blog', component: Blog },
-  { trans: 'Donation', component: Donation },
-  { trans: 'Supporters', component: Supporters },
+  { trans: 'Support', component: Support },
 ] as const;
 
 /**
@@ -85,7 +83,7 @@ const Tab = () => {
         aria-label={td('tabsAria')}
         aria-orientation="horizontal"
         onKeyDown={onKeyDown}
-        className="flex w-full gap-1 overflow-x-auto rounded-full border bg-muted/40 p-1 sm:w-max"
+        className="flex w-full gap-1 overflow-x-auto rounded-full border bg-muted/40 p-1 sm:w-max sm:max-w-full"
       >
         {TABS.map((tab, index) => (
           <button

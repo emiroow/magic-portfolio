@@ -1,4 +1,4 @@
-import { Coffee, FolderGit2, Home, NotebookText, ShoppingBag } from 'lucide-react';
+import { FolderGit2, HandHeart, Home, NotebookText, ShoppingBag } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import type {
   AppLocale,
@@ -6,9 +6,8 @@ import type {
   DonationMode,
   DonationRegion,
   GatewayId,
-  LinkProvider,
   ProductCurrency,
-  ReferralProvider,
+  SupportProvider,
   SupporterStatus,
 } from '@/types';
 
@@ -37,7 +36,7 @@ export const MenuRoutes: readonly NavbarRoute[] = [
   { href: '/products', icon: ShoppingBag, label: 'products' },
   { href: '/projects', icon: FolderGit2, label: 'projects' },
   { href: '/blog', icon: NotebookText, label: 'blog' },
-  { href: '/support', icon: Coffee, label: 'support' },
+  { href: '/support', icon: HandHeart, label: 'support' },
 ];
 
 /**
@@ -78,52 +77,57 @@ export const PRODUCT_CURRENCY_CODES: Record<ProductCurrency, string> = {
 };
 
 /* ------------------------------------------------------------------
- * Buy-me-a-coffee / financial support
+ * Financial support
  * ------------------------------------------------------------------ */
-
-/**
- * Support options on the home page. Same rule as projects, products and blog:
- * the dashboard caps the featured picks here and the section backfills any open
- * slot with the newest active option.
- */
-export const HOME_SUPPORT_SLOTS = 3;
-
-/** Supporters listed in the home-page strip before the full wall on `/support`. */
-export const HOME_SUPPORTER_STRIP = 6;
 
 /** Supporters rendered on `/support` before the “show more” control appears. */
 export const SUPPORTER_PAGE_SIZE = 9;
 
 /**
- * Every checkout surface the dashboard offers. The list backs the `<select>`,
- * zod's enum and the `support.modes` labels, so a mode can only be added here.
+ * Every payment method the dashboard offers. The list backs the method picker,
+ * zod's enum and the `support.modes` labels, so a method can only be added here —
+ * one entry, one card on `/support`, one checkout surface.
  */
-export const DONATION_MODES = ['referral', 'link', 'card', 'crypto', 'gateway'] as [DonationMode, ...DonationMode[]];
+export const DONATION_MODES = ['platform', 'card', 'crypto', 'gateway'] as [DonationMode, ...DonationMode[]];
 
-/** Markets the option selector groups by; Iranian methods lead the Persian site. */
+/** Markets the method picker offers; Iranian rails lead the Persian site. */
 export const DONATION_REGIONS = ['ir', 'global'] as [DonationRegion, ...DonationRegion[]];
 
-/** Creator-support platforms reachable by hand-off (`referral`). */
-export const REFERRAL_PROVIDERS = [
-  'buymeacoffee',
-  'kofi',
-  'patreon',
-  'github',
-  'liberapay',
-  'hamyato',
-] as [ReferralProvider, ...ReferralProvider[]];
-
-/** Hosted checkout links (`link`). */
-export const LINK_PROVIDERS = ['zarinpal', 'idpay', 'paypalme', 'stripe', 'other'] as [LinkProvider, ...LinkProvider[]];
-
-/** Ledgers a crypto option can receive on (`crypto`). */
-export const CRYPTO_NETWORKS = ['tron', 'ethereum', 'bitcoin', 'ton', 'bsc', 'lightning'] as [
-  CryptoNetwork,
-  ...CryptoNetwork[],
+/**
+ * Services a destination can belong to. The support platforms are the two the
+ * section hands off to — Buy Me a Coffee abroad, کافی‌بده at home — and the
+ * gateways cover both a prepared payment link and an in-site checkout.
+ *
+ * A new platform is one id added to this list plus its label in both catalogues.
+ * `custom` already takes any URL and is named by the destination's own label, so
+ * a service can be served before the code catches up with its name.
+ */
+export const SUPPORT_PROVIDERS = ['buymeacoffee', 'coffeebede', 'zarinpal', 'idpay', 'stripe', 'paypal', 'custom'] as [
+  SupportProvider,
+  ...SupportProvider[],
 ];
 
-/** Gateways the site charges through itself (`gateway`). */
+/** Providers offered to a `platform` destination. */
+export const PLATFORM_PROVIDERS = ['buymeacoffee', 'coffeebede', 'custom'] as [SupportProvider, ...SupportProvider[]];
+
+/** Providers offered to a `gateway` destination; each one needs credentials in the environment. */
 export const GATEWAY_IDS = ['zarinpal', 'idpay', 'stripe', 'paypal'] as [GatewayId, ...GatewayId[]];
+
+/**
+ * Ledgers a crypto destination can receive on (`crypto`). A stablecoin is listed
+ * under the chain it moves on, because the chain is the choice that decides
+ * whether the money lands; the asset itself belongs in the destination's label.
+ */
+export const CRYPTO_NETWORKS = ['tron', 'ethereum', 'bitcoin', 'ton', 'bsc', 'lightning'] as [CryptoNetwork, ...CryptoNetwork[]];
+
+/**
+ * Destinations one method can carry. Twelve is well past what one block can show,
+ * and a longer list means the method is really two methods.
+ */
+export const MAX_VARIANTS = 12;
+
+/** Longest destination name, so a tile never wraps into a third line. */
+export const MAX_VARIANT_LABEL = 40;
 
 /**
  * Currencies each gateway can actually charge in. The Iranian rails settle in
@@ -147,8 +151,8 @@ export const SUPPORTER_STATUSES = ['pending', 'completed', 'failed', 'cancelled'
 export const SUPPORTER_MESSAGE_LIMIT = 280;
 
 /**
- * Home-page ordering per locale: the Persian site leads with the local rails,
- * the English site with the international ones.
+ * Page ordering per locale: the Persian site leads with the local rails, the
+ * English site with the international ones.
  */
 export const REGION_ORDER: Record<AppLocale, readonly DonationRegion[]> = {
   fa: ['ir', 'global'],
