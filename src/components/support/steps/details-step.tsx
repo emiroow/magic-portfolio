@@ -1,6 +1,7 @@
 'use client';
 
 import { SummaryLine, TextField, Toggle } from '@/components/support/steps/step-parts';
+import type { WizardDetails } from '@/components/support/use-support-wizard';
 import { Textarea } from '@/components/ui/textarea';
 import { SUPPORTER_MESSAGE_LIMIT } from '@/constants/global';
 import { nameDir } from '@/components/support/support-meta';
@@ -9,18 +10,9 @@ import type { AppLocale, ProductCurrency } from '@/types';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface DetailsStepProps {
-  name: string;
-  onName: (value: string) => void;
-  anonymous: boolean;
-  onAnonymous: (value: boolean) => void;
-  email: string;
-  onEmail: (value: string) => void;
-  message: string;
-  onMessage: (value: string) => void;
-  showOnWall: boolean;
-  onShowOnWall: (value: boolean) => void;
-  honeypot: string;
-  onHoneypot: (value: string) => void;
+  /** Everything the supporter says about themselves, held as one travelling object. */
+  details: WizardDetails;
+  onChange: <Key extends keyof WizardDetails>(key: Key, value: WizardDetails[Key]) => void;
   amount: number;
   currency: ProductCurrency;
   /** What is about to happen, in the order it was chosen: method, then destination. */
@@ -34,23 +26,7 @@ interface DetailsStepProps {
  * condition of supporting. The summary at the top keeps the amount and the
  * destination in view, because this is the last screen before the money moves.
  */
-export function DetailsStep({
-  name,
-  onName,
-  anonymous,
-  onAnonymous,
-  email,
-  onEmail,
-  message,
-  onMessage,
-  showOnWall,
-  onShowOnWall,
-  honeypot,
-  onHoneypot,
-  amount,
-  currency,
-  summary,
-}: DetailsStepProps) {
+export function DetailsStep({ details, onChange, amount, currency, summary }: DetailsStepProps) {
   const td = useTranslations('support.dialog');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
@@ -71,21 +47,29 @@ export function DetailsStep({
         <SummaryLine label={td('total')} amount={amount} currency={currency} />
       </div>
 
-      <TextField label={td('nameLabel')} value={name} onChange={onName} placeholder={td('namePlaceholder')} maxLength={60} disabled={anonymous} />
+      <TextField
+        label={td('nameLabel')}
+        value={details.name}
+        onChange={value => onChange('name', value)}
+        placeholder={td('namePlaceholder')}
+        maxLength={60}
+        disabled={details.anonymous}
+      />
 
       <Toggle
         label={td('anonymous')}
-        checked={anonymous}
+        checked={details.anonymous}
         onChange={value => {
-          onAnonymous(value);
-          if (value) onName('');
+          onChange('anonymous', value);
+          // Anonymity is a promise, not a filter: the name is dropped when it is asked for.
+          if (value) onChange('name', '');
         }}
       />
 
       <TextField
         label={td('emailLabel')}
-        value={email}
-        onChange={onEmail}
+        value={details.email}
+        onChange={value => onChange('email', value)}
         placeholder={td('emailPlaceholder')}
         type="email"
         dir="ltr"
@@ -97,20 +81,23 @@ export function DetailsStep({
         <span className="flex items-baseline justify-between gap-2 text-xs font-medium text-muted-foreground">
           {td('messageLabel')}
           <span className="tabular-nums opacity-70">
-            {td('messageCount', { count: localizedCount(message.length, lang), max: localizedCount(SUPPORTER_MESSAGE_LIMIT, lang) })}
+            {td('messageCount', {
+              count: localizedCount(details.message.length, lang),
+              max: localizedCount(SUPPORTER_MESSAGE_LIMIT, lang),
+            })}
           </span>
         </span>
         <Textarea
           rows={3}
-          value={message}
-          onChange={event => onMessage(event.target.value.slice(0, SUPPORTER_MESSAGE_LIMIT))}
+          value={details.message}
+          onChange={event => onChange('message', event.target.value.slice(0, SUPPORTER_MESSAGE_LIMIT))}
           placeholder={td('messagePlaceholder')}
           dir="auto"
         />
       </label>
 
       <div className="space-y-1.5">
-        <Toggle label={td('wallLabel')} checked={showOnWall} onChange={onShowOnWall} />
+        <Toggle label={td('wallLabel')} checked={details.showOnWall} onChange={value => onChange('showOnWall', value)} />
         <p className="text-xs leading-relaxed text-muted-foreground/80">{td('wallHint')}</p>
       </div>
 
@@ -118,8 +105,8 @@ export function DetailsStep({
           dropped by the server without telling the caller. */}
       <input
         type="text"
-        value={honeypot}
-        onChange={event => onHoneypot(event.target.value)}
+        value={details.honeypot}
+        onChange={event => onChange('honeypot', event.target.value)}
         tabIndex={-1}
         autoComplete="off"
         aria-hidden

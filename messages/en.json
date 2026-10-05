@@ -777,6 +777,8 @@
           "action": "Ask for a star, a follow or a report — no money"
         },
         "noAmountHint": "This method asks for a gesture and not for money, so it has no amount, no currency and no limits. Nothing is recorded on the supporters wall.",
+        "asksAmount": "Asks for an amount",
+        "asksNoAmount": "Asks for no amount",
         "region": "Market",
         "regionHint": "The Persian site lists Iranian methods first, the English site the international ones.",
         "destinations": "Destinations ({count})",

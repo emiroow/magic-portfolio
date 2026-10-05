@@ -70,6 +70,11 @@ export function ChooseStep({
   const join = (parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ');
   const destinationName = variantLabel(variant, t) || variantDetail(variant) || option.title;
   const instruction = variantInstruction(variant);
+  /** The bounds the method sets, said once, in the unit the amount is written in. */
+  const bounds = join([
+    option.minAmount > 0 ? td('min', { amount: `${formatPrice(option.minAmount, lang)} ${tp(currency)}` }) : '',
+    option.maxAmount > 0 ? td('max', { amount: `${formatPrice(option.maxAmount, lang)} ${tp(currency)}` }) : '',
+  ]);
 
   return (
     <div className="space-y-5">
@@ -151,7 +156,14 @@ export function ChooseStep({
         <div className="space-y-4 border-t pt-5">
           <div className="flex items-baseline justify-between gap-3">
             <p className="text-xs font-medium text-muted-foreground">{td('total')}</p>
-            <PriceTag amount={amount} currency={currency} className="text-lg font-bold" />
+            {/* Nothing picked yet is not zero: a dash says “not decided” more honestly. */}
+            {amount > 0 ? (
+              <PriceTag amount={amount} currency={currency} className="text-lg font-bold" />
+            ) : (
+              <span aria-hidden className="text-lg font-bold text-muted-foreground/40">
+                —
+              </span>
+            )}
           </div>
 
           {quickAmounts.length > 0 && (
@@ -191,17 +203,16 @@ export function ChooseStep({
                   value={custom}
                   onChange={event => onCustom(event.target.value)}
                   aria-invalid={Boolean(amountError)}
+                  aria-describedby={bounds ? 'support-amount-bounds' : undefined}
                 />
                 <span className="shrink-0 text-xs text-muted-foreground">{tp(currency)}</span>
               </span>
             </label>
           )}
 
-          {(option.minAmount > 0 || option.maxAmount > 0) && (
-            <p className="text-xs text-muted-foreground/80">
-              {option.minAmount > 0 && td('min', { amount: `${formatPrice(option.minAmount, lang)} ${tp(currency)}` })}
-              {option.minAmount > 0 && option.maxAmount > 0 && ' · '}
-              {option.maxAmount > 0 && td('max', { amount: `${formatPrice(option.maxAmount, lang)} ${tp(currency)}` })}
+          {bounds && (
+            <p id="support-amount-bounds" className="text-xs text-muted-foreground/80">
+              {bounds}
             </p>
           )}
 

@@ -71,7 +71,7 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
 
   return (
     <li className={cn('h-full', className)}>
-      <Card className="flex h-full flex-col gap-3 rounded-xl p-4">
+      <Card className="flex h-full flex-col gap-3 rounded-xl p-4 transition-colors hover:border-foreground/30">
         <div className="flex items-start gap-3">
           {/* Initial instead of an avatar: no third-party image host is involved. */}
           <span

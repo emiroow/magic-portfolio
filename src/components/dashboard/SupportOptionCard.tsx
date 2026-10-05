@@ -8,9 +8,9 @@ import { Button, buttonVariants } from '@/components/ui/button';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import Loading from '@/components/ui/loading';
-import { cn, documentKey } from '@/lib/utils';
+import { cn, documentKey, localizedCount } from '@/lib/utils';
 import { handlesMoney, usableVariants } from '@/lib/support';
-import type { IDonation } from '@/types';
+import type { AppLocale, IDonation } from '@/types';
 import { ExternalLink, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
@@ -34,6 +34,7 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
   const t = useTranslations('dashboard.support.options');
   const ts = useTranslations('support');
   const locale = useLocale();
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const Icon = MODE_ICONS[method.mode];
@@ -123,7 +124,11 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
                   <Tag dir={nameDir(label)}>{label}</Tag>
                 </li>
               ))}
-              {named.length > 4 && <Tag dir="ltr">+{named.length - 4}</Tag>}
+              {named.length > 4 && (
+                <li>
+                  <Tag>{`+${localizedCount(named.length - 4, lang)}`}</Tag>
+                </li>
+              )}
             </ul>
           )}
 

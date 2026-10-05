@@ -60,7 +60,11 @@ export function ErrorNote({ message, onRetry }: { message: string; onRetry: () =
         <AlertTriangle className="size-4 shrink-0" aria-hidden />
         <span className="min-w-0">{message}</span>
       </span>
-      <button type="button" onClick={onRetry} className="text-xs font-medium underline underline-offset-4 transition-opacity hover:opacity-70">
+      <button
+        type="button"
+        onClick={onRetry}
+        className="rounded px-1.5 py-1 text-xs font-medium underline underline-offset-4 transition-opacity hover:opacity-70"
+      >
         {td('errorRetry')}
       </button>
     </div>

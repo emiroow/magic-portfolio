@@ -3,22 +3,18 @@
 import { ActionStep } from '@/components/support/steps/action-step';
 import { ChooseStep } from '@/components/support/steps/choose-step';
 import { DetailsStep } from '@/components/support/steps/details-step';
+import { DialogActions } from '@/components/support/steps/dialog-actions';
 import { PaymentStep } from '@/components/support/steps/payment-step';
 import { ErrorNote, Thanks } from '@/components/support/steps/step-parts';
 import { StepRail } from '@/components/support/steps/step-rail';
-import { clampStep, stepsFor, type Step } from '@/components/support/steps/flow';
-import { supportApi, SupportApiError } from '@/components/support/support-api';
-import { amountFits, carriableAmount, choiceCurrency, nameDir, spansMarkets, standingAmount, variantLabel } from '@/components/support/support-meta';
-import { Button } from '@/components/ui/button';
+import type { Step } from '@/components/support/steps/flow';
+import { useSupportWizard } from '@/components/support/use-support-wizard';
+import { nameDir, spansMarkets } from '@/components/support/support-meta';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { handlesMoney, usableVariants } from '@/lib/support';
 import { localizedCount } from '@/lib/utils';
-import type { AppLocale, IDonation, SupportCheckoutResult, SupportVariant } from '@/types';
-import { ArrowRight, ExternalLink, Loader2 } from 'lucide-react';
+import type { AppLocale, IDonation } from '@/types';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useLocale, useTranslations } from 'next-intl';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { toast } from 'sonner';
 
 interface SupportDialogProps {
   /**
@@ -29,12 +25,12 @@ interface SupportDialogProps {
   choices: IDonation[];
   /** The heading of the box the window was opened from, when it is not one method. */
   heading?: { title: string; description: string };
-  /** The method the visitor came in on; `null` opens on the chooser. */
+  /** The method the visitor came in on; `null` keeps the window closed. */
   option: IDonation | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   /**
-   * An amount chosen before the dialog opened, through a shared link. When the
+   * An amount chosen before the window opened, through a shared link. When the
    * method accepts it, the wizard starts on the next step.
    */
   initialAmount?: number;
@@ -45,395 +41,155 @@ interface SupportDialogProps {
 }
 
 /**
- * The checkout wizard: one support item, the payment destinations that item carries,
- * and whatever its own conditions ask for.
+ * The support window: one item, the payment destinations that item carries, and
+ * whatever its own conditions ask for.
  *
- * The window is drawn from the item, not from the page: a card's wizard never lists
- * the other cards, because a method's currency, limits, destinations and steps are
- * its own. Only the box that asks the visitor to choose adds a step for choosing,
- * and it offers the methods that take an open amount — nothing else.
- *
- * The flow belongs to the method too: a rail that moves money walks
- * `choose → details → payment`, a free gesture walks `choose → action` and never
- * reaches the checkout endpoint at all. Every money decision belongs to the server:
- * this component sends a candidate amount and renders what comes back.
+ * This file is only the surface. The decision itself — step, destination, amount,
+ * details, what the server handed back — lives in `useSupportWizard`, and the wording
+ * of the footer follows from it, so no two places can disagree about what a supporter
+ * can do at this moment.
  */
 export function SupportDialog({ choices, heading, option, open, onOpenChange, initialAmount, initialVariantKey, onSelect }: SupportDialogProps) {
-  const t = useTranslations('support');
-  const td = useTranslations('support.dialog');
-  const locale = useLocale();
-  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
-
-  const [step, setStep] = useState<Step>('choose');
-  const [amount, setAmount] = useState(0);
-  const [variantKey, setVariantKey] = useState('');
-  const [custom, setCustom] = useState('');
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [message, setMessage] = useState('');
-  const [anonymous, setAnonymous] = useState(false);
-  const [showOnWall, setShowOnWall] = useState(true);
-  const [reference, setReference] = useState('');
-  const [honeypot, setHoneypot] = useState('');
-  const [result, setResult] = useState<SupportCheckoutResult | null>(null);
-  const [errorCode, setErrorCode] = useState<string | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [thanks, setThanks] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const copyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** Tells a fresh open apart from switching method inside an open dialog. */
-  const opened = useRef(false);
-
-  useEffect(() => () => void (copyTimer.current && clearTimeout(copyTimer.current)), []);
-
-  const money = handlesMoney(option?.mode ?? 'platform');
-  const flow = stepsFor(option?.mode);
-  /** A method switch can land on a step the new flow does not have; fold it back. */
-  const current = clampStep(step, flow);
-  /** Whether this window is the chooser box rather than one item of its own. */
-  const picking = choices.length > 1;
-
-  const destinations = useMemo(() => (option ? usableVariants(option) : []), [option]);
-
-  /** The destination in view: the key the supporter picked, else the first one. */
-  const variant: SupportVariant | undefined = useMemo(() => {
-    if (!destinations.length) return undefined;
-    return destinations.find(item => item.key === variantKey) ?? destinations[0];
-  }, [destinations, variantKey]);
-
-  const currency = option ? choiceCurrency({ option, variant }) : 'toman';
-
-  /**
-   * Every method has its own amount list and its own destinations, so a fresh open
-   * starts on the right ones. Changing method while the wizard is open keeps what the
-   * supporter typed: their name and note survive, the amount survives if the new
-   * method accepts it in the same currency, and only the payment of the method they
-   * left is dropped.
-   */
-  useEffect(() => {
-    if (!open || !option) {
-      opened.current = false;
-      return;
-    }
-
-    const fresh = !opened.current;
-    opened.current = true;
-
-    const takesMoney = handlesMoney(option.mode);
-    const list = usableVariants(option);
-    const next = (fresh ? initialVariantKey : variantKey) || list[0]?.key || '';
-    const picked = list.find(item => item.key === next) ?? list[0];
-    const wanted = initialAmount && initialAmount > 0 ? initialAmount : standingAmount(option);
-    const usable = takesMoney && amountFits(option, wanted);
-
-    if (fresh) {
-      setName('');
-      setEmail('');
-      setMessage('');
-      setHoneypot('');
-      setReference('');
-      setAnonymous(false);
-      setShowOnWall(true);
-    }
-
-    setVariantKey(picked?.key ?? '');
-    setStep(fresh && usable && initialAmount ? 'details' : 'choose');
-    setAmount(usable ? wanted : takesMoney ? standingAmount(option) : 0);
-    setCustom(usable && initialAmount ? String(wanted) : '');
-    setResult(null);
-    setErrorCode(null);
-    setBusy(false);
-    setThanks(false);
-    // `variantKey` is read only to survive a method switch; listing it would re-run
-    // the sync on every pick and reset the step underneath the supporter.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, option, initialAmount, initialVariantKey]);
-
-  const quickAmounts = useMemo(() => {
-    const values = option?.suggestedAmounts?.length ? option.suggestedAmounts : option && option.amount > 0 ? [option.amount] : [];
-    return [...new Set(values.filter(value => value > 0))].sort((a, b) => a - b);
-  }, [option]);
-
-  /** Client-side mirror of the server's bounds; the server decides in the end. */
-  const amountError = useMemo(() => {
-    if (!option || !money) return null;
-    if (amount <= 0) return td('amountRequired');
-    if (option.minAmount > 0 && amount < option.minAmount) return td('errors.min');
-    if (option.maxAmount > 0 && amount > option.maxAmount) return td('errors.max');
-    if (!option.customAmount && !quickAmounts.includes(amount)) return td('errors.fixed');
-    return null;
-  }, [option, money, amount, quickAmounts, td]);
-
-  /** The destination's own name, or the method's when it has no platform to name. */
-  const destination = option ? variantLabel(variant, t) || t(`modes.${option.mode}`) : '';
-  const ready = Boolean(option && variant && (!money || (amount > 0 && !amountError)));
-
-  const copy = useCallback(
-    async (key: string, value: string) => {
-      try {
-        await navigator.clipboard.writeText(value);
-        setCopiedKey(key);
-        if (copyTimer.current) clearTimeout(copyTimer.current);
-        copyTimer.current = setTimeout(() => setCopiedKey(null), 2000);
-      } catch {
-        // Insecure context or a denied permission: the text is still on screen.
-        toast.error(td('copyFailed'));
-      }
-    },
-    [td]
-  );
-
-  /** Moving to another method keeps the number only when the money still means the same. */
-  const pickMethod = (next: IDonation) => {
-    const list = usableVariants(next);
-    const target = { option: next, variant: list[0] };
-    // What the destination owes to the method being left, not the one being read:
-    // a gesture has no number to carry, and a payment always starts somewhere.
-    const kept = handlesMoney(next.mode) ? (option ? carriableAmount({ option, variant }, target, amount) : standingAmount(next)) : 0;
-
-    setVariantKey(list[0]?.key ?? '');
-    setAmount(kept);
-    if (option) onSelect(next, list[0]?.key ?? '', kept);
-  };
-
-  const pickVariant = (next: SupportVariant) => {
-    if (!option) return;
-    const carried = money ? carriableAmount({ option, variant }, { option, variant: next }, amount) : 0;
-
-    setVariantKey(next.key);
-    setAmount(carried);
-    onSelect(option, next.key, carried);
-  };
-
-  const startCheckout = async () => {
-    if (!option?._id || !variant) return;
-    setBusy(true);
-    setErrorCode(null);
-
-    try {
-      const data = await supportApi.checkout(locale, {
-        donationId: option._id,
-        variantKey: variant.key,
-        amount,
-        name: anonymous ? '' : name.trim(),
-        anonymous,
-        email: email.trim(),
-        message: message.trim(),
-        showOnWall,
-        company: honeypot,
-      });
-
-      setResult(data);
-      setStep('method');
-
-      // A gateway owns this one: hand the tab over and let it come back.
-      if (data.kind === 'redirect') window.location.assign(data.url);
-    } catch (error) {
-      setErrorCode(error instanceof SupportApiError ? error.code : 'generic');
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const declareSent = async () => {
-    if (!result || result.kind !== 'instructions') return;
-    setBusy(true);
-    setErrorCode(null);
-
-    try {
-      await supportApi.confirm(locale, { orderId: result.orderId, reference: reference.trim() });
-      setThanks(true);
-    } catch (error) {
-      setErrorCode(error instanceof SupportApiError ? error.code : 'generic');
-    } finally {
-      setBusy(false);
-    }
-  };
-
   const close = () => onOpenChange(false);
-  const back = flow[flow.indexOf(current) - 1];
-  const modeLabel = option ? t(`modes.${option.mode}`) : '';
-  /** The name under the title: the method in view inside the box, the destination on a card. */
-  const subtitle = option ? (picking ? option.title : destination && destination !== modeLabel ? destination : '') : '';
-  /** The first step is named for what it actually asks on this item. */
-  const firstStepTitle = picking
-    ? td('steps.choose')
-    : !money
-      ? td('actionWhere')
-      : destinations.length > 1
-        ? td('steps.destination')
-        : td('steps.amount');
-  const stepTitle = (item: Step) => (item === 'choose' ? firstStepTitle : td(`steps.${item}`));
 
   return (
     <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
       {/* The wizard arrives from above and leaves the same way it came. */}
       <DialogContent className="sheet-from-top max-w-lg">
-        {option && (
-          <>
-            <DialogHeader>
-              <DialogTitle className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base">
-                <span className="break-words" dir={nameDir(picking ? (heading?.title ?? option.title) : option.title)}>
-                  {picking ? (heading?.title ?? option.title) : option.title}
-                </span>
-                {subtitle && (
-                  <span className="min-w-0 max-w-full truncate text-sm font-normal text-muted-foreground" dir={nameDir(subtitle)}>
-                    {subtitle}
-                  </span>
-                )}
-              </DialogTitle>
-              <DialogDescription>
-                {picking ? (heading?.description ?? modeLabel) : modeLabel}
-                <span aria-live="polite" className="sr-only">
-                  {td('stepOf', { current: localizedCount(flow.indexOf(current) + 1, lang), total: localizedCount(flow.length, lang) })}
-                </span>
-              </DialogDescription>
-            </DialogHeader>
-
-            {/* Step rail: one mark per step of this item's flow, the reached ones solid. */}
-            <StepRail steps={flow} current={current} titleFor={stepTitle} />
-
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div
-                key={thanks ? 'thanks' : `${current}-${result?.kind ?? 'form'}`}
-                initial={{ opacity: 0, y: -12 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: 12 }}
-                transition={{ duration: 0.18, ease: 'easeOut' }}
-                className="space-y-5"
-              >
-                {thanks ? (
-                  <Thanks note={td('donePending')} onClose={close} />
-                ) : current === 'choose' ? (
-                  <ChooseStep
-                    choices={choices}
-                    option={option}
-                    destinations={destinations}
-                    variant={variant}
-                    money={money}
-                    mixedMarkets={spansMarkets(option)}
-                    quickAmounts={quickAmounts}
-                    amount={amount}
-                    custom={custom}
-                    showCustomField={Boolean(option.customAmount)}
-                    currency={currency}
-                    amountError={amountError}
-                    onPickMethod={pickMethod}
-                    onPickVariant={pickVariant}
-                    onPickAmount={value => {
-                      setAmount(value);
-                      setCustom(value > 0 ? String(value) : '');
-                    }}
-                    onCustom={value => {
-                      setCustom(value);
-                      const parsed = Number(value.replace(/[^\d]/g, ''));
-                      setAmount(Number.isFinite(parsed) ? parsed : 0);
-                    }}
-                  />
-                ) : current === 'details' ? (
-                  <DetailsStep
-                    name={name}
-                    onName={setName}
-                    anonymous={anonymous}
-                    onAnonymous={setAnonymous}
-                    email={email}
-                    onEmail={setEmail}
-                    message={message}
-                    onMessage={setMessage}
-                    showOnWall={showOnWall}
-                    onShowOnWall={setShowOnWall}
-                    honeypot={honeypot}
-                    onHoneypot={setHoneypot}
-                    amount={amount}
-                    currency={currency}
-                    summary={{ method: option.title, destination }}
-                  />
-                ) : current === 'action' ? (
-                  <ActionStep option={option} variant={variant} destination={destination} />
-                ) : result ? (
-                  <PaymentStep
-                    variant={variant}
-                    destination={destination}
-                    result={result}
-                    amount={amount}
-                    currency={currency}
-                    reference={reference}
-                    onReference={setReference}
-                    copiedKey={copiedKey}
-                    onCopy={copy}
-                  />
-                ) : null}
-
-                {errorCode && !thanks && <ErrorNote message={td(`errors.${errorCode}`)} onRetry={() => setErrorCode(null)} />}
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Footer: the actions change with the step, the place never does. */}
-            {!thanks && (
-              <div className="flex flex-col-reverse gap-2 border-t pt-4 sm:flex-row sm:justify-between sm:pt-5">
-                {current === 'method' && result?.kind === 'redirect' ? (
-                  <span aria-hidden />
-                ) : back ? (
-                  <Button type="button" variant="ghost" onClick={() => setStep(back)} disabled={busy}>
-                    {td('back')}
-                  </Button>
-                ) : (
-                  <Button type="button" variant="ghost" onClick={close}>
-                    {td('close')}
-                  </Button>
-                )}
-
-                {current === 'choose' && (
-                  <Button type="button" onClick={() => setStep(money ? 'details' : 'action')} disabled={!ready} className="min-w-28">
-                    {money ? td('continue') : td('seeSteps')}
-                    <ArrowRight className="ms-2 size-4 rtl:-scale-x-100" aria-hidden />
-                  </Button>
-                )}
-
-                {current === 'details' && (
-                  <Button type="button" onClick={startCheckout} disabled={busy || !option._id || !variant} className="min-w-36">
-                    {busy ? <Loader2 className="me-2 size-4 animate-spin" aria-hidden /> : null}
-                    {/* The label follows the method: an on-site payment leaves this tab,
-                        a transfer only needs the details to be shown. */}
-                    {busy
-                      ? td('sending')
-                      : option.mode === 'card' || option.mode === 'crypto'
-                        ? td('paymentDetails')
-                        : td('leaveSite', { provider: destination })}
-                  </Button>
-                )}
-
-                {current === 'method' && result?.kind === 'instructions' && (
-                  <Button type="button" onClick={declareSent} disabled={busy}>
-                    {busy ? <Loader2 className="me-2 size-4 animate-spin" aria-hidden /> : null}
-                    {busy ? td('declaring') : td('declare')}
-                  </Button>
-                )}
-
-                {current === 'method' && result?.kind === 'external' && (
-                  // The only way out is the destination itself: an explicit link,
-                  // opened by the supporter's own click, never a surprise popup.
-                  <Button asChild className="min-w-36">
-                    <a href={result.url} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="me-2 size-4" aria-hidden />
-                      {td('leaveSite', { provider: destination })}
-                    </a>
-                  </Button>
-                )}
-
-                {current === 'action' && variant?.href && (
-                  <Button asChild className="min-w-36">
-                    <a href={variant.href} target="_blank" rel="noopener noreferrer">
-                      <ExternalLink className="me-2 size-4" aria-hidden />
-                      {td('openPage', { provider: destination })}
-                    </a>
-                  </Button>
-                )}
-              </div>
-            )}
-          </>
-        )}
+        {option && open ? (
+          <SupportWizard
+            option={option}
+            choices={choices}
+            heading={heading}
+            initialAmount={initialAmount}
+            initialVariantKey={initialVariantKey}
+            onSelect={onSelect}
+            onClose={close}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
+  );
+}
+
+/** The inside of the window, mounted per method so its state cannot leak between them. */
+function SupportWizard({
+  option,
+  choices,
+  heading,
+  initialAmount,
+  initialVariantKey,
+  onSelect,
+  onClose,
+}: Omit<SupportDialogProps, 'open' | 'onOpenChange' | 'option'> & { option: IDonation; onClose: () => void }) {
+  const t = useTranslations('support');
+  const td = useTranslations('support.dialog');
+  const locale = useLocale();
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
+  const wizard = useSupportWizard({ option, onSelect, initialAmount, initialVariantKey });
+
+  /** Only the box that asks for a choice shows a heading of its own. */
+  const picking = choices.length > 1;
+  const modeLabel = t(`modes.${option.mode}`);
+  const title = picking ? (heading?.title ?? option.title) : option.title;
+  /** The name beside the title: the method in view inside the box, the destination on a card. */
+  const subtitle = picking ? option.title : wizard.destination !== modeLabel ? wizard.destination : '';
+  /** The first step is named for what it actually asks on this item. */
+  const firstStepTitle = picking
+    ? td('steps.choose')
+    : !wizard.money
+      ? td('actionWhere')
+      : wizard.destinations.length > 1
+        ? td('steps.destination')
+        : td('steps.amount');
+  const stepTitle = (item: Step) => (item === 'choose' ? firstStepTitle : td(`steps.${item}`));
+
+  return (
+    <>
+      <DialogHeader>
+        <DialogTitle className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base">
+          <span className="break-words" dir={nameDir(title)}>
+            {title}
+          </span>
+          {subtitle && (
+            <span className="min-w-0 max-w-full truncate text-sm font-normal text-muted-foreground" dir={nameDir(subtitle)}>
+              {subtitle}
+            </span>
+          )}
+        </DialogTitle>
+        <DialogDescription>
+          {picking ? (heading?.description ?? modeLabel) : modeLabel}
+          <span aria-live="polite" className="sr-only">
+            {td('stepOf', {
+              current: localizedCount(wizard.flow.indexOf(wizard.step) + 1, lang),
+              total: localizedCount(wizard.flow.length, lang),
+            })}
+          </span>
+        </DialogDescription>
+      </DialogHeader>
+
+      {/* Step rail: one mark per step of this item's flow, the reached ones solid. */}
+      <StepRail steps={wizard.flow} current={wizard.step} titleFor={stepTitle} />
+
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={wizard.thanks ? 'thanks' : `${wizard.step}-${wizard.result?.kind ?? 'form'}`}
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.18, ease: 'easeOut' }}
+          className="space-y-5"
+        >
+          {wizard.thanks ? (
+            <Thanks note={td('donePending')} onClose={onClose} />
+          ) : wizard.step === 'choose' ? (
+            <ChooseStep
+              choices={choices}
+              option={option}
+              destinations={wizard.destinations}
+              variant={wizard.variant}
+              money={wizard.money}
+              mixedMarkets={spansMarkets(option)}
+              quickAmounts={wizard.quickAmounts}
+              amount={wizard.amount}
+              custom={wizard.custom}
+              showCustomField={Boolean(option.customAmount)}
+              currency={wizard.currency}
+              amountError={wizard.amountError}
+              onPickMethod={wizard.pickMethod}
+              onPickVariant={wizard.pickVariant}
+              onPickAmount={wizard.pickAmount}
+              onCustom={wizard.typeAmount}
+            />
+          ) : wizard.step === 'details' ? (
+            <DetailsStep
+              details={wizard.details}
+              onChange={wizard.setDetail}
+              amount={wizard.amount}
+              currency={wizard.currency}
+              summary={{ method: option.title, destination: wizard.destination }}
+            />
+          ) : wizard.step === 'action' ? (
+            <ActionStep option={option} variant={wizard.variant} destination={wizard.destination} />
+          ) : wizard.result ? (
+            <PaymentStep
+              variant={wizard.variant}
+              destination={wizard.destination}
+              result={wizard.result}
+              amount={wizard.amount}
+              currency={wizard.currency}
+              reference={wizard.details.reference}
+              onReference={value => wizard.setDetail('reference', value)}
+              copiedKey={wizard.copiedKey}
+              onCopy={wizard.copy}
+            />
+          ) : null}
+
+          {wizard.errorCode && !wizard.thanks && <ErrorNote message={td(`errors.${wizard.errorCode}`)} onRetry={wizard.dismissError} />}
+        </motion.div>
+      </AnimatePresence>
+
+      <DialogActions wizard={wizard} onClose={onClose} />
+    </>
   );
 }

@@ -5,14 +5,39 @@ import { donationFormSchema, type DonationFormInput } from '@/lib/validations';
 import { handlesMoney, variantFields, withUniqueKeys } from '@/lib/support';
 import type { DonationMode, IDonation, SupportSettings, SupportVariant } from '@/types';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { useFieldArray, useForm, type UseFormRegister } from 'react-hook-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
 import { useToastMessages } from './useToastMessages';
 
-// The API's own method shape, widened by the document id when editing.
-type DonationForm = DonationFormInput;
-type DonationVariant = DonationForm['variants'][number];
+/** The API's own method shape, widened by the document id when editing. */
+export type DonationForm = DonationFormInput;
+export type DonationVariant = DonationForm['variants'][number];
+
+/**
+ * Fields a destination row can hold, and the only paths its inputs register.
+ * Exported because the row lives in its own file and must not invent the paths again.
+ */
+export type VariantField =
+  | 'label'
+  | 'provider'
+  | 'href'
+  | 'instruction'
+  | 'number'
+  | 'iban'
+  | 'holder'
+  | 'qrPayload'
+  | 'network'
+  | 'address'
+  | 'currency'
+  | 'region'
+  | 'active';
+
+/** One row's errors, so a message lands under the input that caused it. */
+export type VariantErrors = Partial<Record<VariantField, { message?: string }>>;
+
+/** How the form hands a destination row its registration function. */
+export type DonationRegister = UseFormRegister<DonationForm>;
 
 /**
  * A fresh destination. Which of these fields mean anything is decided by the

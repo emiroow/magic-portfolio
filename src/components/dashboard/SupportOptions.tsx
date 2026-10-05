@@ -1,29 +1,23 @@
 'use client';
 
 import { CheckboxField, EmptyState, ErrorState, Field, FormPanel, LoadingRows, SectionShell } from '@/components/dashboard/shared';
+import FormGroup from '@/components/dashboard/SupportFormGroup';
+import SupportModePicker from '@/components/dashboard/SupportModePicker';
 import SupportOptionRow from '@/components/dashboard/SupportOptionCard';
-import { MODE_ICONS } from '@/components/support/support-meta';
+import SupportVariantRow from '@/components/dashboard/SupportVariantRow';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Loading from '@/components/ui/loading';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  CRYPTO_NETWORKS,
-  DONATION_MODES,
-  DONATION_REGIONS,
-  GATEWAY_IDS,
-  PLATFORM_PROVIDERS,
-  ACTION_PROVIDERS,
-  PRODUCT_CURRENCIES,
-} from '@/constants/global';
+import { DONATION_REGIONS, PRODUCT_CURRENCIES } from '@/constants/global';
 import useDonations, { numberField } from '@/hooks/dashboard/useDonations';
 import { useFormPanel } from '@/hooks/dashboard/useFormPanel';
 import { handlesMoney } from '@/lib/support';
 import { formatPrice, localizedCount, slugify } from '@/lib/utils';
 import { useValidationMessage } from '@/hooks/useValidationMessage';
-import type { AppLocale, DonationMode, GatewayId, IDonation } from '@/types';
-import { AlertTriangle, Info, Plus, X } from 'lucide-react';
+import type { AppLocale, DonationMode, IDonation } from '@/types';
+import { AlertTriangle, Info, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -48,8 +42,10 @@ type GroupId = (typeof GROUPS)[number]['id'];
  * Support methods: the CRUD form for the ways this project can be backed, plus the
  * list of them.
  *
- * One choice decides everything below it — a method only ever carries the
- * destinations of its own kind, which is what keeps the public checkout honest.
+ * This file composes the form; the parts of it that carry their own rules live beside
+ * it — `SupportModePicker` for the decision that shapes everything below, and
+ * `SupportVariantRow` for the destinations a method can be paid into. One method only
+ * ever holds destinations of its own kind, which is what keeps the public window honest.
  */
 const SupportOptions = () => {
   const t = useTranslations('dashboard.support.options');
@@ -233,41 +229,7 @@ const SupportOptions = () => {
             description={t('groupRailHint')}
             broken={brokenGroups.includes('rail')}
           >
-            <div role="radiogroup" aria-label={t('chooseMethod')} className="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-              {DONATION_MODES.map(value => {
-                const Icon = MODE_ICONS[value];
-                const active = mode === value;
-
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="radio"
-                    aria-checked={active}
-                    onClick={() => setMode(value)}
-                    className={
-                      active
-                        ? 'flex min-h-11 flex-col items-start gap-1 rounded-lg border border-foreground bg-foreground px-3 py-2.5 text-start transition-colors'
-                        : 'flex min-h-11 flex-col items-start gap-1 rounded-lg border border-input bg-background px-3 py-2.5 text-start transition-colors hover:border-foreground/40 hover:bg-muted/40'
-                    }
-                  >
-                    <span className="flex min-w-0 items-center gap-2">
-                      <Icon className={active ? 'size-4 shrink-0' : 'size-4 shrink-0 text-muted-foreground'} aria-hidden />
-                      <span className={active ? 'min-w-0 truncate text-sm font-medium text-background' : 'min-w-0 truncate text-sm font-medium'}>
-                        {ts(`modes.${value}`)}
-                      </span>
-                    </span>
-                    <span
-                      className={
-                        active ? 'min-w-0 text-[11px] leading-snug text-background/80' : 'min-w-0 text-[11px] leading-snug text-muted-foreground'
-                      }
-                    >
-                      {t(`methodHints.${value}`)}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
+            <SupportModePicker value={mode} onChange={setMode} />
 
             <Field label={t('region')} id="support-region" error={errors.region?.message} hint={t('regionHint')}>
               <select id="support-region" {...register('region')} className="control">
@@ -293,7 +255,7 @@ const SupportOptions = () => {
               </div>
 
               {list.fields.map((field, index) => (
-                <VariantRow
+                <SupportVariantRow
                   key={field.id}
                   index={index}
                   mode={mode}
@@ -491,301 +453,5 @@ const SupportOptions = () => {
     </SectionShell>
   );
 };
-
-/* --------------------------------- parts ---------------------------------- */
-
-/** One numbered step of the form, with its own heading and error marker. */
-function FormGroup({
-  id,
-  index,
-  title,
-  description,
-  broken,
-  children,
-}: {
-  /** Id of the step's first control, for the summary's jump link. */
-  id: string;
-  index: number;
-  title: string;
-  description: string;
-  broken: boolean;
-  children: React.ReactNode;
-}) {
-  const t = useTranslations('dashboard.support.options');
-
-  return (
-    <fieldset id={id} className="space-y-4 border-0 p-0">
-      <legend className="mb-1 flex items-center gap-2.5">
-        <span
-          aria-hidden
-          className={
-            broken
-              ? 'flex size-6 items-center justify-center rounded-full border border-destructive text-[11px] font-bold tabular-nums text-destructive'
-              : 'flex size-6 items-center justify-center rounded-full border text-[11px] font-bold tabular-nums text-muted-foreground'
-          }
-        >
-          {index}
-        </span>
-        <span className="min-w-0">
-          <span className="block text-sm font-bold leading-tight">{title}</span>
-          <span className="block text-xs leading-relaxed text-muted-foreground">{description}</span>
-        </span>
-        <span className="sr-only">{t('stepOfFields', { current: index, title })}</span>
-      </legend>
-      <div className="space-y-4 sm:ps-8">{children}</div>
-    </fieldset>
-  );
-}
-
-/** Fields a destination row can hold, and the only paths its inputs register. */
-type VariantField =
-  | 'label'
-  | 'provider'
-  | 'href'
-  | 'instruction'
-  | 'number'
-  | 'iban'
-  | 'holder'
-  | 'qrPayload'
-  | 'network'
-  | 'address'
-  | 'currency'
-  | 'region'
-  | 'active';
-
-type VariantErrors = Partial<Record<VariantField, { message?: string }>>;
-
-/**
- * One destination row. The method decides which fields it shows: a wallet asks for a
- * chain and an address, a card for digits, a platform for a page, a gesture for the
- * page and the step to take on it — nothing else.
- */
-function VariantRow({
-  index,
-  mode,
-  variant,
-  broken,
-  onRemove,
-  register,
-  errors,
-  settings,
-}: {
-  index: number;
-  mode: DonationMode;
-  variant?: { active?: boolean; provider?: string };
-  broken: boolean;
-  onRemove: () => void;
-  register: ReturnType<typeof useDonations>['register'];
-  errors?: VariantErrors;
-  settings?: { gateways: GatewayId[] };
-}) {
-  const t = useTranslations('dashboard.support.options');
-  const ts = useTranslations('support');
-  const tp = useTranslations('pricing');
-  const locale = useLocale();
-  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
-
-  /** `variants.0.address`, typed so the field array's paths stay checked. */
-  const path = (field: VariantField) => `variants.${index}.${field}` as const;
-
-  const gatewayMissing = (provider?: string) => Boolean(settings) && Boolean(provider) && !settings?.gateways.includes(provider as GatewayId);
-  const off = variant?.active === false;
-
-  return (
-    <div className={broken ? 'rounded-lg border border-destructive/50 bg-background p-3' : 'rounded-lg border bg-background p-3'}>
-      <div className="flex items-center justify-between gap-2">
-        <p className="flex min-w-0 items-center gap-2 text-xs font-medium text-muted-foreground">
-          <span aria-hidden className="flex size-5 items-center justify-center rounded-full border text-[10px] tabular-nums">
-            {localizedCount(index + 1, lang)}
-          </span>
-          {off && <span className="truncate">{t('destinationOff')}</span>}
-        </p>
-        <div className="flex shrink-0 items-center gap-1">
-          <label className="flex cursor-pointer items-center gap-1.5 text-[11px] text-muted-foreground">
-            <input type="checkbox" {...register(path('active'))} className="size-3.5 rounded border-input accent-primary" />
-            {t('on')}
-          </label>
-          {index > 0 && (
-            <Button
-              type="button"
-              size="icon"
-              variant="ghost"
-              className="size-7 hover:text-destructive"
-              onClick={onRemove}
-              aria-label={t('removeDestination')}
-            >
-              <X className="size-3.5" aria-hidden />
-            </Button>
-          )}
-        </div>
-      </div>
-
-      <div className={off ? 'mt-3 space-y-4 opacity-60' : 'mt-3 space-y-4'}>
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          {mode === 'platform' && (
-            <>
-              <Field label={t('platform')} id={`${path('provider')}-input`} error={errors?.provider?.message}>
-                <select id={`${path('provider')}-input`} {...register(path('provider'))} className="control">
-                  <option value="">—</option>
-                  {PLATFORM_PROVIDERS.map(value => (
-                    <option key={value} value={value}>
-                      {ts(`providers.${value}`)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t('page')} id={`${path('href')}-input`} error={errors?.href?.message} hint={t('pageHint')}>
-                <Input id={`${path('href')}-input`} type="url" dir="ltr" {...register(path('href'))} placeholder={t('pagePlaceholder')} />
-              </Field>
-            </>
-          )}
-
-          {mode === 'card' && (
-            <>
-              <Field label={t('cardNumber')} id={`${path('number')}-input`} error={errors?.number?.message}>
-                <Input
-                  id={`${path('number')}-input`}
-                  inputMode="numeric"
-                  dir="ltr"
-                  className="tabular-nums"
-                  placeholder={t('cardNumberPlaceholder')}
-                  {...register(path('number'))}
-                />
-              </Field>
-              <Field label={t('iban')} id={`${path('iban')}-input`} error={errors?.iban?.message}>
-                <Input
-                  id={`${path('iban')}-input`}
-                  dir="ltr"
-                  className="tabular-nums"
-                  placeholder={t('ibanPlaceholder')}
-                  {...register(path('iban'))}
-                />
-              </Field>
-              <Field label={t('cardHolder')} id={`${path('holder')}-input`} optionalLabel={t('optional')}>
-                <Input id={`${path('holder')}-input`} dir="auto" placeholder={t('cardHolderPlaceholder')} {...register(path('holder'))} />
-              </Field>
-              <Field label={t('cardQr')} id={`${path('qrPayload')}-input`} error={errors?.qrPayload?.message} hint={t('cardQrHint')}>
-                <Input id={`${path('qrPayload')}-input`} dir="ltr" placeholder="https://…" {...register(path('qrPayload'))} />
-              </Field>
-            </>
-          )}
-
-          {mode === 'crypto' && (
-            <>
-              <Field label={t('cryptoNetwork')} id={`${path('network')}-input`} error={errors?.network?.message}>
-                <select id={`${path('network')}-input`} {...register(path('network'))} className="control">
-                  <option value="">—</option>
-                  {CRYPTO_NETWORKS.map(value => (
-                    <option key={value} value={value}>
-                      {ts(`networks.${value}`)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t('cryptoAddress')} id={`${path('address')}-input`} error={errors?.address?.message}>
-                <Input id={`${path('address')}-input`} dir="ltr" {...register(path('address'))} placeholder={t('cryptoAddressPlaceholder')} />
-              </Field>
-            </>
-          )}
-
-          {mode === 'gateway' && (
-            <Field
-              label={t('gateway')}
-              id={`${path('provider')}-input`}
-              error={errors?.provider?.message}
-              hint={gatewayMissing(variant?.provider) ? t('gatewayMissing') : t('gatewayHint')}
-            >
-              <select
-                id={`${path('provider')}-input`}
-                {...register(path('provider'))}
-                className="control"
-                aria-invalid={gatewayMissing(variant?.provider) || undefined}
-              >
-                <option value="">—</option>
-                {GATEWAY_IDS.map(value => (
-                  <option key={value} value={value}>
-                    {ts(`providers.${value}`)}
-                    {settings ? (settings.gateways.includes(value) ? ' ✓' : ' ✕') : ''}
-                  </option>
-                ))}
-              </select>
-            </Field>
-          )}
-
-          {mode === 'action' && (
-            <>
-              <Field label={t('actionNetwork')} id={`${path('provider')}-input`} error={errors?.provider?.message}>
-                <select id={`${path('provider')}-input`} {...register(path('provider'))} className="control">
-                  <option value="">—</option>
-                  {ACTION_PROVIDERS.map(value => (
-                    <option key={value} value={value}>
-                      {ts(`providers.${value}`)}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label={t('actionPage')} id={`${path('href')}-input`} error={errors?.href?.message} hint={t('actionPageHint')}>
-                <Input id={`${path('href')}-input`} type="url" dir="ltr" {...register(path('href'))} placeholder={t('actionPagePlaceholder')} />
-              </Field>
-            </>
-          )}
-
-          {/* The one thing the supporter has to do once they are there, in the owner's words. */}
-          {(mode === 'platform' || mode === 'action') && (
-            <Field
-              label={t('stepInstruction')}
-              id={`${path('instruction')}-input`}
-              error={errors?.instruction?.message}
-              hint={t('stepInstructionHint')}
-              optionalLabel={t('optional')}
-            >
-              <Input
-                id={`${path('instruction')}-input`}
-                dir="auto"
-                maxLength={160}
-                {...register(path('instruction'))}
-                placeholder={t('stepInstructionPlaceholder')}
-              />
-            </Field>
-          )}
-        </div>
-
-        {/* What the supporter sees, and the two cases where a destination differs
-            from its method: the unit it is priced in and the market it serves. */}
-        <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-3">
-          <Field
-            label={t('destinationName')}
-            id={`${path('label')}-input`}
-            error={errors?.label?.message}
-            hint={t('destinationNameHint')}
-            optionalLabel={t('optional')}
-          >
-            <Input id={`${path('label')}-input`} dir="auto" {...register(path('label'))} placeholder={t('destinationNamePlaceholder')} />
-          </Field>
-          <Field label={t('currencyOverride')} id={`${path('currency')}-input`} optionalLabel={t('optional')}>
-            <select id={`${path('currency')}-input`} {...register(path('currency'))} className="control">
-              <option value="">{t('inherit')}</option>
-              {PRODUCT_CURRENCIES.map(code => (
-                <option key={code} value={code}>
-                  {tp(code)}
-                </option>
-              ))}
-            </select>
-          </Field>
-          <Field label={t('regionOverride')} id={`${path('region')}-input`} optionalLabel={t('optional')}>
-            <select id={`${path('region')}-input`} {...register(path('region'))} className="control">
-              <option value="">{t('inherit')}</option>
-              {DONATION_REGIONS.map(value => (
-                <option key={value} value={value}>
-                  {ts(`regions.${value}`)}
-                </option>
-              ))}
-            </select>
-          </Field>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 export default SupportOptions;

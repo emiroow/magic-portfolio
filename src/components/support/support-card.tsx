@@ -84,7 +84,11 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
                 <Tag dir={nameDir(label)}>{label || destinations[index].key}</Tag>
               </li>
             ))}
-            {hidden > 0 && <Tag dir="ltr">+{hidden}</Tag>}
+            {hidden > 0 && (
+              <li>
+                <Tag>{`+${localizedCount(hidden, lang)}`}</Tag>
+              </li>
+            )}
           </ul>
         )}
 
