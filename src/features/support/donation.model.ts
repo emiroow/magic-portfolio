@@ -7,6 +7,10 @@ import mongoose, { Schema } from 'mongoose';
  * carries an address and a wallet never carries a merchant id — the checkout can only
  * ever be shown one rail's data. `amount`, `currency`, bounds and `suggestedAmounts`
  * live here, not on the method: two destinations can price differently.
+ *
+ * A wallet keeps its coin (`asset`) beside its ledger (`network`) and a card keeps its
+ * `bic` beside the account it routes by: both pairs decide where money lands, so neither
+ * is ever read off the other.
  */
 const supportVariantSchema = new Schema<IDonation['variants'][number]>(
   {
@@ -17,9 +21,11 @@ const supportVariantSchema = new Schema<IDonation['variants'][number]>(
     instruction: { type: String, maxlength: 160 },
     number: { type: String },
     iban: { type: String },
+    bic: { type: String },
     holder: { type: String },
     qrPayload: { type: String },
     network: { type: String },
+    asset: { type: String },
     address: { type: String },
     currency: { type: String },
     region: { type: String },

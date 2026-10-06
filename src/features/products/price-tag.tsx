@@ -1,13 +1,14 @@
 'use client';
 
 import { cn, formatPrice } from '@/lib/utils';
-import type { AppLocale, ProductCurrency } from '@/types';
+import type { AppLocale, PriceUnit } from '@/types';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface PriceTagProps {
   /** Amount in whole units of `currency`; `0` renders as the localized "Free". */
   amount: number;
-  currency: ProductCurrency;
+  /** A money of a country or the coin a wallet receives; both are labelled under `pricing`. */
+  currency: PriceUnit;
   className?: string;
 }
 

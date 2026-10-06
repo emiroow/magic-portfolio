@@ -3,6 +3,8 @@
 import { api } from '@/lib/client-api';
 import { donationFormSchema, type DonationFormInput } from '@/features/support/schema';
 import { handlesMoney, variantFields, withUniqueKeys } from '@/features/support/variants';
+import { CRYPTO_NETWORKS, assetsForNetwork, networksForAsset } from '@/features/support/constants';
+import { CRYPTO_ASSETS } from '@/constants/global';
 import type { DonationMode, IDonation, SupportSettings, SupportVariant } from '@/features/support/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useFieldArray, useForm, type UseFormRegister } from 'react-hook-form';
@@ -25,9 +27,11 @@ export type VariantField =
   | 'instruction'
   | 'number'
   | 'iban'
+  | 'bic'
   | 'holder'
   | 'qrPayload'
   | 'network'
+  | 'asset'
   | 'address'
   | 'currency'
   | 'region'
@@ -56,9 +60,11 @@ const EMPTY_VARIANT: DonationVariant = {
   instruction: '',
   number: '',
   iban: '',
+  bic: '',
   holder: '',
   qrPayload: '',
   network: '',
+  asset: '',
   address: '',
   currency: '',
   region: '',
@@ -125,6 +131,11 @@ function cleanVariant(mode: DonationMode, row: DonationVariant): SupportVariant 
       if (money && field === 'suggestedAmounts') out[field] = value.filter(n => typeof n === 'number' && Number.isFinite(n) && n > 0);
     }
   }
+
+  // A wallet is priced in the coin it receives, so storing a second answer next to the
+  // asset would only give the two a chance to disagree. `normalizeDonation` reads the
+  // unit off the asset on the way back out.
+  if (mode === 'crypto') delete out.currency;
 
   return out as unknown as SupportVariant;
 }
@@ -234,6 +245,31 @@ const useDonations = () => {
   };
 
   /**
+   * Coin and ledger are picked together, so each choice narrows the other.
+   *
+   * Moving one takes the other to a pairing that actually exists: an owner should not
+   * have to know which chains carry USDT to record a USDT wallet, and a destination that
+   * sends a token over a ledger that cannot hold it is money lost rather than a typo.
+   */
+  const setVariantAsset = (index: number, asset: string) => {
+    const ledgers = networksForAsset(asset ? (asset as SupportVariant['asset']) : undefined, CRYPTO_NETWORKS);
+    const network = getValues(`variants.${index}.network`);
+    setValue(`variants.${index}.asset`, asset as SupportVariant['asset'], { shouldValidate: true, shouldDirty: true });
+    if (network && !ledgers.includes(network)) {
+      setValue(`variants.${index}.network`, (ledgers[0] ?? '') as SupportVariant['network'], { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  const setVariantNetwork = (index: number, network: string) => {
+    const carried = assetsForNetwork(network ? (network as SupportVariant['network']) : undefined, CRYPTO_ASSETS);
+    const asset = getValues(`variants.${index}.asset`);
+    setValue(`variants.${index}.network`, network as SupportVariant['network'], { shouldValidate: true, shouldDirty: true });
+    if (asset && !carried.includes(asset)) {
+      setValue(`variants.${index}.asset`, (carried[0] ?? '') as SupportVariant['asset'], { shouldValidate: true, shouldDirty: true });
+    }
+  };
+
+  /**
    * Changing the method keeps the identity and the money policy and throws the
    * destinations away: a wallet address is not a card number, and a row that
    * quietly changes what it holds is worse than an empty one.
@@ -267,9 +303,11 @@ const useDonations = () => {
             instruction: variant.instruction ?? '',
             number: variant.number ?? '',
             iban: variant.iban ?? '',
+            bic: variant.bic ?? '',
             holder: variant.holder ?? '',
             qrPayload: variant.qrPayload ?? '',
             network: variant.network ?? '',
+            asset: variant.asset ?? '',
             address: variant.address ?? '',
             currency: variant.currency ?? '',
             region: variant.region ?? '',
@@ -306,6 +344,8 @@ const useDonations = () => {
     toggleActive,
     addVariantSuggested,
     removeVariantSuggested,
+    setVariantAsset,
+    setVariantNetwork,
     setMode,
     addVariant,
     removeVariant,

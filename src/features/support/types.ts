@@ -1,4 +1,4 @@
-import type { AppLocale, ProductCurrency } from '@/types';
+import type { AppLocale, CryptoAsset, PriceUnit, ProductCurrency } from '@/types';
 
 /**
  * How a support method actually collects money — the four ways a gift can travel.
@@ -9,7 +9,9 @@ import type { AppLocale, ProductCurrency } from '@/types';
  *
  * - `platform` — hand off to a support platform (Buy Me a Coffee, کافی‌بده) or a
  *                payment page prepared in a gateway
- * - `card`     — card-to-card: a card number and/or IBAN with a scannable QR
+ * - `card`     — a transfer the supporter makes themselves: inside Iran to a
+ *                sixteen-digit card or a sheba from a banking application, abroad to an
+ *                IBAN and its SWIFT code (or a card number, where the scheme offers it)
  * - `crypto`   — an on-chain address or Lightning destination with a QR
  * - `gateway`  — a full in-site checkout: the site calls the gateway API itself
  * - `action`   — no money at all: a gesture the supporter performs on another
@@ -54,9 +56,8 @@ export type SupportProvider =
 export type GatewayId = 'zarinpal' | 'idpay' | 'stripe' | 'paypal';
 
 /**
- * Ledgers a crypto destination can receive on. A stablecoin is named by the chain
- * it moves on, which is the choice that actually decides whether the money lands:
- * the asset itself is spelled out in the destination's own label.
+ * Ledgers a crypto destination can receive on. Which asset arrives on which ledger is a
+ * separate question and is stored separately — see `CRYPTO_ASSET_NETWORKS`.
  */
 export type CryptoNetwork = 'tron' | 'ethereum' | 'bitcoin' | 'ton' | 'bsc' | 'lightning';
 
@@ -80,23 +81,33 @@ export interface SupportVariant {
   instruction?: string;
   /** `card` only: digits, stored without spaces. */
   number?: string;
-  /** `card` only: IBAN (sheba), stored upper-case without spaces. */
+  /** `card` only: IBAN (sheba abroad, an Iranian sheba at home), stored upper-case without spaces. */
   iban?: string;
+  /** `card`, international market only: SWIFT-BIC the receiving bank is routed by. */
+  bic?: string;
   /** `card` only: name the account is in. */
   holder?: string;
   /** `card` only: override for the QR payload; empty encodes the card number. */
   qrPayload?: string;
   /** `crypto` only: the ledger the address lives on. */
   network?: CryptoNetwork;
-  /** `crypto` only: address, `lnurl…` or Lightning destination. */
+  /**
+   * `crypto` only: what actually arrives — USDT, BTC, TRX and so on.
+   *
+   * Stored rather than read off the ledger, because one ledger carries several assets and
+   * the wrong pairing loses the money. It is also the unit the destination is priced in.
+   */
+  asset?: CryptoAsset;
+  /** `crypto` only: address, `lnurl…`, a Lightning invoice or a pay-by-name address. */
   address?: string;
   /**
    * The unit this destination is priced in. For a method that moves money it is the
    * destination's own — a USD wallet and a Toman card under one method never share a
    * price scale. Left unset on a stored row, `normalizeDonation` fills it from the
-   * method's default, so an old document keeps working without a rewrite.
+   * method's default, so an old document keeps working without a rewrite. A crypto
+   * destination never chooses one: its unit is its asset.
    */
-  currency?: ProductCurrency;
+  currency?: PriceUnit;
   /** Set when this destination serves another market than its method. */
   region?: DonationRegion;
   /**
@@ -142,7 +153,7 @@ export interface IDonation {
   /** Where the money lands — and the amount rules of each landing — in shown order. */
   variants: SupportVariant[];
   /** Default unit a destination inherits when it names none; not a destination's price. */
-  currency: ProductCurrency;
+  currency: PriceUnit;
   /** `false` keeps the method out of every public surface. */
   active: boolean;
   /** Position on `/support`; lower numbers lead. */
@@ -176,7 +187,7 @@ export interface ISupporter {
   /** Message left for the owner; shown on the wall when opted in and confirmed. */
   message?: string;
   amount: number;
-  currency: ProductCurrency;
+  currency: PriceUnit;
   mode: DonationMode;
   region?: DonationRegion;
   status: SupporterStatus;
@@ -218,6 +229,11 @@ export type SupportCheckoutResult =
       instruction: 'card' | 'crypto';
       /** PNG data URL generated on the server; `null` when the payload was unusable. */
       qr: string | null;
-      card?: { number?: string; holder?: string; iban?: string };
-      crypto?: { network?: CryptoNetwork; address?: string };
+      /**
+       * The transfer the supporter makes by hand. `market` is the destination's own, so
+       * the screen can say "card-to-card from your banking app" or "international
+       * transfer" without guessing from the digits in front of it.
+       */
+      card?: { market: DonationRegion; number?: string; holder?: string; iban?: string; bic?: string };
+      crypto?: { network?: CryptoNetwork; asset?: CryptoAsset; address?: string };
     };

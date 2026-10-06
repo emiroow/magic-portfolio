@@ -1,19 +1,24 @@
 'use client';
 
 import { CopyRow, DetailLine, NetworkName, SummaryLine } from '@/features/support/steps/step-parts';
-import { groupCardNumber, groupIban, nameDir, shortenAddress, variantLabel } from '@/features/support/support-meta';
+import { groupCardNumber, groupIban, shortenAddress } from '@/features/support/support-meta';
 import { Input } from '@/components/ui/input';
 import { Loader2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import type { IDonation, SupportCheckoutResult, SupportVariant } from '@/features/support/types';
+import type { DonationRegion, IDonation, SupportCheckoutResult } from '@/features/support/types';
 
 interface PaymentStepProps {
-  variant?: SupportVariant;
   /** Name of what the supporter is paying into, spoken in the page's language. */
   destination: string;
   result: SupportCheckoutResult;
   amount: number;
   currency: IDonation['currency'];
+  /**
+   * The market of the destination in view. The card screen is drawn from it rather than
+   * from which fields happen to be filled, because "transfer it from your banking app" and
+   * "send it as an international transfer" are different instructions over the same digits.
+   */
+  market: DonationRegion;
   reference: string;
   onReference: (value: string) => void;
   copiedKey: string | null;
@@ -27,9 +32,11 @@ interface PaymentStepProps {
  * money: a hand-off to another site, a gateway that has already taken the tab, or the
  * details of a transfer they make themselves.
  */
-export function PaymentStep({ variant, destination, result, amount, currency, reference, onReference, copiedKey, onCopy }: PaymentStepProps) {
+export function PaymentStep({ destination, result, amount, currency, market, reference, onReference, copiedKey, onCopy }: PaymentStepProps) {
   const t = useTranslations('support');
   const td = useTranslations('support.dialog');
+  const tp = useTranslations('pricing');
+  const domestic = market === 'ir';
 
   if (result.kind === 'redirect') {
     return (
@@ -58,8 +65,8 @@ export function PaymentStep({ variant, destination, result, amount, currency, re
       {result.instruction === 'card' ? (
         <div className="space-y-3 rounded-lg border p-3.5">
           <div className="space-y-1">
-            <p className="text-sm font-semibold">{td('cardTitle')}</p>
-            <p className="text-xs leading-relaxed text-muted-foreground">{t('modeNotes.card')}</p>
+            <p className="text-sm font-semibold">{td(domestic ? 'cardTitle' : 'transferTitle')}</p>
+            <p className="text-xs leading-relaxed text-muted-foreground">{t(domestic ? 'modeNotes.card' : 'modeNotes.transfer')}</p>
           </div>
 
           {result.card?.number && (
@@ -75,12 +82,17 @@ export function PaymentStep({ variant, destination, result, amount, currency, re
           {result.card?.iban && (
             <CopyRow
               copyKey="iban"
-              label={td('iban')}
+              label={td(domestic ? 'sheba' : 'iban')}
               value={groupIban(result.card.iban)}
               raw={result.card.iban}
               onCopy={onCopy}
               copied={copiedKey === 'iban'}
             />
+          )}
+          {/* Abroad the account is routed by its SWIFT code as often as by the IBAN, and a
+              transfer missing it simply comes back. */}
+          {result.card?.bic && (
+            <CopyRow copyKey="bic" label={td('bic')} value={result.card.bic} raw={result.card.bic} onCopy={onCopy} copied={copiedKey === 'bic'} />
           )}
           {result.card?.holder && (
             <DetailLine label={td('cardHolder')}>
@@ -95,9 +107,11 @@ export function PaymentStep({ variant, destination, result, amount, currency, re
             <p className="text-xs leading-relaxed text-muted-foreground">{t('modeNotes.crypto')}</p>
           </div>
 
-          {variantLabel(variant, t) && (
+          {/* Coin and ledger, each named for itself: the two together are what a wallet
+              has to match before it will send anything. */}
+          {result.crypto?.asset && (
             <DetailLine label={td('asset')}>
-              <span dir={nameDir(variantLabel(variant, t))}>{variantLabel(variant, t)}</span>
+              <span dir="ltr">{tp(result.crypto.asset)}</span>
             </DetailLine>
           )}
           {result.crypto?.network && (
@@ -126,7 +140,7 @@ export function PaymentStep({ variant, destination, result, amount, currency, re
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={result.qr}
-            alt={result.instruction === 'card' ? td('qrCard') : td('qrCrypto')}
+            alt={result.instruction === 'card' ? td(domestic ? 'qrCard' : 'qrTransfer') : td('qrCrypto')}
             width={208}
             height={208}
             className="size-52 rounded-xl border bg-white p-2"

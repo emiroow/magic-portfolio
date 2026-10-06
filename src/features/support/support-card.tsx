@@ -37,12 +37,13 @@ interface SupportCardProps {
  */
 export function SupportCard({ option, supporters, action, className }: SupportCardProps) {
   const t = useTranslations('support');
+  const tp = useTranslations('pricing');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
   const Icon = MODE_ICONS[option.mode];
   const destinations = usableVariants(option);
-  const named = destinations.slice(0, SHOWN_DESTINATIONS).map(variant => variantLabel(variant, t) || variantDetail(variant));
+  const named = destinations.slice(0, SHOWN_DESTINATIONS).map(variant => variantLabel(variant, t, tp) || variantDetail(variant));
   const hidden = destinations.length - named.length;
   const meta = [
     destinations.length > 1 ? t('destinations', { count: localizedCount(destinations.length, lang) }) : '',

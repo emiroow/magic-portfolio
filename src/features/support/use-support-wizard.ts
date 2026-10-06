@@ -5,7 +5,7 @@ import { supportApi, SupportApiError } from '@/features/support/support-api';
 import { amountFits, carriableAmount, choiceCurrency, standingAmount, variantDetail, variantLabel } from '@/features/support/support-meta';
 import { handlesMoney, judgeAmount, usableVariants, variantQuickAmounts } from '@/features/support/variants';
 import type { IDonation, SupportCheckoutResult, SupportVariant } from '@/features/support/types';
-import type { ProductCurrency } from '@/types';
+import type { PriceUnit } from '@/types';
 import { useLocale, useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { toast } from 'sonner';
@@ -72,6 +72,7 @@ interface UseSupportWizard {
 export function useSupportWizard({ option, onSelect, initialAmount, initialVariantKey }: UseSupportWizard) {
   const t = useTranslations('support');
   const td = useTranslations('support.dialog');
+  const tp = useTranslations('pricing');
   const locale = useLocale();
 
   const [step, setStep] = useState<Step>('choose');
@@ -109,9 +110,9 @@ export function useSupportWizard({ option, onSelect, initialAmount, initialVaria
     [destinations, variantKey]
   );
 
-  const currency: ProductCurrency = choiceCurrency({ option, variant });
+  const currency: PriceUnit = choiceCurrency({ option, variant });
   /** The destination's own name, or the method's when it has no platform to name. */
-  const destination = variantLabel(variant, t) || t(`modes.${option.mode}`);
+  const destination = variantLabel(variant, t, tp) || t(`modes.${option.mode}`);
   /**
    * What a button that leaves this tab should be named for. A payment hands off to a
    * service the supporter recognises (Buy Me a Coffee); a gesture is named by its own

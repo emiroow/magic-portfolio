@@ -132,8 +132,10 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
     case 'card': {
       const number = variant.number?.trim();
       const iban = variant.iban?.trim();
-      if (!number && !iban) return fail(record, 'notConfigured', 'Card-to-card is not configured for this method.');
+      if (!number && !iban) return fail(record, 'notConfigured', 'This method has no card or account to transfer to.');
 
+      // The market travels with the digits, so the screen can tell a card-to-card
+      // transfer from a banking app apart from an international one without reading them.
       const qr = await qrDataUrl(cardQrPayload({ number, iban, override: variant.qrPayload }));
       return apiJson(
         {
@@ -142,7 +144,7 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
             orderId,
             instruction: 'card' as const,
             qr,
-            card: { number, holder: variant.holder?.trim(), iban },
+            card: { market: variantRegion(chosen, variant), number, holder: variant.holder?.trim(), iban, bic: variant.bic?.trim() },
           } satisfies SupportCheckoutResult,
         },
         { status: 201 }
@@ -162,7 +164,7 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
             orderId,
             instruction: 'crypto' as const,
             qr,
-            crypto: { network, address },
+            crypto: { network, asset: variant.asset, address },
           } satisfies SupportCheckoutResult,
         },
         { status: 201 }

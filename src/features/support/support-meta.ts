@@ -1,5 +1,5 @@
 import type { DonationMode, IDonation, SupportVariant } from '@/features/support/types';
-import type { ProductCurrency } from '@/types';
+import type { PriceUnit } from '@/types';
 import { Coins, Coffee, CreditCard, Landmark, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import {
@@ -41,14 +41,22 @@ export interface Choice {
 
 /**
  * Name of a destination: what the owner called it, else the service or the ledger
- * it sits on. `t` is the `support` namespace of the page showing it.
+ * it sits on. `t` is the `support` namespace of the page showing it and `units` the
+ * `pricing` namespace, which is what names a coin.
+ *
+ * A wallet is named by both halves of the pair — `USDT · TRON (TRC-20)` — because
+ * either one alone leaves the supporter reading a destination as a guess about the
+ * other, and sending a token over a chain that cannot carry it is a loss.
  */
-export function variantLabel(variant: SupportVariant | undefined, t: Label): string {
+export function variantLabel(variant: SupportVariant | undefined, t: Label, units: Label): string {
   if (!variant) return '';
   const named = (variant.label || '').trim();
   if (named) return named;
   if (variant.provider) return t(`providers.${variant.provider}`);
-  if (variant.network) return t(`networks.${variant.network}`);
+  if (variant.network) {
+    const ledger = t(`networks.${variant.network}`);
+    return variant.asset ? `${units(variant.asset)} · ${ledger}` : ledger;
+  }
   return '';
 }
 
@@ -102,7 +110,7 @@ export function storedVariantName(label: string | undefined, t: Label): string {
 }
 
 /** Unit a choice is priced in, following the destination's override when it has one. */
-export function choiceCurrency(choice: Choice): ProductCurrency {
+export function choiceCurrency(choice: Choice): PriceUnit {
   return variantCurrency(choice.option, choice.variant);
 }
 
@@ -117,7 +125,7 @@ export function choiceCurrency(choice: Choice): ProductCurrency {
  * take an open amount, typically — and a method with nothing to read falls back to
  * its own default.
  */
-export function optionCurrencies(option: IDonation, only?: (variant: SupportVariant) => boolean): ProductCurrency[] {
+export function optionCurrencies(option: IDonation, only?: (variant: SupportVariant) => boolean): PriceUnit[] {
   const list = usableVariants(option).filter(variant => (only ? only(variant) : true));
   const units = list.map(variant => variantCurrency(option, variant));
 

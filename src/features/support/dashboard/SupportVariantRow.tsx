@@ -11,8 +11,10 @@ import {
   GATEWAY_IDS,
   MAX_VARIANT_INSTRUCTION,
   PLATFORM_PROVIDERS,
+  assetsForNetwork,
+  networksForAsset,
 } from '@/features/support/constants';
-import { PRODUCT_CURRENCIES } from '@/constants/global';
+import { CRYPTO_ASSETS, PRODUCT_CURRENCIES } from '@/constants/global';
 import {
   numberField,
   type DonationRegister,
@@ -23,7 +25,7 @@ import {
 import { handlesMoney } from '@/features/support/variants';
 import { formatPrice, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
-import type { DonationMode, GatewayId } from '@/features/support/types';
+import type { DonationMode, DonationRegion, GatewayId } from '@/features/support/types';
 import { X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
@@ -31,6 +33,8 @@ import { useState } from 'react';
 interface SupportVariantRowProps {
   index: number;
   mode: DonationMode;
+  /** The method's own market, which a destination may override below. */
+  region: DonationRegion;
   /** The row's own values, for the header and the amount chips to say what they hold. */
   variant?: DonationVariant;
   /** Whether this row holds a mistake, so its frame can say so. */
@@ -40,6 +44,9 @@ interface SupportVariantRowProps {
   onAddSuggested: (index: number, value: number) => void;
   /** Drop a quick-pick from this destination's list. */
   onRemoveSuggested: (index: number, pos: number) => void;
+  /** Coin and ledger are picked together: each one narrows the other's list. */
+  onAssetChange: (index: number, asset: string) => void;
+  onNetworkChange: (index: number, network: string) => void;
   register: DonationRegister;
   errors?: VariantErrors;
   settings?: { gateways: GatewayId[] };
@@ -48,19 +55,23 @@ interface SupportVariantRowProps {
 /**
  * One destination of a method in the dashboard form.
  *
- * The method decides which fields a destination has: a wallet asks for a chain and an
- * address, a card for digits, a platform for a page, a gesture for the page and the
- * step to take on it — and nothing else ever appears on the row. That is what keeps a
- * half-built destination from reaching the public window with fields it cannot use.
+ * The method decides which fields a destination has: a wallet asks for a coin, a chain
+ * and an address, a card for the codes its market transfers with, a platform for a page,
+ * a gesture for the page and the step to take on it — and nothing else ever appears on
+ * the row. That is what keeps a half-built destination from reaching the public window
+ * with fields it cannot use.
  */
 const SupportVariantRow = ({
   index,
   mode,
+  region,
   variant,
   broken,
   onRemove,
   onAddSuggested,
   onRemoveSuggested,
+  onAssetChange,
+  onNetworkChange,
   register,
   errors,
   settings,
@@ -78,10 +89,15 @@ const SupportVariantRow = ({
   const gatewayMissing = (provider?: string) => Boolean(settings) && Boolean(provider) && !settings?.gateways.includes(provider as GatewayId);
   const off = variant?.active === false;
   const link = mode === 'platform' || mode === 'action';
+  // The destination's own market decides what a card is asked for: a sheba and a
+  // sixteen-digit card at home, an IBAN and its SWIFT code abroad.
+  const domestic = (variant?.region || region) === 'ir';
   // The amount policy is edited here, per destination, because it belongs to the
   // destination — not to the method that carries it.
   const money = handlesMoney(mode);
   const suggested = variant?.suggestedAmounts ?? [];
+  const assetField = register(path('asset'));
+  const networkField = register(path('network'));
   const [pending, setPending] = useState('');
 
   const commitSuggested = () => {
@@ -146,20 +162,38 @@ const SupportVariantRow = ({
 
           {mode === 'card' && (
             <>
-              <Field label={t('cardNumber')} id={control('number')} error={errors?.number?.message}>
+              <Field label={t('cardNumber')} id={control('number')} error={errors?.number?.message} hint={domestic ? undefined : t('panHint')}>
                 <Input
                   id={control('number')}
                   inputMode="numeric"
                   dir="ltr"
                   className="tabular-nums"
-                  placeholder={t('cardNumberPlaceholder')}
+                  placeholder={domestic ? t('cardNumberPlaceholder') : t('panPlaceholder')}
                   {...register(path('number'))}
                 />
               </Field>
-              <Field label={t('iban')} id={control('iban')} error={errors?.iban?.message}>
-                <Input id={control('iban')} dir="ltr" className="tabular-nums" placeholder={t('ibanPlaceholder')} {...register(path('iban'))} />
+              <Field label={domestic ? t('sheba') : t('iban')} id={control('iban')} error={errors?.iban?.message}>
+                <Input
+                  id={control('iban')}
+                  dir="ltr"
+                  className="tabular-nums"
+                  placeholder={domestic ? t('ibanPlaceholder') : t('ibanIntlPlaceholder')}
+                  {...register(path('iban'))}
+                />
               </Field>
-              <Field label={t('cardHolder')} id={control('holder')} optionalLabel={t('optional')}>
+              {/* A SWIFT code routes what an IBAN alone cannot reach, and inside Iran no
+                  banking application reads one at all — so it belongs to one market only. */}
+              {!domestic && (
+                <Field label={t('bic')} id={control('bic')} error={errors?.bic?.message} optionalLabel={t('optional')}>
+                  <Input id={control('bic')} dir="ltr" placeholder={t('bicPlaceholder')} {...register(path('bic'))} />
+                </Field>
+              )}
+              <Field
+                label={t('cardHolder')}
+                id={control('holder')}
+                error={errors?.holder?.message}
+                optionalLabel={domestic ? t('optional') : undefined}
+              >
                 <Input id={control('holder')} dir="auto" placeholder={t('cardHolderPlaceholder')} {...register(path('holder'))} />
               </Field>
               <Field label={t('cardQr')} id={control('qrPayload')} error={errors?.qrPayload?.message} hint={t('cardQrHint')}>
@@ -170,10 +204,38 @@ const SupportVariantRow = ({
 
           {mode === 'crypto' && (
             <>
-              <Field label={t('cryptoNetwork')} id={control('network')} error={errors?.network?.message}>
-                <select id={control('network')} {...register(path('network'))} className="control">
+              {/* Coin and ledger are two questions with two answers. The lists narrow each
+                  other, so the pair on the row is one a wallet can actually pay. */}
+              <Field label={t('asset')} id={control('asset')} error={errors?.asset?.message} hint={t('assetHint')}>
+                <select
+                  id={control('asset')}
+                  {...assetField}
+                  className="control"
+                  onChange={event => {
+                    assetField.onChange(event);
+                    onAssetChange(index, event.target.value);
+                  }}
+                >
                   <option value="">—</option>
-                  {CRYPTO_NETWORKS.map(value => (
+                  {assetsForNetwork(variant?.network || undefined, CRYPTO_ASSETS).map(value => (
+                    <option key={value} value={value}>
+                      {tp(value)}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label={t('cryptoNetwork')} id={control('network')} error={errors?.network?.message} hint={t('networkHint')}>
+                <select
+                  id={control('network')}
+                  {...networkField}
+                  className="control"
+                  onChange={event => {
+                    networkField.onChange(event);
+                    onNetworkChange(index, event.target.value);
+                  }}
+                >
+                  <option value="">—</option>
+                  {networksForAsset(variant?.asset || undefined, CRYPTO_NETWORKS).map(value => (
                     <option key={value} value={value}>
                       {ts(`networks.${value}`)}
                     </option>
@@ -248,6 +310,9 @@ const SupportVariantRow = ({
           )}
         </div>
 
+        {/* What the market actually asks for, said once rather than in every hint. */}
+        {mode === 'card' && <p className="text-xs leading-relaxed text-muted-foreground">{t(domestic ? 'cardIrHint' : 'cardGlobalHint')}</p>}
+
         {/* What the supporter sees, and the two cases where a destination differs
             from its method: the unit it is priced in and the market it serves. */}
         <div className="grid grid-cols-1 gap-3 border-t pt-3 sm:grid-cols-3">
@@ -260,16 +325,21 @@ const SupportVariantRow = ({
           >
             <Input id={control('label')} dir="auto" {...register(path('label'))} placeholder={t('destinationNamePlaceholder')} />
           </Field>
-          <Field label={t('currencyOverride')} id={control('currency')} optionalLabel={t('optional')}>
-            <select id={control('currency')} {...register(path('currency'))} className="control">
-              <option value="">{t('inherit')}</option>
-              {PRODUCT_CURRENCIES.map(code => (
-                <option key={code} value={code}>
-                  {tp(code)}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {/* A wallet has no unit to choose: it is priced in the coin it receives. */}
+          {mode === 'crypto' ? (
+            <p className="self-end text-xs leading-relaxed text-muted-foreground">{t('cryptoCurrencyNote')}</p>
+          ) : (
+            <Field label={t('currencyOverride')} id={control('currency')} optionalLabel={t('optional')}>
+              <select id={control('currency')} {...register(path('currency'))} className="control">
+                <option value="">{t('inherit')}</option>
+                {PRODUCT_CURRENCIES.map(code => (
+                  <option key={code} value={code}>
+                    {tp(code)}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label={t('regionOverride')} id={control('region')} optionalLabel={t('optional')}>
             <select id={control('region')} {...register(path('region'))} className="control">
               <option value="">{t('inherit')}</option>

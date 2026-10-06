@@ -1,10 +1,12 @@
 import {
   ACTION_PROVIDERS,
+  CRYPTO_ASSET_NETWORKS,
   CRYPTO_NETWORKS,
   DONATION_MODES,
   DONATION_REGIONS,
   GATEWAY_CURRENCIES,
   GATEWAY_IDS,
+  MAX_CRYPTO_ADDRESS,
   MAX_VARIANTS,
   MAX_VARIANT_INSTRUCTION,
   MAX_VARIANT_LABEL,
@@ -13,8 +15,9 @@ import {
   SUPPORTER_MESSAGE_LIMIT,
   SUPPORTER_STATUSES,
 } from '@/features/support/constants';
-import { PRODUCT_CURRENCIES } from '@/constants/global';
-import { objectIdSchema, optionalString, optionalUrl, productCurrencySchema, slugSchema } from '@/lib/validations';
+import { CRYPTO_ASSETS } from '@/constants/global';
+import { isBic, isIban, isInternationalCardNumber, isIranianCardNumber, isSheba, isWalletAddress } from '@/features/support/instruments';
+import { objectIdSchema, optionalString, optionalUrl, slugSchema, supportCurrencySchema } from '@/lib/validations';
 import { withUniqueKeys } from '@/features/support/variants';
 import { z } from 'zod';
 
@@ -54,31 +57,32 @@ const optionalAmountSchema = z
 /** Quick-pick amounts. Twelve is already more than the dialog can show in one row. */
 const suggestedAmountsSchema = z.array(z.number({ invalid_type_error: 'Price is required' }).min(0).max(999_999_999_999)).max(12);
 
-/** Card numbers are stored as bare digits; spaces and Persian digits are a display concern. */
-const cardNumberSchema = z
-  .string()
-  .trim()
-  .transform(value =>
-    value.replace(/[\s\u200c\u0660-\u0669\u06F0-\u06F9-]/g, match =>
-      /[\u0660-\u0669]/.test(match) ? String('٠١٢٣٤٥٦٧٨٩'.indexOf(match)) : /[\u06F0-\u06F9]/.test(match) ? String('۰۱۲۳۴۵۶۷۸۹'.indexOf(match)) : ''
-    )
-  )
-  .pipe(z.string().regex(/^$|^[\d]{16}$|^\d{16}(\d{6,9})?$/, 'Enter a 16-digit card number'));
+/** Card numbers are stored as bare digits; spaces, dashes and Persian digits are a display concern. */
+const digitsOnly = (value: string) =>
+  value
+    .replace(/[\s\u200c-]/g, '')
+    .replace(/[\u0660-\u0669]/g, digit => String('٠١٢٣٤٥٦٧٨٩'.indexOf(digit)))
+    .replace(/[\u06F0-\u06F9]/g, digit => String('۰۱۲۳۴۵۶۷۸۹'.indexOf(digit)));
 
-/** Iranian IBAN: `IR` plus 24 check digits, spaces tolerated on input. */
-const ibanSchema = z
-  .string()
-  .trim()
-  .transform(value => value.replace(/[^A-Za-z0-9]/g, '').toUpperCase())
-  .pipe(z.string().regex(/^$|^IR\d{24}$/, 'Enter a valid IBAN (IR followed by 24 digits)'));
+/** An account code as its standard writes it: no spaces, upper case. */
+const accountCode = (value: string) => value.replace(/[\s\u200c-]/g, '').toUpperCase();
 
-/** A crypto destination is an address, a `lnurl…` string or a Lightning invoice destination. */
-const cryptoAddressSchema = z
+/**
+ * The three codes a transfer is made with, cleaned here and checked against their own
+ * standard in `refineDonation`. The shape of a card number, an IBAN or a SWIFT code is
+ * only meaningful inside the market that uses it — sixteen Luhn-checked digits at home,
+ * an IBAN of the issuing country's own length abroad — and a destination knows its market
+ * from itself, not from the method that carries it.
+ */
+const digitsField = z
   .string()
-  .trim()
-  .min(8, 'Enter the receiving address')
-  .max(120, 'The address is too long')
-  .regex(/^[A-Za-z0-9:_+.\-]+$/, 'The address contains unsupported characters');
+  .optional()
+  .transform(value => (value === undefined ? undefined : digitsOnly(value)));
+
+const codeField = z
+  .string()
+  .optional()
+  .transform(value => (value === undefined ? undefined : accountCode(value)));
 
 /**
  * One destination of a payment method, with its own amount policy. Every field is
@@ -93,13 +97,16 @@ const supportVariantSchema = z.object({
   provider: z.enum(SUPPORT_PROVIDERS).optional().or(z.literal('')),
   href: optionalUrl(),
   instruction: z.string().trim().max(MAX_VARIANT_INSTRUCTION, 'The instruction is too long').optional().or(z.literal('')),
-  number: cardNumberSchema.optional(),
-  iban: ibanSchema.optional(),
+  number: digitsField,
+  iban: codeField,
+  bic: codeField,
   holder: z.string().trim().max(60).optional(),
   qrPayload: z.string().trim().max(500).optional().or(z.literal('')),
   network: z.enum(CRYPTO_NETWORKS).optional().or(z.literal('')),
-  address: z.string().trim().max(120).optional(),
-  currency: z.enum(PRODUCT_CURRENCIES).optional().or(z.literal('')),
+  asset: z.enum(CRYPTO_ASSETS).optional().or(z.literal('')),
+  address: z.string().trim().max(MAX_CRYPTO_ADDRESS, 'The address is too long').optional(),
+  // A wallet row legitimately holds its coin here; the form keeps it equal to the asset.
+  currency: supportCurrencySchema.optional().or(z.literal('')),
   region: z.enum(DONATION_REGIONS).optional().or(z.literal('')),
   // The destination's own amount policy; absent on a method that takes no money.
   amount: donationAmountSchema.optional(),
@@ -118,8 +125,10 @@ const donationShape = {
   region: z.enum(DONATION_REGIONS, { errorMap: () => ({ message: 'Choose a market' }) }),
   variants: z.array(supportVariantSchema).min(1, 'Add at least one destination').max(MAX_VARIANTS, 'That is too many destinations for one method'),
   // Only the default a destination inherits when it names no currency of its own. The
-  // amount policy itself lives on every destination.
-  currency: productCurrencySchema,
+  // amount policy itself lives on every destination, and a wallet's unit is its asset —
+  // so a stored method can legitimately carry a coin here, even though the form offers
+  // national moneys, which are the only defaults a non-wallet destination can want.
+  currency: supportCurrencySchema,
   active: z.boolean(),
   order: z
     .number({ invalid_type_error: 'Enter the order as a number' })
@@ -149,6 +158,9 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
     if (variant.active === false) return;
 
     const row = (field: string, message: string) => at(['variants', index, field], message);
+    // The destination answers for its own market: one method can carry a sheba at home
+    // and an IBAN abroad, and the codes each of those needs are not the same codes.
+    const market = variant.region || value.region;
 
     switch (value.mode) {
       case 'platform': {
@@ -159,14 +171,53 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
         if (variant.provider === 'custom' && !(variant.label || '').trim()) row('label', 'Name this platform');
         break;
       }
-      case 'card':
-        if (!variant.number && !variant.iban) row('number', 'Add a card number or an IBAN');
+      case 'card': {
+        const number = variant.number || '';
+        const iban = variant.iban || '';
+
+        if (!number && !iban) row('number', market === 'ir' ? 'Add a card number or a sheba' : 'Add an IBAN or a card number');
+
+        // A card is checked against the market's own rule: sixteen digits with a sound
+        // Shetab check digit at home, a number a scheme actually issues abroad.
+        if (number && market === 'ir' && !isIranianCardNumber(number)) row('number', 'Enter a valid 16-digit card number');
+        if (number && market !== 'ir' && !isInternationalCardNumber(number)) row('number', 'That card number is not one the scheme issues');
+
+        if (iban && market === 'ir' && !isSheba(iban)) row('iban', 'Enter a valid Iranian sheba (IR followed by 24 digits)');
+        if (iban && market !== 'ir') {
+          if (iban.startsWith('IR')) row('iban', 'An Iranian sheba belongs to the card-to-card market');
+          else if (!isIban(iban)) row('iban', 'Enter a valid IBAN');
+        }
+
+        if (market === 'ir') {
+          // A transfer inside Iran is made from a banking application that reads a card
+          // number and nothing else, so a code left over from another market is a mistake.
+          if (variant.bic) row('bic', 'A transfer inside Iran has no SWIFT code');
+        } else {
+          if (variant.bic && !isBic(variant.bic)) row('bic', 'Enter the SWIFT code as 8 or 11 characters');
+          // An international transfer without a name on the account comes back, and the
+          // supporter pays for sending it.
+          if (iban && !(variant.holder || '').trim()) row('holder', 'Name the account the transfer is for');
+        }
         break;
-      case 'crypto':
+      }
+      case 'crypto': {
+        const address = (variant.address || '').trim();
+        // Both halves of a wallet are stored and both are checked: the ledger decides the
+        // shape of the address and the asset decides what may be sent to it, so a
+        // destination can never be read as a guess about which coin it holds.
         if (!variant.network) row('network', 'Choose the network');
-        if (!(variant.address || '').trim()) row('address', 'Add the receiving address');
-        else if (!cryptoAddressSchema.safeParse(variant.address).success) row('address', 'Enter a valid address');
+        if (!variant.asset) row('asset', 'Choose the asset that arrives here');
+        if (!address) row('address', 'Add the receiving address');
+
+        if (variant.asset && variant.network && !CRYPTO_ASSET_NETWORKS[variant.asset].includes(variant.network)) {
+          row('asset', 'That asset does not move on that network');
+        }
+
+        if (variant.network && address && !isWalletAddress(variant.network, address)) row('address', 'That address is not one this network issues');
+        // The coin is the unit: an override could only disagree with it.
+        if (variant.asset && variant.currency && variant.currency !== variant.asset) row('currency', 'A wallet is priced in the coin it receives');
         break;
+      }
       case 'gateway':
         if (!variant.provider) row('provider', 'Choose the gateway to charge through');
         else if (!GATEWAY_IDS.includes(variant.provider as (typeof GATEWAY_IDS)[number])) row('provider', 'That service is not a gateway');
@@ -206,10 +257,12 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
       // Custom off with nothing pre-set leaves the destination with no amount it accepts.
       if (!variant.customAmount && !(fixed > 0) && !suggested.length) row('customAmount', 'Turn on a custom amount or set at least one amount');
 
-      // A gateway can only charge in a currency it actually settles.
+      // A gateway can only charge in a currency it actually settles — and a coin is
+      // never one of them, however the row is filled in.
       if (value.mode === 'gateway' && variant.provider) {
         const settled = GATEWAY_CURRENCIES[variant.provider as keyof typeof GATEWAY_CURRENCIES];
-        if (settled && !settled.includes(variant.currency || value.currency)) row('currency', 'That gateway cannot charge in this currency');
+        const unit = variant.currency || value.currency;
+        if (settled && !(settled as readonly string[]).includes(unit)) row('currency', 'That gateway cannot charge in this currency');
       }
     }
   });

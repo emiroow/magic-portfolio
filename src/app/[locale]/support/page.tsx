@@ -5,7 +5,7 @@ import SupportBrowser, { type SupportReturnStatus } from '@/features/support/sup
 import { getDonations, getSupportStats, getSupporterCounts, getSupporters } from '@/features/support/queries';
 import { getProfile } from '@/features/profile/queries';
 import { getSocials } from '@/features/socials/queries';
-import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
+import { SUPPORT_CURRENCY_CODES } from '@/constants/global';
 import { handlesMoney, usableVariants, variantCurrency } from '@/features/support/variants';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { documentKey, localizedCount } from '@/lib/utils';
@@ -125,7 +125,7 @@ export default async function SupportPage({ params, searchParams }: Props) {
                         '@type': 'Offer',
                         name: method.title,
                         price: amount > 0 ? amount : 0,
-                        priceCurrency: PRODUCT_CURRENCY_CODES[variantCurrency(method, preview)],
+                        priceCurrency: SUPPORT_CURRENCY_CODES[variantCurrency(method, preview)],
                         availability: 'https://schema.org/InStock',
                       };
                     }),

@@ -1,5 +1,13 @@
-import type { AppLocale, ProductCurrency } from '@/types';
-import type { CryptoNetwork, DonationMode, DonationRegion, GatewayId, SupportProvider, SupporterStatus } from '@/features/support/types';
+import type { AppLocale, CryptoAsset, ProductCurrency } from '@/types';
+import type {
+  CryptoNetwork,
+  DonationMode,
+  DonationRegion,
+  GatewayId,
+  SupportProvider,
+  SupportVariant,
+  SupporterStatus,
+} from '@/features/support/types';
 
 /* ------------------------------------------------------------------
  * Financial support
@@ -65,11 +73,55 @@ export const ACTION_PROVIDERS = ['github', 'youtube', 'telegram', 'twitter', 'in
 export const GATEWAY_IDS = ['zarinpal', 'idpay', 'stripe', 'paypal'] as [GatewayId, ...GatewayId[]];
 
 /**
- * Ledgers a crypto destination can receive on (`crypto`). A stablecoin is listed
- * under the chain it moves on, because the chain is the choice that decides
- * whether the money lands; the asset itself belongs in the destination's label.
+ * Ledgers a crypto destination can receive on (`crypto`).
+ *
+ * The ledger is only half of the pair: what arrives is the asset, held next to it on the
+ * destination. Both are stored and both are checked, because paying a token onto a chain
+ * that cannot carry it is a loss and not a typo.
  */
 export const CRYPTO_NETWORKS = ['tron', 'ethereum', 'bitcoin', 'ton', 'bsc', 'lightning'] as [CryptoNetwork, ...CryptoNetwork[]];
+
+/**
+ * Which ledgers can actually carry which asset.
+ *
+ * This is the whole answer to "USDT on what?" and "what lives on TRON?", so the form can
+ * narrow each list against the other and the API can refuse a pair no wallet honours.
+ * A new pairing is one line here plus, if the asset is new, its id in `CryptoAsset`, its
+ * entry in `SUPPORT_CURRENCIES` and its label under `pricing`.
+ */
+export const CRYPTO_ASSET_NETWORKS: Record<CryptoAsset, readonly CryptoNetwork[]> = {
+  tether: ['tron', 'ethereum', 'bsc', 'ton'],
+  usdc: ['ethereum', 'bsc', 'tron'],
+  btc: ['bitcoin', 'lightning'],
+  eth: ['ethereum'],
+  trx: ['tron'],
+  ton: ['ton'],
+  bnb: ['bsc'],
+};
+
+/** The ledgers an asset can arrive on; every one of them when nothing is picked yet. */
+export function networksForAsset(asset: CryptoAsset | undefined, all: readonly CryptoNetwork[]): readonly CryptoNetwork[] {
+  return asset ? CRYPTO_ASSET_NETWORKS[asset] : all;
+}
+
+/** The assets a ledger can hold; every one of them when nothing is picked yet. */
+export function assetsForNetwork(network: CryptoNetwork | undefined, all: readonly CryptoAsset[]): readonly CryptoAsset[] {
+  return network ? all.filter(asset => CRYPTO_ASSET_NETWORKS[asset].includes(network)) : all;
+}
+
+/**
+ * What the card rail asks for, market by market.
+ *
+ * Inside Iran a transfer goes to a sixteen-digit card or a sheba, from a banking
+ * application that reads neither a BIC nor a sort code. Abroad the same rail is a bank
+ * transfer: an IBAN the owner's bank can be paid by, the SWIFT code that routes it, and
+ * a card number only where the scheme really offers card-to-card. The fields a row shows
+ * follow this, so an owner is never asked for a code their market ignores.
+ */
+export const CARD_MARKET_FIELDS: Record<DonationRegion, (keyof SupportVariant)[]> = {
+  ir: ['number', 'iban', 'holder', 'qrPayload'],
+  global: ['number', 'iban', 'bic', 'holder', 'qrPayload'],
+};
 
 /**
  * Destinations one method can carry. Twelve is well past what one block can show,
@@ -83,10 +135,16 @@ export const MAX_VARIANT_LABEL = 40;
 /** Longest per-destination instruction: one step, said in one sentence. */
 export const MAX_VARIANT_INSTRUCTION = 160;
 
+/** Longest wallet destination: a Lightning invoice is far longer than an address. */
+export const MAX_CRYPTO_ADDRESS = 250;
+
 /**
  * Currencies each gateway can actually charge in. The Iranian rails settle in
  * rial, so toman/rial are theirs alone; the international ones need a hard
  * currency. A mismatch is refused at checkout rather than silently converted.
+ *
+ * A gateway never settles in a coin, which is why these stay inside the product
+ * currencies while the rest of the rail reads the wider `PriceUnit`.
  */
 export const GATEWAY_CURRENCIES: Record<GatewayId, readonly ProductCurrency[]> = {
   zarinpal: ['toman', 'rial'],

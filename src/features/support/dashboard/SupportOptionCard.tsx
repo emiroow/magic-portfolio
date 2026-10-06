@@ -34,6 +34,7 @@ interface SupportOptionRowProps {
 const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive, togglingActive }: SupportOptionRowProps) => {
   const t = useTranslations('dashboard.support.options');
   const ts = useTranslations('support');
+  const tp = useTranslations('pricing');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -42,7 +43,7 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
   const key = documentKey(method);
   const published = method.active !== false;
   const destinations = usableVariants(method);
-  const named = destinations.map(variant => variantLabel(variant, ts) || variantDetail(variant) || variant.key);
+  const named = destinations.map(variant => variantLabel(variant, ts, tp) || variantDetail(variant) || variant.key);
 
   const href = `/${locale}/support${key ? `?option=${encodeURIComponent(key)}` : ''}`;
 

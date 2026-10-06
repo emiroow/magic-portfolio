@@ -1,7 +1,7 @@
 import { MONEY_MODES } from '@/features/support/constants';
 import { slugify } from '@/lib/utils';
 import type { DonationMode, IDonation, SupportVariant } from '@/features/support/types';
-import type { ProductCurrency } from '@/types';
+import type { PriceUnit } from '@/types';
 
 /**
  * Shape helpers for the destinations a support method carries.
@@ -22,9 +22,9 @@ export function variantFields(mode: DonationMode): (keyof SupportVariant)[] {
     case 'platform':
       return ['provider', 'href', 'instruction'];
     case 'card':
-      return ['number', 'iban', 'holder', 'qrPayload'];
+      return ['number', 'iban', 'bic', 'holder', 'qrPayload'];
     case 'crypto':
-      return ['network', 'address'];
+      return ['network', 'asset', 'address'];
     case 'gateway':
       return ['provider'];
     case 'action':
@@ -32,7 +32,13 @@ export function variantFields(mode: DonationMode): (keyof SupportVariant)[] {
   }
 }
 
-/** `true` when the destination has what its method needs to actually take money. */
+/**
+ * `true` when the destination has what its method needs to actually take money.
+ *
+ * A wallet is only a wallet once it says what arrives in it: an address without an asset
+ * is the guess this rail stopped making. A card needs the number or the account it
+ * transfers to — in either market — and a BIC on its own routes nothing.
+ */
 export function variantIsUsable(mode: DonationMode, variant: SupportVariant): boolean {
   if (variant.active === false) return false;
 
@@ -42,7 +48,7 @@ export function variantIsUsable(mode: DonationMode, variant: SupportVariant): bo
     case 'card':
       return Boolean((variant.number || '').trim() || (variant.iban || '').trim());
     case 'crypto':
-      return Boolean((variant.address || '').trim());
+      return Boolean((variant.address || '').trim()) && Boolean(variant.asset);
     case 'gateway':
       return Boolean(variant.provider);
     case 'action':
@@ -59,19 +65,24 @@ export interface VariantSeed {
   label?: string;
   provider?: string;
   network?: string;
+  asset?: string;
   iban?: string;
   number?: string;
   href?: string;
 }
 
 /**
- * Identifier for a destination: the service, the ledger or the last characters of
- * what it holds. Owners never type it, and it is what a shared link carries as
+ * Identifier for a destination: the service, the ledger and coin, or the last characters
+ * of what it holds. Owners never type it, and it is what a shared link carries as
  * `?variant=` so a page can open on one specific wallet, card or platform.
+ *
+ * A wallet is named by its asset and its ledger together: two USDT destinations on two
+ * chains are two destinations, and one key that says only `tron` cannot hold both.
  */
 export function variantKey(mode: DonationMode, variant: VariantSeed, index = 0): string {
   const named = slugify(variant.label || '');
-  const seed = named || variant.provider || variant.network || (variant.iban || '').trim() || (variant.number || '').slice(-6) || variant.href || '';
+  const wallet = variant.asset && variant.network ? `${variant.asset}-${variant.network}` : variant.asset || variant.network;
+  const seed = named || variant.provider || wallet || (variant.iban || '').trim() || (variant.number || '').slice(-6) || variant.href || '';
   const base = slugify(String(seed)) || `${mode}-${index + 1}`;
   // A key that is only digits would read as an amount in a link; give it a prefix.
   return /^\d/.test(base) ? `${mode}-${base}` : base;
@@ -116,13 +127,16 @@ export function resolveVariant(option: IDonation, key?: string): SupportVariant 
 }
 
 /**
- * Unit a destination is priced in. Only an explicit override moves a destination
- * away from its method's currency, so a USDT row on two chains stays one price.
- * `normalizeDonation` materializes a currency onto every money destination, so this
- * only falls back to the method's default for a hand-written row that named none.
+ * Unit a destination is priced in.
+ *
+ * A wallet prices in the coin it receives, so its asset answers the question before any
+ * override does — the two can never disagree, and a USDT row on two chains stays one
+ * price. Otherwise only an explicit override moves a destination away from its method's
+ * currency. `normalizeDonation` materializes a currency onto every money destination, so
+ * the method's default is reached only by a hand-written row that named neither.
  */
-export function variantCurrency(option: IDonation, variant?: SupportVariant): ProductCurrency {
-  return variant?.currency || option.currency;
+export function variantCurrency(option: IDonation, variant?: SupportVariant): PriceUnit {
+  return variant?.asset || variant?.currency || option.currency;
 }
 
 /**
@@ -193,8 +207,9 @@ export function variantRegion(option: IDonation, variant?: SupportVariant) {
  * Language-free name for a destination, stored on the support record so a receipt
  * still says what it was paid into after the method has been edited away.
  *
- * Digits are kept to their last four: a record list does not need a full card number
- * or IBAN sitting in every row to be recognisable to the owner.
+ * A wallet is named by coin and ledger together, because that is the pair that decides
+ * where the money went. Digits are kept to their last four: a record list does not need
+ * a full card number or IBAN sitting in every row to be recognisable to the owner.
  */
 export function variantName(variant: SupportVariant | undefined): string {
   if (!variant) return '';
@@ -202,6 +217,7 @@ export function variantName(variant: SupportVariant | undefined): string {
   const named = (variant.label || '').trim();
   if (named) return named;
   if (variant.provider) return variant.provider;
+  if (variant.asset) return variant.network ? `${variant.asset}-${variant.network}` : variant.asset;
   if (variant.network) return variant.network;
   if (variant.number) return `•••• ${variant.number.slice(-4)}`;
   if (variant.iban) return `•••• ${variant.iban.slice(-4)}`;

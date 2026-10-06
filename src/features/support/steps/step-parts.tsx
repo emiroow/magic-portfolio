@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { PriceTag } from '@/features/products/price-tag';
 import { cn } from '@/lib/utils';
 import type { CryptoNetwork } from '@/features/support/types';
-import type { ProductCurrency } from '@/types';
+import type { PriceUnit } from '@/types';
 import { AlertTriangle, Check, Copy } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
@@ -95,7 +95,7 @@ export function Thanks({ note, onClose }: { note: string; onClose: () => void })
 /* --------------------------------- money ---------------------------------- */
 
 /** The amount, spelled out in the unit it is actually held in. */
-export function SummaryLine({ label, amount, currency }: { label: string; amount: number; currency: ProductCurrency }) {
+export function SummaryLine({ label, amount, currency }: { label: string; amount: number; currency: PriceUnit }) {
   return (
     <div className="flex items-baseline justify-between gap-3 rounded-lg border bg-muted/30 px-3 py-2.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>

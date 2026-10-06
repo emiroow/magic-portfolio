@@ -17,10 +17,19 @@ import { withBothLangs, type Content, type Localized, type Persona } from '@/see
  * That is what the supporter picks between in the wizard, and what the dashboard
  * edits — a method never shows a destination that belongs to another one.
  *
- * The destinations are obvious placeholders (`your-name`, an all-zero IBAN, a
- * 16-digit fake card), because seeding real coordinates into a demo database would
- * only ever end with a supporter paying the wrong person. Replace them in the
- * dashboard before going live.
+ * Two of the rails here are the same rail in two markets. Card-to-card at home is a
+ * sixteen-digit card and a sheba, paid from a banking application; abroad the same mode
+ * is an international transfer to an IBAN with its SWIFT code, so the demo carries one
+ * method of each and the codes on them are the shapes their standards define — a card
+ * whose check digit holds, an IBAN whose checksum holds. The wallet names its coin and
+ * its ledger on every destination: USDT on TRON is one destination, TRX on TRON another.
+ *
+ * The destinations are obvious placeholders (`your-name`, a `DEADBEEF` address, a
+ * demo card on a real bank prefix), because seeding real coordinates into a demo
+ * database would only ever end with a supporter paying the wrong person. They are
+ * still the shape each standard defines — the check digit of the card and the checksum
+ * of every IBAN here hold — so the demo can be edited and saved without a validation
+ * trip. Replace them in the dashboard before going live.
  */
 
 type MethodContent = Content<IDonation>;
@@ -80,7 +89,7 @@ const METHODS: Localized<MethodContent> = {
       variants: [
         {
           key: 'card',
-          number: '6037991122223333',
+          number: '6037991000012348',
           holder: 'Demo Owner',
           currency: 'toman',
           customAmount: true,
@@ -91,7 +100,7 @@ const METHODS: Localized<MethodContent> = {
         },
         {
           key: 'sheba',
-          iban: 'IR000000000000000000000000',
+          iban: 'IR700120000000000000000000',
           holder: 'Demo Owner',
           currency: 'toman',
           customAmount: true,
@@ -106,6 +115,33 @@ const METHODS: Localized<MethodContent> = {
       order: 1,
     },
     {
+      title: 'International transfer',
+      slug: 'international-transfer',
+      description: 'For supporters outside Iran: a bank transfer to an IBAN and its SWIFT code, in euros.',
+      mode: 'card',
+      region: 'global',
+      // The same rail, the other market: an account number a banking app in Iran has
+      // never heard of, and a SWIFT code an Iranian card transfer does not use.
+      variants: [
+        {
+          key: 'iban',
+          iban: 'GB74BARC20000012345678',
+          bic: 'BARCGB22',
+          holder: 'Demo Owner',
+          currency: 'eur',
+          region: 'global',
+          customAmount: true,
+          suggestedAmounts: [10, 25, 50],
+          minAmount: 5,
+          maxAmount: 5000,
+          active: true,
+        },
+      ],
+      currency: 'eur',
+      active: true,
+      order: 2,
+    },
+    {
       title: 'Tether (USDT)',
       slug: 'usdt',
       description: 'Send from your own wallet on the chain you already use. Check the network before you confirm.',
@@ -115,7 +151,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'tron',
           network: 'tron',
-          address: 'TExampleWalletAddressReplaceMe1234',
+          asset: 'tether',
+          address: 'TYourTronAddressHereDemo1234567899',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -125,7 +162,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'ethereum',
           network: 'ethereum',
-          address: '0xExampleAddressReplaceMe000000000000000000',
+          asset: 'tether',
+          address: '0xDEADBEEF000000000000000000000000000000ab',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -135,7 +173,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'ton',
           network: 'ton',
-          address: 'UQExampleAddressReplaceMe0000000000000000000000',
+          asset: 'tether',
+          address: 'UQExampleAddressReplaceMe00000000000000000000000',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -145,7 +184,7 @@ const METHODS: Localized<MethodContent> = {
       ],
       currency: 'tether',
       active: true,
-      order: 2,
+      order: 3,
     },
     {
       title: 'Card payment on this site',
@@ -168,7 +207,7 @@ const METHODS: Localized<MethodContent> = {
       // Unpublished until the gateway credentials exist in the environment: an
       // invisible method beats one that fails at the last step.
       active: false,
-      order: 3,
+      order: 4,
     },
     {
       title: 'Support without money',
@@ -205,7 +244,7 @@ const METHODS: Localized<MethodContent> = {
       // A gesture is not a transaction: its destinations carry no amount at all.
       currency: 'toman',
       active: true,
-      order: 4,
+      order: 5,
     },
   ],
   fa: [
@@ -261,7 +300,7 @@ const METHODS: Localized<MethodContent> = {
       variants: [
         {
           key: 'card',
-          number: '6037991122223333',
+          number: '6037991000012348',
           holder: 'صاحب حساب نمونه',
           currency: 'toman',
           customAmount: true,
@@ -272,7 +311,7 @@ const METHODS: Localized<MethodContent> = {
         },
         {
           key: 'sheba',
-          iban: 'IR000000000000000000000000',
+          iban: 'IR700120000000000000000000',
           holder: 'صاحب حساب نمونه',
           currency: 'toman',
           customAmount: true,
@@ -287,6 +326,33 @@ const METHODS: Localized<MethodContent> = {
       order: 1,
     },
     {
+      title: 'حوالهٔ بانکی بین‌المللی',
+      slug: 'international-transfer',
+      description: 'برای حامیان خارج از ایران: حواله به آی‌بن و کد سوییفت، به یورو.',
+      mode: 'card',
+      region: 'global',
+      // همان ریل، بازار دیگر: حسابی که اپلیکیشن بانکی ایران آن را نمی‌شناسد و کد
+      // سوییفتی که کارت‌به‌کارت داخلی هرگز نمی‌خواند.
+      variants: [
+        {
+          key: 'iban',
+          iban: 'GB74BARC20000012345678',
+          bic: 'BARCGB22',
+          holder: 'صاحب حساب نمونه',
+          currency: 'eur',
+          region: 'global',
+          customAmount: true,
+          suggestedAmounts: [10, 25, 50],
+          minAmount: 5,
+          maxAmount: 5000,
+          active: true,
+        },
+      ],
+      currency: 'eur',
+      active: true,
+      order: 2,
+    },
+    {
       title: 'تتر (USDT)',
       slug: 'usdt',
       description: 'از کیف پول خودتان و روی زنجیره‌ای که با آن کار می‌کنید ارسال کنید؛ پیش از تأیید، شبکه را بررسی کنید.',
@@ -296,7 +362,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'tron',
           network: 'tron',
-          address: 'TExampleWalletAddressReplaceMe1234',
+          asset: 'tether',
+          address: 'TYourTronAddressHereDemo1234567899',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -306,7 +373,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'ethereum',
           network: 'ethereum',
-          address: '0xExampleAddressReplaceMe000000000000000000',
+          asset: 'tether',
+          address: '0xDEADBEEF000000000000000000000000000000ab',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -316,7 +384,8 @@ const METHODS: Localized<MethodContent> = {
         {
           key: 'ton',
           network: 'ton',
-          address: 'UQExampleAddressReplaceMe0000000000000000000000',
+          asset: 'tether',
+          address: 'UQExampleAddressReplaceMe00000000000000000000000',
           currency: 'tether',
           customAmount: true,
           suggestedAmounts: [5, 10, 25],
@@ -326,7 +395,7 @@ const METHODS: Localized<MethodContent> = {
       ],
       currency: 'tether',
       active: true,
-      order: 2,
+      order: 3,
     },
     {
       title: 'پرداخت با کارت در این سایت',
@@ -349,7 +418,7 @@ const METHODS: Localized<MethodContent> = {
       // تا کلیدهای درگاه در محیط اجرا تنظیم نشده، منتشر نمی‌شود: یک روش پنهان
       // بهتر از روشی است که در آخرین گام خطا می‌دهد.
       active: false,
-      order: 3,
+      order: 4,
     },
     {
       title: 'حمایت بدون پول',
@@ -386,7 +455,7 @@ const METHODS: Localized<MethodContent> = {
       // یک اقدام تراکنش نیست: مقصدانش هیچ مبلغی ندارند.
       currency: 'toman',
       active: true,
-      order: 4,
+      order: 5,
     },
   ],
 };

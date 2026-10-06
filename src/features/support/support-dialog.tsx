@@ -9,7 +9,7 @@ import { ErrorNote, Thanks } from '@/features/support/steps/step-parts';
 import { StepRail } from '@/features/support/steps/step-rail';
 import type { Step } from '@/features/support/steps/flow';
 import { useSupportWizard } from '@/features/support/use-support-wizard';
-import { nameDir, spansMarkets } from '@/features/support/support-meta';
+import { choiceRegion, nameDir, spansMarkets } from '@/features/support/support-meta';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
@@ -174,11 +174,11 @@ function SupportWizard({
             <ActionStep option={option} variant={wizard.variant} destination={wizard.destination} />
           ) : wizard.result ? (
             <PaymentStep
-              variant={wizard.variant}
               destination={wizard.destination}
               result={wizard.result}
               amount={wizard.amount}
               currency={wizard.currency}
+              market={choiceRegion({ option, variant: wizard.variant })}
               reference={wizard.details.reference}
               onReference={value => wizard.setDetail('reference', value)}
               copiedKey={wizard.copiedKey}

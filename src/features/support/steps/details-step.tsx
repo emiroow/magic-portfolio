@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { SUPPORTER_MESSAGE_LIMIT } from '@/features/support/constants';
 import { nameDir } from '@/features/support/support-meta';
 import { localizedCount } from '@/lib/utils';
-import type { AppLocale, ProductCurrency } from '@/types';
+import type { AppLocale, PriceUnit } from '@/types';
 import { useLocale, useTranslations } from 'next-intl';
 
 interface DetailsStepProps {
@@ -14,7 +14,7 @@ interface DetailsStepProps {
   details: WizardDetails;
   onChange: <Key extends keyof WizardDetails>(key: Key, value: WizardDetails[Key]) => void;
   amount: number;
-  currency: ProductCurrency;
+  currency: PriceUnit;
   /** What is about to happen, in the order it was chosen: method, then destination. */
   summary: { method: string; destination: string };
 }

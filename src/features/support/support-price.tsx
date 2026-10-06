@@ -26,8 +26,6 @@ interface SupportPriceProps {
  * read differently on the two.
  */
 export function SupportPrice({ option, className }: SupportPriceProps) {
-
-console.log({ option, className });
   const t = useTranslations('support');
   const tp = useTranslations('pricing');
   const locale = useLocale();

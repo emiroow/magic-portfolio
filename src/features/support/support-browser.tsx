@@ -101,7 +101,7 @@ export default function SupportBrowser({
   /** The one door on a card: it opens that method, and only its own destinations. */
   const cardAction = (method: IDonation) => {
     const first = usableVariants(method)[0];
-    const named = variantLabel(first, t);
+    const named = variantLabel(first, t, tp);
     // A gesture is offered in the name of the service it happens on; a payment is
     // offered in the name of the account, wallet or page it lands in.
     const provider = (method.mode === 'action' && first?.provider ? t(`providers.${first.provider}`) : named) || t(`modes.${method.mode}`);

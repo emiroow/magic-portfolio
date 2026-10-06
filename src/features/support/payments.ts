@@ -1,6 +1,6 @@
 import { GATEWAY_CURRENCIES } from '@/features/support/constants';
 import type { GatewayId, ISupporter } from '@/features/support/types';
-import type { ProductCurrency } from '@/types';
+import type { PriceUnit } from '@/types';
 
 /**
  * Gateway adapters for the in-site `gateway` checkout mode.
@@ -42,9 +42,15 @@ export function configuredGateways(): GatewayId[] {
   return (Object.keys(GATEWAY_CURRENCIES) as GatewayId[]).filter(isGatewayConfigured);
 }
 
-/** Whether the gateway settles in this currency at all. */
-export function gatewaySupports(gateway: GatewayId, currency: ProductCurrency): boolean {
-  return GATEWAY_CURRENCIES[gateway].includes(currency);
+/**
+ * Whether the gateway settles in this unit at all.
+ *
+ * A gateway is handed the wider support unit — the checkout does not pre-judge what the
+ * owner configured — and each of them settles in national money only, so a coin is
+ * refused here rather than converted at some invented rate.
+ */
+export function gatewaySupports(gateway: GatewayId, currency: PriceUnit): boolean {
+  return (GATEWAY_CURRENCIES[gateway] as readonly string[]).includes(currency);
 }
 
 /**
@@ -52,7 +58,7 @@ export function gatewaySupports(gateway: GatewayId, currency: ProductCurrency): 
  * تومان, so the ten-fold step happens here and nowhere else. Anything else is a
  * configuration mistake, and guessing an exchange rate is not on offer.
  */
-export function toRial(amount: number, currency: ProductCurrency): number {
+export function toRial(amount: number, currency: PriceUnit): number {
   if (currency === 'toman') return Math.round(amount * 10);
   if (currency === 'rial') return Math.round(amount);
   throw new Error(`[payments] ${currency} cannot settle through an Iranian gateway`);
@@ -64,7 +70,7 @@ export function toMinorUnits(amount: number): number {
 }
 
 /** Hard-currency gateways quote in `USD`/`EUR` only. */
-function toPayPalCurrency(currency: ProductCurrency): string {
+function toPayPalCurrency(currency: PriceUnit): string {
   return currency === 'eur' ? 'EUR' : 'USD';
 }
 
@@ -95,7 +101,7 @@ export interface PaymentRequest {
   /** Site-side record id, echoed to the gateway so the callback can find it. */
   orderId: string;
   amount: number;
-  currency: ProductCurrency;
+  currency: PriceUnit;
   description: string;
   /** Where the gateway sends the supporter back to. */
   callbackUrl: string;
@@ -147,7 +153,7 @@ async function createZarinpal(payment: PaymentRequest): Promise<GatewaySession> 
   return { redirectUrl: `${payBase}/${authority}`, externalId: authority };
 }
 
-async function captureZarinpal(authority: string, payment: { amount: number; currency: ProductCurrency }): Promise<CaptureOutcome> {
+async function captureZarinpal(authority: string, payment: { amount: number; currency: PriceUnit }): Promise<CaptureOutcome> {
   const merchantId = env('ZARINPAL_MERCHANT_ID');
   const sandbox = env('ZARINPAL_SANDBOX') === 'true';
   const apiBase = baseUrl('ZARINPAL_API_BASE', sandbox ? 'https://sandbox.zarinpal.com' : 'https://api.zarinpal.com');

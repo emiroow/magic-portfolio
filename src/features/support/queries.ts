@@ -2,9 +2,10 @@ import { tryConnectDB } from '@/config/dbConnection';
 import { donationModel } from '@/features/support/donation.model';
 import { supporterModel } from '@/features/support/supporter.model';
 import { handlesMoney, isOfferable, withUniqueKeys } from '@/features/support/variants';
-import { CRYPTO_NETWORKS, DONATION_MODES, REGION_ORDER } from '@/features/support/constants';
+import { CRYPTO_ASSET_NETWORKS, CRYPTO_NETWORKS, DONATION_MODES, REGION_ORDER } from '@/features/support/constants';
+import { CRYPTO_ASSETS } from '@/constants/global';
 import { serializeList } from '@/lib/serialize';
-import type { AppLocale, ProductCurrency } from '@/types';
+import type { AppLocale, CryptoAsset, PriceUnit } from '@/types';
 import type { CryptoNetwork, DonationMode, IDonation, ISupporter, SupportProvider, SupportVariant } from '@/features/support/types';
 
 /* ------------------------------------------------------------------
@@ -99,6 +100,25 @@ function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant 
 }
 
 /**
+ * The asset of a wallet stored before coin and ledger were kept side by side.
+ *
+ * Read off the unit the row was priced in — the one place an old document did write the
+ * coin down, and the unit it inherits from its method counts here too — and off the
+ * ledger where a single asset lives on it. Left unset when neither answers, so the
+ * destination waits for its owner to name the coin instead of the site guessing a chain
+ * and losing a supporter's money.
+ */
+function legacyAsset(variant: SupportVariant): CryptoAsset | undefined {
+  const network = variant.network;
+  if (!network || variant.asset) return variant.asset;
+
+  const carried = CRYPTO_ASSETS.filter(asset => CRYPTO_ASSET_NETWORKS[asset].includes(network));
+  const priced = carried.find(asset => asset === variant.currency);
+
+  return priced ?? (carried.length === 1 ? carried[0] : undefined);
+}
+
+/**
  * Fill in whatever a stored or externally-written document lacks, so the page and
  * the wizard can read a method without defending every field at every call site.
  * Exported because the admin list runs it too: what the dashboard edits has to be
@@ -136,9 +156,15 @@ export function normalizeDonation(input: unknown): IDonation {
     const base: SupportVariant = { ...variant, active: variant.active !== false };
     if (!money) return base;
 
+    const inherited = base.currency || fallbackCurrency;
+    // A wallet is priced in the coin it receives, so the asset answers the unit before any
+    // stored currency can — and an old row that only named a currency gets its coin from it.
+    const asset = mode === 'crypto' ? legacyAsset({ ...base, currency: inherited }) : undefined;
+
     return {
       ...base,
-      currency: variant.currency || fallbackCurrency,
+      ...(asset ? { asset } : {}),
+      currency: asset || inherited,
       amount: variant.amount ?? legacyAmount,
       customAmount: variant.customAmount ?? legacyCustom,
       suggestedAmounts: variant.suggestedAmounts?.length ? variant.suggestedAmounts : legacySuggested,
@@ -225,7 +251,7 @@ export interface SupportStats {
    * reported as no total rather than a wrong one.
    */
   raised: number | null;
-  currency: ProductCurrency | null;
+  currency: PriceUnit | null;
 }
 
 /** Headline numbers for the support page. */

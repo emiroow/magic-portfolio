@@ -15,7 +15,7 @@ import { PriceTag } from '@/features/products/price-tag';
 import { Input } from '@/components/ui/input';
 import { cn, documentKey, formatPrice, localizedCount, localizedList } from '@/lib/utils';
 import { handlesMoney, variantCurrency } from '@/features/support/variants';
-import type { AppLocale, ProductCurrency } from '@/types';
+import type { AppLocale, PriceUnit } from '@/types';
 import type { IDonation, SupportVariant } from '@/features/support/types';
 import { Info } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -35,7 +35,7 @@ interface ChooseStepProps {
   amount: number;
   custom: string;
   showCustomField: boolean;
-  currency: ProductCurrency;
+  currency: PriceUnit;
   amountError: string | null;
   onPickMethod: (method: IDonation) => void;
   onPickVariant: (variant: SupportVariant) => void;
@@ -77,7 +77,7 @@ export function ChooseStep({
 
   /** The words that follow a name: what it holds, in which unit, in which market. */
   const join = (parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ');
-  const destinationName = variantLabel(variant, t) || variantDetail(variant) || option.title;
+  const destinationName = variantLabel(variant, t, tp) || variantDetail(variant) || option.title;
   const instruction = variantInstruction(variant);
   /** The bounds the selected destination sets, said once, in the unit its amount is written in. */
   const bounds = join([
@@ -132,7 +132,7 @@ export function ChooseStep({
           {destinations.map(item => {
             const detail = variantDetail(item);
             // The digits or the host become the name when the owner gave none.
-            const label = variantLabel(item, t) || detail || item.key;
+            const label = variantLabel(item, t, tp) || detail || item.key;
             const region = mixedMarkets ? t(`regions.${choiceRegion({ option, variant: item })}`) : '';
 
             return (

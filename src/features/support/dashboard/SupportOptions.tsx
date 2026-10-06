@@ -16,7 +16,7 @@ import { useFormPanel } from '@/hooks/useFormPanel';
 import { localizedCount, slugify } from '@/lib/utils';
 import { useValidationMessage } from '@/hooks/useValidationMessage';
 import type { AppLocale } from '@/types';
-import type { DonationMode, IDonation } from '@/features/support/types';
+import type { DonationMode, DonationRegion, IDonation } from '@/features/support/types';
 import { AlertTriangle, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
@@ -72,6 +72,8 @@ const SupportOptions = () => {
     toggleActive,
     addVariantSuggested,
     removeVariantSuggested,
+    setVariantAsset,
+    setVariantNetwork,
     setMode,
     addVariant,
     removeVariant,
@@ -89,6 +91,7 @@ const SupportOptions = () => {
   const title = watch('title');
   const editingId = watch('_id');
   const mode = watch('mode') as DonationMode;
+  const region = watch('region') as DonationRegion;
   const variants = watch('variants') ?? [];
 
   // Every method shows the same groups; the amount policy is edited per destination.
@@ -258,11 +261,14 @@ const SupportOptions = () => {
                   key={field.id}
                   index={index}
                   mode={mode}
+                  region={region}
                   variant={variants[index]}
                   broken={Boolean(errors.variants?.[index])}
                   onRemove={() => removeVariant(index)}
                   onAddSuggested={addVariantSuggested}
                   onRemoveSuggested={removeVariantSuggested}
+                  onAssetChange={setVariantAsset}
+                  onNetworkChange={setVariantNetwork}
                   register={register}
                   errors={errors.variants?.[index]}
                   settings={settings}
