@@ -154,7 +154,7 @@ function SupportWizard({
               quickAmounts={wizard.quickAmounts}
               amount={wizard.amount}
               custom={wizard.custom}
-              showCustomField={Boolean(option.customAmount)}
+              showCustomField={Boolean(wizard.variant?.customAmount)}
               currency={wizard.currency}
               amountError={wizard.amountError}
               onPickMethod={wizard.pickMethod}

@@ -90,18 +90,44 @@ export interface SupportVariant {
   network?: CryptoNetwork;
   /** `crypto` only: address, `lnurl…` or Lightning destination. */
   address?: string;
-  /** Set when this destination is priced in another unit than its method. */
+  /**
+   * The unit this destination is priced in. For a method that moves money it is the
+   * destination's own — a USD wallet and a Toman card under one method never share a
+   * price scale. Left unset on a stored row, `normalizeDonation` fills it from the
+   * method's default, so an old document keeps working without a rewrite.
+   */
   currency?: ProductCurrency;
   /** Set when this destination serves another market than its method. */
   region?: DonationRegion;
+  /**
+   * The amount policy of this destination, not of the method. Each destination owns
+   * its own price, quick-picks and bounds so two under one method can behave
+   * differently. Ignored for a method that takes no money (`action`).
+   */
+  /** Fixed price; `0` means "the supporter chooses". */
+  amount?: number;
+  /** Allow an amount the owner did not pre-set on this destination. */
+  customAmount?: boolean;
+  /** Quick-pick amounts offered on this destination's amount step; empty falls back to `amount`. */
+  suggestedAmounts?: number[];
+  /** Smallest accepted amount for this destination; `0` means no floor. */
+  minAmount?: number;
+  /** Largest accepted amount for this destination; `0` means no ceiling. */
+  maxAmount?: number;
   /** `false` hides this destination without deleting it. */
   active: boolean;
 }
 
 /**
- * A support method the owner can be backed through: one method, its own conditions
- * (the amount policy, or the absence of one) and the destinations it can arrive at.
- * Created in the dashboard, rendered on `/support` and spent by the checkout endpoint.
+ * A support method: one way backing arrives, the market it aims at and the
+ * destinations it can be paid into. Support platforms, card-to-card, crypto, an
+ * in-site gateway checkout and a free gesture are five separate documents, never
+ * five prices for the same act of giving.
+ *
+ * The amount policy belongs to the destination, not the method: `variants` each carry
+ * their own `amount`, `currency`, bounds and quick-picks. `currency` and `region` here
+ * are only the defaults a destination inherits when it does not state its own, so a
+ * method never fixes the price of what is paid into it.
  */
 export interface IDonation {
   _id?: string;
@@ -113,19 +139,10 @@ export interface IDonation {
   mode: DonationMode;
   /** The method's own market; a destination may override it. */
   region: DonationRegion;
-  /** Where the money lands, in the order the supporter is shown them. */
+  /** Where the money lands — and the amount rules of each landing — in shown order. */
   variants: SupportVariant[];
-  /** `0` means "the supporter chooses": the wizard starts on the amount step. */
-  amount: number;
+  /** Default unit a destination inherits when it names none; not a destination's price. */
   currency: ProductCurrency;
-  /** Allow an amount the owner did not pre-set. */
-  customAmount: boolean;
-  /** Quick-pick amounts offered on the amount step; empty falls back to `amount`. */
-  suggestedAmounts: number[];
-  /** Smallest accepted amount; `0` defers to the site default. */
-  minAmount: number;
-  /** Largest accepted amount; `0` defers to the site default. */
-  maxAmount: number;
   /** `false` keeps the method out of every public surface. */
   active: boolean;
   /** Position on `/support`; lower numbers lead. */

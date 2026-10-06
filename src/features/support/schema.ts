@@ -3,6 +3,7 @@ import {
   CRYPTO_NETWORKS,
   DONATION_MODES,
   DONATION_REGIONS,
+  GATEWAY_CURRENCIES,
   GATEWAY_IDS,
   MAX_VARIANTS,
   MAX_VARIANT_INSTRUCTION,
@@ -80,9 +81,10 @@ const cryptoAddressSchema = z
   .regex(/^[A-Za-z0-9:_+.\-]+$/, 'The address contains unsupported characters');
 
 /**
- * One destination of a payment method. Every field is optional here because a
- * destination only means something inside its own method: the refinement below
- * asks each method for exactly the fields it spends money with.
+ * One destination of a payment method, with its own amount policy. Every field is
+ * optional here because a destination only means something inside its own method: the
+ * refinement below asks each method for exactly the fields it spends money with, and
+ * validates that destination's bounds, quick-picks and price together.
  */
 const supportVariantSchema = z.object({
   /** Derived from the destination's own content on save; an owner never types it. */
@@ -99,6 +101,12 @@ const supportVariantSchema = z.object({
   address: z.string().trim().max(120).optional(),
   currency: z.enum(PRODUCT_CURRENCIES).optional().or(z.literal('')),
   region: z.enum(DONATION_REGIONS).optional().or(z.literal('')),
+  // The destination's own amount policy; absent on a method that takes no money.
+  amount: donationAmountSchema.optional(),
+  customAmount: z.boolean().optional(),
+  suggestedAmounts: suggestedAmountsSchema.optional(),
+  minAmount: optionalAmountSchema.optional(),
+  maxAmount: optionalAmountSchema.optional(),
   active: z.boolean(),
 });
 
@@ -109,12 +117,9 @@ const donationShape = {
   mode: z.enum(DONATION_MODES, { errorMap: () => ({ message: 'Choose a payment method' }) }),
   region: z.enum(DONATION_REGIONS, { errorMap: () => ({ message: 'Choose a market' }) }),
   variants: z.array(supportVariantSchema).min(1, 'Add at least one destination').max(MAX_VARIANTS, 'That is too many destinations for one method'),
-  amount: donationAmountSchema,
+  // Only the default a destination inherits when it names no currency of its own. The
+  // amount policy itself lives on every destination.
   currency: productCurrencySchema,
-  customAmount: z.boolean(),
-  suggestedAmounts: suggestedAmountsSchema,
-  minAmount: optionalAmountSchema,
-  maxAmount: optionalAmountSchema,
   active: z.boolean(),
   order: z
     .number({ invalid_type_error: 'Enter the order as a number' })
@@ -175,16 +180,43 @@ function refineDonation(value: z.infer<typeof donationBaseSchema>, ctx: z.Refine
         break;
       }
     }
+
+    // The amount policy belongs to this destination. A floor above a ceiling, a
+    // quick-pick outside the range or a fixed price the destination would refuse are
+    // mistakes that must never reach the database. A method that takes no money has
+    // no amount rules to check.
+    if (value.mode !== 'action') {
+      const min = variant.minAmount ?? 0;
+      const max = variant.maxAmount ?? 0;
+      const fixed = variant.amount ?? 0;
+      const suggested = variant.suggestedAmounts ?? [];
+
+      if (min > 0 && max > 0 && min > max) row('minAmount', 'The minimum amount is above the maximum');
+
+      if (fixed > 0) {
+        if (min > 0 && fixed < min) row('amount', 'The fixed amount is below the minimum');
+        if (max > 0 && fixed > max) row('amount', 'The fixed amount is above the maximum');
+      }
+
+      suggested.forEach((pick, pos) => {
+        if (min > 0 && pick < min) at(['variants', index, 'suggestedAmounts', pos], 'A suggested amount is below the minimum');
+        if (max > 0 && pick > max) at(['variants', index, 'suggestedAmounts', pos], 'A suggested amount is above the maximum');
+      });
+
+      // Custom off with nothing pre-set leaves the destination with no amount it accepts.
+      if (!variant.customAmount && !(fixed > 0) && !suggested.length) row('customAmount', 'Turn on a custom amount or set at least one amount');
+
+      // A gateway can only charge in a currency it actually settles.
+      if (value.mode === 'gateway' && variant.provider) {
+        const settled = GATEWAY_CURRENCIES[variant.provider as keyof typeof GATEWAY_CURRENCIES];
+        if (settled && !settled.includes(variant.currency || value.currency)) row('currency', 'That gateway cannot charge in this currency');
+      }
+    }
   });
 
   // Two destinations that would be stored under one key cannot be told apart in a link.
   const keys = withUniqueKeys(value.mode, value.variants).map(variant => variant.key);
   if (new Set(keys).size !== keys.length) at(['variants'], 'Two destinations share one name');
-
-  // A floor above the ceiling is a mistake, and the wizard would refuse every amount.
-  if (value.minAmount > 0 && value.maxAmount > 0 && value.minAmount > value.maxAmount) {
-    at(['minAmount'], 'The minimum amount is above the maximum');
-  }
 
   // A platform method may only hand off to a support platform or a prepared link,
   // and a free gesture only to a network its own picker offers.

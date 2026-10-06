@@ -31,6 +31,11 @@ export type VariantField =
   | 'address'
   | 'currency'
   | 'region'
+  | 'amount'
+  | 'customAmount'
+  | 'suggestedAmounts'
+  | 'minAmount'
+  | 'maxAmount'
   | 'active';
 
 /** One row's errors, so a message lands under the input that caused it. */
@@ -57,12 +62,19 @@ const EMPTY_VARIANT: DonationVariant = {
   address: '',
   currency: '',
   region: '',
+  // The destination's own amount policy; meaningful only inside a method that moves money.
+  amount: 0,
+  customAmount: true,
+  suggestedAmounts: [],
+  minAmount: 0,
+  maxAmount: 0,
   active: true,
 };
 
 /**
  * A fresh method. The default is the door that needs no credentials: a page on a
- * support platform, with an amount the supporter names.
+ * support platform. The amount policy lives on each destination, not here; `currency`
+ * and `region` are only the defaults a destination inherits when it names none.
  */
 const EMPTY: DonationForm = {
   title: '',
@@ -71,12 +83,7 @@ const EMPTY: DonationForm = {
   mode: 'platform',
   region: 'global',
   variants: [{ ...EMPTY_VARIANT, provider: 'buymeacoffee' }],
-  amount: 0,
   currency: 'toman',
-  customAmount: true,
-  suggestedAmounts: [],
-  minAmount: 0,
-  maxAmount: 0,
   active: true,
   order: 0,
 };
@@ -94,11 +101,15 @@ function whole(value: unknown, fallback = 0): number {
 }
 
 /**
- * One row as it is stored: only the fields its own method spends money with, with
- * empty strings dropped so a document never carries `iban: ""`.
+ * One row as it is stored: only the fields its own method spends money with — plus,
+ * for a method that moves money, the destination's amount policy — with empty strings
+ * dropped so a document never carries `iban: ""`. Numbers and the quick-pick list are
+ * kept even when zero or empty, because `0` is a stored "no limit / no fixed price".
  */
 function cleanVariant(mode: DonationMode, row: DonationVariant): SupportVariant {
+  const money = handlesMoney(mode);
   const keep = new Set<string>(['key', 'label', 'active', 'currency', 'region', ...variantFields(mode)]);
+  if (money) (['amount', 'minAmount', 'maxAmount', 'customAmount', 'suggestedAmounts'] as const).forEach(field => keep.add(field));
   const out: Record<string, unknown> = { active: row.active !== false };
 
   for (const [field, value] of Object.entries(row)) {
@@ -108,6 +119,10 @@ function cleanVariant(mode: DonationMode, row: DonationVariant): SupportVariant 
       if (trimmed) out[field] = trimmed;
     } else if (typeof value === 'boolean') {
       out[field] = value;
+    } else if (typeof value === 'number') {
+      out[field] = Number.isFinite(value) ? value : 0;
+    } else if (Array.isArray(value)) {
+      if (money && field === 'suggestedAmounts') out[field] = value.filter(n => typeof n === 'number' && Number.isFinite(n) && n > 0);
     }
   }
 
@@ -158,20 +173,13 @@ const useDonations = () => {
   const save = useMutation({
     mutationFn: (data: DonationForm) => {
       const mode = data.mode;
-      const money = handlesMoney(mode);
       const rows = data.variants.map(variant => cleanVariant(mode, variant)).filter(Boolean);
 
       const body: DonationForm = {
         ...data,
-        // A method that takes no money is stored without any amount policy at all,
-        // so no surface can read a leftover number as its price.
-        amount: money ? whole(data.amount) : 0,
-        customAmount: money && data.customAmount,
-        minAmount: money ? whole(data.minAmount) : 0,
-        maxAmount: money ? whole(data.maxAmount) : 0,
-        suggestedAmounts: money ? data.suggestedAmounts : [],
         order: whole(data.order),
-        // Keys come from what each destination holds, so two rows can never collide.
+        // The amount policy is carried by each cleaned destination, not the method. Keys
+        // come from what each destination holds, so two rows can never collide.
         variants: withUniqueKeys(mode, rows),
       };
 
@@ -207,20 +215,20 @@ const useDonations = () => {
     onError: () => fail(),
   });
 
-  // --- quick-pick amounts ---
-  const addSuggested = (value: number) => {
+  // --- quick-pick amounts, per destination ---
+  const addVariantSuggested = (index: number, value: number) => {
     if (!Number.isFinite(value) || value <= 0) return;
-    const current = getValues('suggestedAmounts') || [];
+    const current = getValues(`variants.${index}.suggestedAmounts`) ?? [];
     // A repeated chip is a mistake, and the list keys on the number.
     if (current.includes(value)) return;
-    setValue('suggestedAmounts', [...current, value], { shouldDirty: true });
+    setValue(`variants.${index}.suggestedAmounts`, [...current, value], { shouldDirty: true });
   };
 
-  const removeSuggested = (index: number) => {
-    const current = getValues('suggestedAmounts') || [];
+  const removeVariantSuggested = (index: number, pos: number) => {
+    const current = getValues(`variants.${index}.suggestedAmounts`) ?? [];
     setValue(
-      'suggestedAmounts',
-      current.filter((_, i) => i !== index),
+      `variants.${index}.suggestedAmounts`,
+      current.filter((_, i) => i !== pos),
       { shouldDirty: true }
     );
   };
@@ -249,10 +257,6 @@ const useDonations = () => {
       ...EMPTY,
       ...method,
       description: method.description ?? '',
-      amount: whole(method.amount),
-      minAmount: whole(method.minAmount),
-      maxAmount: whole(method.maxAmount),
-      suggestedAmounts: method.suggestedAmounts ?? [],
       variants: (method.variants ?? []).length
         ? method.variants.map(variant => ({
             ...EMPTY_VARIANT,
@@ -269,6 +273,11 @@ const useDonations = () => {
             address: variant.address ?? '',
             currency: variant.currency ?? '',
             region: variant.region ?? '',
+            amount: whole(variant.amount),
+            minAmount: whole(variant.minAmount),
+            maxAmount: whole(variant.maxAmount),
+            customAmount: variant.customAmount ?? true,
+            suggestedAmounts: variant.suggestedAmounts ?? [],
             active: variant.active !== false,
           }))
         : [{ ...EMPTY_VARIANT }],
@@ -295,8 +304,8 @@ const useDonations = () => {
     deleteDonation,
     deleting,
     toggleActive,
-    addSuggested,
-    removeSuggested,
+    addVariantSuggested,
+    removeVariantSuggested,
     setMode,
     addVariant,
     removeVariant,

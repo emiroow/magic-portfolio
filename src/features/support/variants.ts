@@ -118,9 +118,70 @@ export function resolveVariant(option: IDonation, key?: string): SupportVariant 
 /**
  * Unit a destination is priced in. Only an explicit override moves a destination
  * away from its method's currency, so a USDT row on two chains stays one price.
+ * `normalizeDonation` materializes a currency onto every money destination, so this
+ * only falls back to the method's default for a hand-written row that named none.
  */
 export function variantCurrency(option: IDonation, variant?: SupportVariant): ProductCurrency {
   return variant?.currency || option.currency;
+}
+
+/**
+ * The amount a destination asks for by default: its own fixed price, else its first
+ * quick-pick. `0` when it sets neither, which the wizard reads as "the supporter picks".
+ */
+export function variantStandingAmount(variant?: SupportVariant): number {
+  if (!variant) return 0;
+  const fixed = variant.amount ?? 0;
+  return fixed > 0 ? fixed : (variant.suggestedAmounts?.[0] ?? 0);
+}
+
+/**
+ * `true` when a destination accepts an amount the supporter names themselves.
+ *
+ * The card, the chooser and the wizard all ask this one question, so a surface can
+ * never offer a free number that the checkout would refuse as "not a set amount".
+ */
+export function takesOpenAmount(variant: SupportVariant | undefined): boolean {
+  return Boolean(variant?.customAmount);
+}
+
+/**
+ * The quick-pick amounts shown on a destination's amount step: its suggested list,
+ * else its fixed price, deduped and ordered. Empty when it pre-sets nothing.
+ */
+export function variantQuickAmounts(variant?: SupportVariant): number[] {
+  if (!variant) return [];
+  const suggested = variant.suggestedAmounts ?? [];
+  const fixed = variant.amount ?? 0;
+  const values = suggested.length ? suggested : fixed > 0 ? [fixed] : [];
+  return [...new Set(values.filter(value => value > 0))].sort((a, b) => a - b);
+}
+
+/**
+ * Whether an amount is one this destination would accept, and why not if it isn't.
+ *
+ * This is the single rule the wizard mirrors and the checkout enforces, so a number
+ * the front calls valid can never be the one the server refuses: the bounds are the
+ * destination's own floor and ceiling, and with custom amount off only the fixed
+ * price or a suggested amount passes. `code` is what the surface turns into a message.
+ */
+export type AmountVerdict = { ok: true } | { ok: false; code: 'empty' | 'min' | 'max' | 'fixed' };
+
+export function judgeAmount(variant: SupportVariant | undefined, value: number): AmountVerdict {
+  if (!variant || !Number.isFinite(value) || value <= 0) return { ok: false, code: 'empty' };
+
+  const min = variant.minAmount ?? 0;
+  const max = variant.maxAmount ?? 0;
+  if (min > 0 && value < min) return { ok: false, code: 'min' };
+  if (max > 0 && value > max) return { ok: false, code: 'max' };
+
+  if (!variant.customAmount) {
+    const fixed = variant.amount ?? 0;
+    const accepted = fixed > 0 ? [fixed] : (variant.suggestedAmounts ?? []);
+    if (!accepted.includes(value)) return { ok: false, code: 'fixed' };
+  }
+
+  return { ok: true };
 }
 
 /** Market a destination serves; a destination only says so when it differs. */

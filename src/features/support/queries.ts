@@ -13,12 +13,20 @@ import type { CryptoNetwork, DonationMode, IDonation, ISupporter, SupportProvide
 
 /**
  * A stored method, read before this release's shape was applied to it. Destinations
- * used to live in one field per mode, so the fold below keeps an existing database
- * payable instead of emptying the page.
+ * used to live in one field per mode, and the amount policy used to sit on the method
+ * instead of on each destination — so the folds below keep an existing database
+ * payable and priced correctly instead of emptying the page or resetting its amounts.
  */
 type StoredDonation = Omit<IDonation, 'mode' | 'variants'> & {
   mode?: DonationMode | 'referral' | 'link';
   variants?: SupportVariant[];
+  // Method-level amount policy, before it moved onto each destination. Read only to
+  // migrate into the destinations; never carried onto the returned method.
+  amount?: number;
+  customAmount?: boolean;
+  suggestedAmounts?: number[];
+  minAmount?: number;
+  maxAmount?: number;
   referral?: string;
   href?: string;
   linkProvider?: string;
@@ -96,8 +104,11 @@ function legacyVariant(mode: DonationMode, doc: StoredDonation): SupportVariant 
  * Exported because the admin list runs it too: what the dashboard edits has to be
  * what the public page shows.
  *
- * A method that takes no money also gets no money fields: zeroed here rather than
- * trusted at every surface that reads them.
+ * The amount policy now belongs to each destination. A stored document that carried it
+ * on the method has those values folded into every one of its money destinations here
+ * (only where the destination names none of its own), so existing amounts, bounds and
+ * currency survive the move to the destination level. A method that takes no money
+ * gets no amount fields on its destinations at all.
  */
 export function normalizeDonation(input: unknown): IDonation {
   const doc = input as StoredDonation;
@@ -111,23 +122,48 @@ export function normalizeDonation(input: unknown): IDonation {
   // A document from before destinations carried their rail in flat fields.
   const rows: SupportVariant[] = stored.length ? stored : [legacyVariant(mode, doc)].filter((variant): variant is SupportVariant => Boolean(variant));
 
+  // The method's old amount policy, read only to migrate onto the destinations below.
+  const legacyAmount = money && Number.isFinite(doc.amount) ? (doc.amount as number) : 0;
+  const legacyCustom = money ? doc.customAmount !== false : false;
+  const legacySuggested = money ? (amounts.length ? amounts : legacyAmount > 0 ? [legacyAmount] : []) : [];
+  const legacyMin = money && Number.isFinite(doc.minAmount) ? (doc.minAmount as number) : 0;
+  const legacyMax = money && Number.isFinite(doc.maxAmount) ? (doc.maxAmount as number) : 0;
+  const fallbackCurrency = doc.currency ?? 'toman';
+
+  // Give every money destination a full amount policy: its own values first, then the
+  // method's old ones, so a destination that never set them still prices as before.
+  const enriched: SupportVariant[] = rows.map(variant => {
+    const base: SupportVariant = { ...variant, active: variant.active !== false };
+    if (!money) return base;
+
+    return {
+      ...base,
+      currency: variant.currency || fallbackCurrency,
+      amount: variant.amount ?? legacyAmount,
+      customAmount: variant.customAmount ?? legacyCustom,
+      suggestedAmounts: variant.suggestedAmounts?.length ? variant.suggestedAmounts : legacySuggested,
+      minAmount: variant.minAmount ?? legacyMin,
+      maxAmount: variant.maxAmount ?? legacyMax,
+    };
+  });
+
   return {
-    ...doc,
+    _id: doc._id,
+    title: doc.title,
+    slug: doc.slug,
+    description: doc.description,
     mode,
     region: doc.region ?? 'global',
-    currency: doc.currency ?? 'toman',
+    // Kept only as the default a destination inherits; the destinations above already
+    // carry a resolved currency of their own.
+    currency: fallbackCurrency,
     // Keys are derived, never typed, so an old or hand-written row still resolves.
-    variants: withUniqueKeys(
-      mode,
-      rows.map(variant => ({ ...variant, active: variant.active !== false }))
-    ),
-    amount: money && Number.isFinite(doc.amount) ? doc.amount : 0,
-    customAmount: money && doc.customAmount !== false,
-    suggestedAmounts: money ? (amounts.length ? amounts : Number.isFinite(doc.amount) && doc.amount > 0 ? [doc.amount] : []) : [],
-    minAmount: money && Number.isFinite(doc.minAmount) ? doc.minAmount : 0,
-    maxAmount: money && Number.isFinite(doc.maxAmount) ? doc.maxAmount : 0,
-    order: Number.isFinite(doc.order) ? doc.order : 0,
+    variants: withUniqueKeys(mode, enriched),
     active: doc.active !== false,
+    order: Number.isFinite(doc.order) ? (doc.order as number) : 0,
+    lang: doc.lang,
+    createdAt: doc.createdAt,
+    updatedAt: doc.updatedAt,
   };
 }
 

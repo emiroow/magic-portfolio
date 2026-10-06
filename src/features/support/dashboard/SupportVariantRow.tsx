@@ -1,6 +1,7 @@
 'use client';
 
 import { Field } from '@/features/dashboard/shared';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -12,21 +13,33 @@ import {
   PLATFORM_PROVIDERS,
 } from '@/features/support/constants';
 import { PRODUCT_CURRENCIES } from '@/constants/global';
-import type { DonationRegister, VariantErrors, VariantField } from '@/features/support/hooks/useDonations';
-import { localizedCount } from '@/lib/utils';
+import {
+  numberField,
+  type DonationRegister,
+  type DonationVariant,
+  type VariantErrors,
+  type VariantField,
+} from '@/features/support/hooks/useDonations';
+import { handlesMoney } from '@/features/support/variants';
+import { formatPrice, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { DonationMode, GatewayId } from '@/features/support/types';
 import { X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
+import { useState } from 'react';
 
 interface SupportVariantRowProps {
   index: number;
   mode: DonationMode;
-  /** The row's own values, for the two things the header has to say about them. */
-  variant?: { active?: boolean; provider?: string };
+  /** The row's own values, for the header and the amount chips to say what they hold. */
+  variant?: DonationVariant;
   /** Whether this row holds a mistake, so its frame can say so. */
   broken: boolean;
   onRemove: () => void;
+  /** Add a quick-pick to this destination's list. */
+  onAddSuggested: (index: number, value: number) => void;
+  /** Drop a quick-pick from this destination's list. */
+  onRemoveSuggested: (index: number, pos: number) => void;
   register: DonationRegister;
   errors?: VariantErrors;
   settings?: { gateways: GatewayId[] };
@@ -40,7 +53,18 @@ interface SupportVariantRowProps {
  * step to take on it — and nothing else ever appears on the row. That is what keeps a
  * half-built destination from reaching the public window with fields it cannot use.
  */
-const SupportVariantRow = ({ index, mode, variant, broken, onRemove, register, errors, settings }: SupportVariantRowProps) => {
+const SupportVariantRow = ({
+  index,
+  mode,
+  variant,
+  broken,
+  onRemove,
+  onAddSuggested,
+  onRemoveSuggested,
+  register,
+  errors,
+  settings,
+}: SupportVariantRowProps) => {
   const t = useTranslations('dashboard.support.options');
   const ts = useTranslations('support');
   const tp = useTranslations('pricing');
@@ -54,6 +78,17 @@ const SupportVariantRow = ({ index, mode, variant, broken, onRemove, register, e
   const gatewayMissing = (provider?: string) => Boolean(settings) && Boolean(provider) && !settings?.gateways.includes(provider as GatewayId);
   const off = variant?.active === false;
   const link = mode === 'platform' || mode === 'action';
+  // The amount policy is edited here, per destination, because it belongs to the
+  // destination — not to the method that carries it.
+  const money = handlesMoney(mode);
+  const suggested = variant?.suggestedAmounts ?? [];
+  const [pending, setPending] = useState('');
+
+  const commitSuggested = () => {
+    const value = Number(pending.replace(/[^\d]/g, ''));
+    if (Number.isFinite(value) && value > 0) onAddSuggested(index, value);
+    setPending('');
+  };
 
   return (
     <div className={broken ? 'rounded-lg border border-destructive/50 bg-background p-3' : 'rounded-lg border bg-background p-3'}>
@@ -246,6 +281,101 @@ const SupportVariantRow = ({ index, mode, variant, broken, onRemove, register, e
             </select>
           </Field>
         </div>
+
+        {/* This destination's own amount policy: what it costs, its bounds, whether the
+            supporter may name a number and which quick-picks it offers. Hidden for a
+            method that takes no money, so nothing reads a leftover number as a price. */}
+        {money && (
+          <div className="space-y-4 border-t pt-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+              <Field label={t('amount')} id={control('amount')} error={errors?.amount?.message} hint={t('amountHint')}>
+                <Input
+                  id={control('amount')}
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  {...register(path('amount'), numberField)}
+                />
+              </Field>
+              <Field label={t('minAmount')} id={control('minAmount')} error={errors?.minAmount?.message} hint={t('minAmountHint')}>
+                <Input
+                  id={control('minAmount')}
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  {...register(path('minAmount'), numberField)}
+                />
+              </Field>
+              <Field label={t('maxAmount')} id={control('maxAmount')} error={errors?.maxAmount?.message} hint={t('maxAmountHint')}>
+                <Input
+                  id={control('maxAmount')}
+                  type="number"
+                  min={0}
+                  step={1}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  {...register(path('maxAmount'), numberField)}
+                />
+              </Field>
+            </div>
+
+            <label htmlFor={control('customAmount')} className="flex min-h-8 cursor-pointer items-center gap-1.5 text-xs text-muted-foreground">
+              <input
+                id={control('customAmount')}
+                type="checkbox"
+                {...register(path('customAmount'))}
+                className="size-4 shrink-0 rounded border-input accent-primary"
+              />
+              {t('customAmount')}
+            </label>
+
+            <Field label={t('suggested')} error={errors?.suggestedAmounts?.message} hint={t('suggestedHint')}>
+              <div className="flex gap-2">
+                <Input
+                  type="number"
+                  min={1}
+                  step={1}
+                  inputMode="numeric"
+                  dir="ltr"
+                  className="tabular-nums"
+                  value={pending}
+                  onChange={event => setPending(event.target.value)}
+                  placeholder={t('suggestedPlaceholder')}
+                  aria-label={t('suggestedPlaceholder')}
+                  onKeyDown={event => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      commitSuggested();
+                    }
+                  }}
+                />
+                <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={commitSuggested}>
+                  {t('add')}
+                </Button>
+              </div>
+              {suggested.length > 0 && (
+                <ul className="flex flex-wrap gap-1.5">
+                  {suggested.map((value, pos) => (
+                    <li key={`${value}-${pos}`}>
+                      <Badge variant="secondary" onDelete={() => onRemoveSuggested(index, pos)}>
+                        {/* Amounts are numeric runs: grouping must never mirror. */}
+                        <bdi dir="ltr">{formatPrice(value, lang)}</bdi>
+                        {variant?.currency && <span className="ms-1 opacity-70">{tp(variant.currency)}</span>}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </Field>
+          </div>
+        )}
       </div>
     </div>
   );

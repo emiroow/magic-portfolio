@@ -3,7 +3,7 @@
 import { clampStep, stepsFor, type Step } from '@/features/support/steps/flow';
 import { supportApi, SupportApiError } from '@/features/support/support-api';
 import { amountFits, carriableAmount, choiceCurrency, standingAmount, variantDetail, variantLabel } from '@/features/support/support-meta';
-import { handlesMoney, usableVariants } from '@/features/support/variants';
+import { handlesMoney, judgeAmount, usableVariants, variantQuickAmounts } from '@/features/support/variants';
 import type { IDonation, SupportCheckoutResult, SupportVariant } from '@/features/support/types';
 import type { ProductCurrency } from '@/types';
 import { useLocale, useTranslations } from 'next-intl';
@@ -134,14 +134,16 @@ export function useSupportWizard({ option, onSelect, initialAmount, initialVaria
     const list = usableVariants(option);
     const next = (fresh ? initialVariantKey : variantKey) || list[0]?.key || '';
     const picked = list.find(item => item.key === next) ?? list[0];
-    const wanted = initialAmount && initialAmount > 0 ? initialAmount : standingAmount(option);
-    const usable = takesMoney && amountFits(option, wanted);
+    // The amount rules are the destination's, not the method's: the standing amount and
+    // the fit are read from the destination the supporter is actually on.
+    const wanted = initialAmount && initialAmount > 0 ? initialAmount : standingAmount(picked);
+    const usable = takesMoney && amountFits(picked, wanted);
 
     if (fresh) setDetails(EMPTY_DETAILS);
 
     setVariantKey(picked?.key ?? '');
     setStep(fresh && usable && initialAmount ? 'details' : 'choose');
-    setAmount(usable ? wanted : takesMoney ? standingAmount(option) : 0);
+    setAmount(usable ? wanted : takesMoney ? standingAmount(picked) : 0);
     setCustom(usable && initialAmount ? String(wanted) : '');
     setResult(null);
     setErrorCode(null);
@@ -153,20 +155,17 @@ export function useSupportWizard({ option, onSelect, initialAmount, initialVaria
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [option, initialAmount, initialVariantKey]);
 
-  const quickAmounts = useMemo(() => {
-    const values = option.suggestedAmounts?.length ? option.suggestedAmounts : option.amount > 0 ? [option.amount] : [];
-    return [...new Set(values.filter(value => value > 0))].sort((a, b) => a - b);
-  }, [option]);
+  // The quick-picks, bounds and custom-amount flag all come from the destination in
+  // view, so switching destination switches the amount configuration with it.
+  const quickAmounts = useMemo(() => variantQuickAmounts(variant), [variant]);
 
-  /** Client-side mirror of the bounds the server enforces; the server keeps the say. */
+  /** Client-side mirror of the destination's rule; the server enforces the same one. */
   const invalidAmount = useMemo(() => {
     if (!money) return null;
-    if (amount <= 0) return td('amountRequired');
-    if (option.minAmount > 0 && amount < option.minAmount) return td('errors.min');
-    if (option.maxAmount > 0 && amount > option.maxAmount) return td('errors.max');
-    if (!option.customAmount && !quickAmounts.includes(amount)) return td('errors.fixed');
-    return null;
-  }, [money, amount, option, quickAmounts, td]);
+    const verdict = judgeAmount(variant, amount);
+    if (verdict.ok) return null;
+    return verdict.code === 'empty' ? td('amountRequired') : td(`errors.${verdict.code}`);
+  }, [money, amount, variant, td]);
 
   /** Said only once there is a reason to say it: a number they typed, or a press. */
   const amountError = touched || amount > 0 ? invalidAmount : null;

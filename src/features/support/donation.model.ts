@@ -2,9 +2,11 @@ import type { IDonation } from '@/features/support/types';
 import mongoose, { Schema } from 'mongoose';
 
 /**
- * One destination of a payment method. Which fields mean anything depends on the
- * parent's `mode`, so a card row never carries an address and a wallet never
- * carries a merchant id — the checkout can only ever be shown one rail's data.
+ * One destination of a payment method — and the amount rules of that destination.
+ * Which fields mean anything depends on the parent's `mode`, so a card row never
+ * carries an address and a wallet never carries a merchant id — the checkout can only
+ * ever be shown one rail's data. `amount`, `currency`, bounds and `suggestedAmounts`
+ * live here, not on the method: two destinations can price differently.
  */
 const supportVariantSchema = new Schema<IDonation['variants'][number]>(
   {
@@ -21,19 +23,21 @@ const supportVariantSchema = new Schema<IDonation['variants'][number]>(
     address: { type: String },
     currency: { type: String },
     region: { type: String },
+    amount: { type: Number, default: 0, min: 0 },
+    customAmount: { type: Boolean, default: true },
+    suggestedAmounts: { type: [Number], default: [] },
+    minAmount: { type: Number, default: 0, min: 0 },
+    maxAmount: { type: Number, default: 0, min: 0 },
     active: { type: Boolean, default: true },
   },
   { _id: true }
 );
 
 /**
- * A support method: one way backing arrives, the conditions around it and the
- * destinations it can be paid into. Support platforms, card-to-card, crypto, an
- * in-site gateway checkout and a free gesture are five separate documents, never
- * five prices for the same act of giving.
- *
- * `action` methods keep the money fields at zero: nothing is charged, so nothing can
- * be mis-read as a price by the page, the wall or the receipts.
+ * A support method: one way backing arrives, the market it aims at and the
+ * destinations it can be paid into. The amount policy belongs to each destination,
+ * never here: `currency` and `region` are only the defaults a destination inherits
+ * when it states none, so the method does not fix a price.
  */
 const donationItemSchema = new Schema<IDonation>(
   {
@@ -43,12 +47,7 @@ const donationItemSchema = new Schema<IDonation>(
     mode: { type: String, required: true, default: 'platform' },
     region: { type: String, required: true, default: 'global' },
     variants: { type: [supportVariantSchema], default: [] },
-    amount: { type: Number, default: 0, min: 0 },
     currency: { type: String, default: 'toman' },
-    customAmount: { type: Boolean, default: true },
-    suggestedAmounts: { type: [Number], default: [] },
-    minAmount: { type: Number, default: 0, min: 0 },
-    maxAmount: { type: Number, default: 0, min: 0 },
     active: { type: Boolean, default: true },
     order: { type: Number, default: 0 },
     lang: { type: String, required: true },

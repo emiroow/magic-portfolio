@@ -4,13 +4,13 @@ import { getDonations } from '@/features/support/queries';
 import { clientIp, rateLimit } from '@/lib/rate-limit';
 import { cardQrPayload, cryptoQrPayload, qrDataUrl } from '@/features/support/qr';
 import { createGatewaySession, gatewaySupports, isGatewayConfigured } from '@/features/support/payments';
-import { resolveVariant, variantCurrency, variantName, variantRegion } from '@/features/support/variants';
+import { judgeAmount, resolveVariant, variantCurrency, variantName, variantRegion } from '@/features/support/variants';
 import { langSchema } from '@/lib/validations';
 import { supporterSubmitSchema } from '@/features/support/schema';
 import { supporterModel } from '@/features/support/supporter.model';
 import { site } from '@/lib/seo';
 import { revalidatePath } from 'next/cache';
-import type { GatewayId, IDonation, SupportCheckoutResult } from '@/features/support/types';
+import type { GatewayId, SupportCheckoutResult, SupportVariant } from '@/features/support/types';
 
 /**
  * Public checkout: one endpoint for every payment method. It records the gift, then
@@ -34,25 +34,25 @@ const LIMIT = 6;
 const WINDOW_MS = 5 * 60 * 1000;
 
 /**
- * Decide the amount that will actually be charged.
- * Returns a stable code so the wizard can say it in the visitor's own language.
+ * Decide the amount that will actually be charged, against the destination the
+ * supporter resolved to — never the parent method. The rule is the same `judgeAmount`
+ * the wizard mirrors, so the front and the back cannot disagree about a number. A
+ * stable code is returned so the wizard can say it in the visitor's own language.
  */
-function resolveAmount(method: IDonation, requested: number): { amount: number } | { code: string; message: string } {
-  // A fixed-price method only ever takes its own price.
-  if (!method.customAmount) {
-    const accepted = method.amount > 0 ? [method.amount] : method.suggestedAmounts;
-    if (accepted.includes(requested)) return { amount: requested };
-    return { code: 'fixed', message: 'This method has a fixed amount.' };
-  }
+function resolveAmount(variant: SupportVariant, requested: number): { amount: number } | { code: string; message: string } {
+  const verdict = judgeAmount(variant, requested);
+  if (verdict.ok) return { amount: requested };
 
-  if (method.minAmount > 0 && requested < method.minAmount) {
-    return { code: 'min', message: 'The amount is below the minimum for this method.' };
+  switch (verdict.code) {
+    case 'min':
+      return { code: 'min', message: 'The amount is below the minimum for this destination.' };
+    case 'max':
+      return { code: 'max', message: 'The amount is above the maximum for this destination.' };
+    case 'fixed':
+      return { code: 'fixed', message: 'This destination only accepts the amounts it lists.' };
+    default:
+      return { code: 'empty', message: 'Enter an amount above zero.' };
   }
-  if (method.maxAmount > 0 && requested > method.maxAmount) {
-    return { code: 'max', message: 'The amount is above the maximum for this method.' };
-  }
-
-  return { amount: requested };
 }
 
 /** Where the gateway returns to. Needs the public origin, so it is checked first. */
@@ -94,7 +94,7 @@ export const POST = async (request: Request, { params }: { params: Promise<{ lan
   const variant = resolveVariant(chosen, body.variantKey);
   if (!variant) return apiError('This method has no destination set up yet.', 502, { code: 'notConfigured' });
 
-  const amount = resolveAmount(chosen, body.amount);
+  const amount = resolveAmount(variant, body.amount);
   if ('code' in amount) return apiError(amount.message, 400, { code: amount.code });
 
   const currency = variantCurrency(chosen, variant);

@@ -2,7 +2,15 @@ import type { DonationMode, IDonation, SupportVariant } from '@/features/support
 import type { ProductCurrency } from '@/types';
 import { Coins, Coffee, CreditCard, Landmark, Star } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import { usableVariants, variantCurrency, variantRegion } from '@/features/support/variants';
+import {
+  handlesMoney,
+  judgeAmount,
+  takesOpenAmount,
+  usableVariants,
+  variantCurrency,
+  variantRegion,
+  variantStandingAmount,
+} from '@/features/support/variants';
 import { CRYPTO_NETWORKS, SUPPORT_PROVIDERS } from '@/features/support/constants';
 import { linkHost } from '@/lib/utils';
 
@@ -98,6 +106,24 @@ export function choiceCurrency(choice: Choice): ProductCurrency {
   return variantCurrency(choice.option, choice.variant);
 }
 
+/**
+ * The units a method can actually be paid in, in shown order and without repeats.
+ *
+ * A method's own `currency` is only the default a destination inherits, so one title
+ * can hold a dollar page and a toman card at once. Naming a single unit for such a
+ * method promises a price the supporter may never be asked to fill in, so a surface
+ * that speaks for the method rather than for one destination reads its units from
+ * here. `only` narrows the read to the destinations sharing one rule — the ones that
+ * take an open amount, typically — and a method with nothing to read falls back to
+ * its own default.
+ */
+export function optionCurrencies(option: IDonation, only?: (variant: SupportVariant) => boolean): ProductCurrency[] {
+  const list = usableVariants(option).filter(variant => (only ? only(variant) : true));
+  const units = list.map(variant => variantCurrency(option, variant));
+
+  return [...new Set(units.length ? units : [option.currency])];
+}
+
 /** Market a choice serves, for the tag a destination wears when it differs. */
 export function choiceRegion(choice: Choice) {
   return variantRegion(choice.option, choice.variant);
@@ -112,40 +138,40 @@ export function spansMarkets(option: IDonation): boolean {
 }
 
 /**
- * The methods an amount of the supporter's own choosing can travel on. A fixed-price
- * method is left out: naming a number there is not a choice the site can honour.
+ * The methods an amount of the supporter's own choosing can travel on. A method is
+ * flexible when at least one of its destinations accepts an amount the owner did not
+ * pre-set; a method whose destinations are all fixed-price is left out, since naming a
+ * number there is not a choice the site can honour.
  */
 export function flexibleMethods(options: IDonation[]): IDonation[] {
-  return options.filter(option => option.customAmount && usableVariants(option).length > 0);
+  return options.filter(option => handlesMoney(option.mode) && usableVariants(option).some(takesOpenAmount));
 }
 
 /**
- * Client-side mirror of the bounds the checkout enforces: is this number one the
- * method would accept? Moving between methods, or arriving on a deep link, asks the
- * same question, and the server always keeps the final say.
+ * Client-side mirror of the bounds the checkout enforces for a destination: is this
+ * number one that destination would accept? Moving between destinations or methods,
+ * or arriving on a deep link, asks the same question against the chosen destination —
+ * never the parent method — and the server keeps the final say through the same rule.
  */
-export function amountFits(option: IDonation, value: number): boolean {
-  if (value <= 0) return false;
-  if (option.minAmount > 0 && value < option.minAmount) return false;
-  if (option.maxAmount > 0 && value > option.maxAmount) return false;
-  return option.customAmount || value === option.amount || option.suggestedAmounts.includes(value);
+export function amountFits(variant: SupportVariant | undefined, value: number): boolean {
+  return judgeAmount(variant, value).ok;
 }
 
-/** What a method asks for by default: its own price, else its first suggested amount. */
-export function standingAmount(option: IDonation): number {
-  return option.amount > 0 ? option.amount : (option.suggestedAmounts[0] ?? 0);
+/** What a destination asks for by default: its own price, else its first suggested amount. */
+export function standingAmount(variant: SupportVariant | undefined): number {
+  return variantStandingAmount(variant);
 }
 
 /**
  * The amount to keep when a supporter moves from one choice to another.
  *
  * Bounds are not enough: ۲۵۰٬۰۰۰ تومان and ۲۵۰٬۰۰۰ دلار are the same digits and
- * nothing alike, and a method with no ceiling would accept either. A number only
- * survives a move between choices that price in the same currency; anywhere else the
- * new one starts from its method's own amount.
+ * nothing alike, and a destination with no ceiling would accept either. A number only
+ * survives a move between destinations that price in the same currency; anywhere else
+ * the destination moves to starts from its own standing amount.
  */
 export function carriableAmount(from: Choice, to: Choice, value: number): number {
-  return choiceCurrency(from) === choiceCurrency(to) && amountFits(to.option, value) ? value : standingAmount(to.option);
+  return choiceCurrency(from) === choiceCurrency(to) && amountFits(to.variant, value) ? value : standingAmount(to.variant);
 }
 
 /* ------------------------------- formatting ------------------------------- */

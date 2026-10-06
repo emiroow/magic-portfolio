@@ -6,7 +6,7 @@ import { getDonations, getSupportStats, getSupporterCounts, getSupporters } from
 import { getProfile } from '@/features/profile/queries';
 import { getSocials } from '@/features/socials/queries';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
-import { handlesMoney } from '@/features/support/variants';
+import { handlesMoney, usableVariants, variantCurrency } from '@/features/support/variants';
 import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
 import { documentKey, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
@@ -116,13 +116,19 @@ export default async function SupportPage({ params, searchParams }: Props) {
                       urlTemplate: localeUrl(locale, '/support'),
                       actionPlatform: 'http://schema.org/DesktopWebPlatform',
                     },
-                    offers: priced.map(method => ({
-                      '@type': 'Offer',
-                      name: method.title,
-                      price: method.amount > 0 ? method.amount : 0,
-                      priceCurrency: PRODUCT_CURRENCY_CODES[method.currency],
-                      availability: 'https://schema.org/InStock',
-                    })),
+                    offers: priced.map(method => {
+                      // An offer reflects the method's first destination: the amount and
+                      // unit belong to the destination, not the method.
+                      const preview = usableVariants(method)[0];
+                      const amount = preview?.amount ?? 0;
+                      return {
+                        '@type': 'Offer',
+                        name: method.title,
+                        price: amount > 0 ? amount : 0,
+                        priceCurrency: PRODUCT_CURRENCY_CODES[variantCurrency(method, preview)],
+                        availability: 'https://schema.org/InStock',
+                      };
+                    }),
                   },
                 }
               : {}),
