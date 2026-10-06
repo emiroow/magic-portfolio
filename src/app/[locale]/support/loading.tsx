@@ -15,19 +15,22 @@ export default async function SupportLoading() {
         <Skeleton className="h-px w-full" />
       </div>
 
-      <div className="flex flex-wrap gap-6 border-y py-4">
+      <div className="flex flex-wrap gap-x-12 gap-y-6 border-y py-5">
         {Array.from({ length: 2 }).map((_, index) => (
-          <Skeleton key={index} className="h-5 w-28" />
+          <div key={index} className="space-y-2">
+            <Skeleton className="h-7 w-20" />
+            <Skeleton className="h-3 w-16" />
+          </div>
         ))}
       </div>
 
       {/* The “your own amount” door, then one card per payment method. */}
       <div className="space-y-4">
-        <Skeleton className="h-28 w-full rounded-xl" />
+        <Skeleton className="h-32 w-full rounded-xl" />
 
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {Array.from({ length: 3 }).map((_, index) => (
-            <div key={index} className="space-y-3 rounded-xl border p-4">
+            <div key={index} className="space-y-3.5 rounded-xl border p-5">
               <div className="flex items-start gap-3">
                 <Skeleton className="size-9 shrink-0 rounded-lg" />
                 <div className="min-w-0 flex-1 space-y-2">

@@ -12,12 +12,18 @@ import { handlesMoney, usableVariants } from '@/features/support/variants';
 import { cn, documentKey, formatPrice, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IDonation, ISupporter } from '@/features/support/types';
-import { Check, HandHeart, ShieldCheck } from 'lucide-react';
+import { AlertTriangle, Check, ExternalLink, EyeOff, HandHeart, Unlock, X } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /** Gateway return states, resolved by the page from its own query string. */
 export type SupportReturnStatus = 'success' | 'cancelled' | 'failed' | 'error';
+
+/** One honest icon per reassurance, so the trust row reads at a glance instead of as three clones. */
+const TRUST_ICONS = { noAccount: Unlock, private: EyeOff, monochrome: ExternalLink } as const;
+
+/** The mark a gateway return wears: a tick, a cross, or a warning. */
+const RETURN_ICONS = { success: Check, cancelled: X, failed: AlertTriangle, error: AlertTriangle } as const;
 
 interface SupportBrowserProps {
   methods: IDonation[];
@@ -108,45 +114,50 @@ export default function SupportBrowser({
     const provider = (method.mode === 'action' && first?.provider ? t(`providers.${first.provider}`) : named) || t(`modes.${method.mode}`);
 
     return (
-      <Button size="sm" className="rounded-full" onClick={() => openMethod(method)}>
+      <Button className="rounded-full px-5" onClick={() => openMethod(method)}>
         {t(`cta.${method.mode}`, { provider })}
       </Button>
     );
   };
 
+  const ReturnIcon = returnStatus ? RETURN_ICONS[returnStatus] : null;
+  const returnFailed = returnStatus === 'failed' || returnStatus === 'error';
+
   return (
     <div className="flex flex-col gap-10">
-      {returnStatus && (
-        <div className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5" role="status">
-          {returnStatus === 'success' ? (
-            <Check className="mt-0.5 size-4 shrink-0" aria-hidden />
-          ) : (
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-muted-foreground" aria-hidden />
-          )}
+      {returnStatus && ReturnIcon && (
+        <div
+          role={returnFailed ? 'alert' : 'status'}
+          className={cn('flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5', returnFailed && 'border-foreground/30')}
+        >
+          <ReturnIcon
+            className={cn('mt-0.5 size-4 shrink-0', returnStatus === 'cancelled' ? 'text-muted-foreground' : 'text-foreground')}
+            aria-hidden
+          />
           <p className="min-w-0 text-sm leading-relaxed">{t(`status.${returnStatus}`)}</p>
         </div>
       )}
 
-      {/* Headline numbers, only where they mean something. */}
-      {(stats.supporters > 0 || stats.raised !== null) && (
-        <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2 border-y py-4 text-sm">
+      {/* Headline numbers, only where they mean something: each is a figure over its name. */}
+      {/* {(stats.supporters > 0 || stats.raised !== null) && (
+        <div className="flex flex-wrap items-start gap-x-12 gap-y-6 border-y py-5">
           {stats.supporters > 0 && (
-            <p className="flex items-baseline gap-2">
-              <span className="tabular-nums font-bold">{localizedCount(stats.supporters, lang)}</span>
-              <span className="text-muted-foreground">{t('stats.supportersLabel')}</span>
-            </p>
+            <div>
+              <p className="text-2xl font-bold leading-none tabular-nums sm:text-3xl">{localizedCount(stats.supporters, lang)}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{t('stats.supportersLabel')}</p>
+            </div>
           )}
           {stats.raised !== null && stats.currency && (
-            <p className="flex items-baseline gap-2">
-              <bdi dir="ltr" className="tabular-nums font-bold">
-                {formatPrice(stats.raised, lang)}
-              </bdi>
-              <span className="text-muted-foreground">{tp(stats.currency)}</span>
-              <span className="text-muted-foreground">{t('stats.raisedLabel')}</span>
-            </p>
+            <div>
+              <p className="flex items-baseline gap-1.5 text-2xl font-bold leading-none tabular-nums sm:text-3xl">
+                <bdi dir="ltr">{formatPrice(stats.raised, lang)}</bdi>
+                <span className="text-sm font-medium text-muted-foreground">{tp(stats.currency)}</span>
+              </p>
+              <p className="mt-2 text-xs text-muted-foreground">{t('stats.raisedLabel')}</p>
+            </div>
           )}
         </div>
-      )}
+      )} */}
 
       {methods.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
@@ -175,10 +186,10 @@ export default function SupportBrowser({
           {free.length > 0 && (
             <section aria-labelledby="free-support-heading" className={cn('space-y-4', paid.length > 0 && 'border-t pt-6')}>
               <div>
-                <h2 id="free-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight">
+                <h2 id="free-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight sm:text-lg">
                   {t('freeTitle')}
                 </h2>
-                <p className="mt-1.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('freeDescription')}</p>
+                <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('freeDescription')}</p>
               </div>
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {free.map(method => (
@@ -193,14 +204,18 @@ export default function SupportBrowser({
             </section>
           )}
 
-          {/* Trust line: what the page does not do with the supporter's data. */}
-          <ul className="flex flex-wrap gap-x-6 gap-y-2 border-t pt-5 text-xs text-muted-foreground">
-            {(['noAccount', 'private', 'monochrome'] as const).map(key => (
-              <li key={key} className="flex items-center gap-1.5">
-                <ShieldCheck className="size-3.5 shrink-0" aria-hidden />
-                {t(`trust.${key}`)}
-              </li>
-            ))}
+          {/* Trust line: what the page does not do with the supporter's data. Each promise
+              keeps its own icon, so the row is read at a glance rather than as three clones. */}
+          <ul className="flex flex-wrap gap-x-7 gap-y-3 border-t pt-6 text-xs text-muted-foreground">
+            {(['noAccount', 'private', 'monochrome'] as const).map(key => {
+              const Icon = TRUST_ICONS[key];
+              return (
+                <li key={key} className="flex items-center gap-2">
+                  <Icon className="size-4 shrink-0 text-foreground/70" aria-hidden />
+                  <span>{t(`trust.${key}`)}</span>
+                </li>
+              );
+            })}
           </ul>
         </div>
       )}

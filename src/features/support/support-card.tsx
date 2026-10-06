@@ -53,7 +53,9 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
   return (
     <Card className={cn(itemFrame, className)}>
       <div className="flex items-start gap-3">
-        <IconTile icon={Icon} />
+        {/* The tile inverts under the card's pointer: the one place this section lets a
+            surface go solid, so a method you can act on feels alive before you commit. */}
+        <IconTile icon={Icon} className="group-hover:border-foreground group-hover:bg-foreground group-hover:text-background" />
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-sm font-semibold leading-snug" dir={nameDir(option.title)}>
             {option.title}

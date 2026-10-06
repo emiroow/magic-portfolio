@@ -72,8 +72,9 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
     <li className={cn('h-full', className)}>
       <Card className={itemFrame}>
         <div className="flex items-start gap-3">
-          {/* Initial instead of an avatar: no third-party image host is involved. */}
-          <Monogram>{monogram}</Monogram>
+          {/* Initial instead of an avatar: no third-party image host is involved. It inverts
+              on hover exactly like a method card's icon, so the wall reads as the same system. */}
+          <Monogram className="group-hover:border-foreground group-hover:bg-foreground group-hover:text-background">{monogram}</Monogram>
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-semibold leading-snug" dir={nameDir(display)}>
               {display}

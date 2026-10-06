@@ -43,7 +43,7 @@ export default function FlexibleSupport({ methods, onOpen, className }: Flexible
     <section
       aria-labelledby="flexible-support-heading"
       className={cn(
-        'group flex flex-col gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
+        'group flex flex-col gap-4 rounded-xl border bg-card p-5 transition-colors hover:border-foreground/30 hover:bg-muted/30 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-6',
         className
       )}
     >

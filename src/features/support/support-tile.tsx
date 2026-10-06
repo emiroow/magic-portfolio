@@ -13,11 +13,13 @@ import type { ReactNode } from 'react';
 /**
  * The frame a support card wears. `Card` already brings the hairline, the surface and
  * the radius, so this carries only the rhythm and the one affordance these cards ever
- * have: the border darkening under a pointer, or under the focus of the button inside
- * it — a keyboard user gets the same feedback a mouse user does.
+ * have: the border darkening and a faint surface tint under a pointer, or under the
+ * focus of the button inside it — a keyboard user gets the same feedback a mouse user
+ * does. The padding is a touch roomier than a text card so a method reads as an object
+ * you act on, not a paragraph you skim.
  */
 export const itemFrame =
-  'group relative flex h-full flex-col gap-3 overflow-hidden p-4 transition-colors hover:border-foreground/30 focus-within:border-foreground/30';
+  'group relative flex h-full flex-col gap-3.5 overflow-hidden p-5 transition-colors hover:border-foreground/30 hover:bg-muted/30 focus-within:border-foreground/30';
 
 /** The bottom edge a price keeps, so cards of any text length still line up in a row. */
 export const itemFoot = 'mt-auto flex flex-wrap items-center justify-between gap-2 border-t pt-3';
