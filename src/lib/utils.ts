@@ -158,6 +158,18 @@ export function localizedCount(n: number, locale: 'fa' | 'en' = 'en'): string {
 }
 
 /**
+ * A short list of alternatives in the locale's own grammar — `USD or Toman` in
+ * English, `دلار یا تومان` in Persian — so a set of options never has to be joined
+ * by a slash that belongs to neither language.
+ */
+export function localizedList(values: string[], locale: 'fa' | 'en' = 'en'): string {
+  const items = values.filter(Boolean);
+  if (items.length < 2) return items[0] ?? '';
+
+  return new Intl.ListFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { style: 'short', type: 'disjunction' }).format(items);
+}
+
+/**
  * URL segment from a title: lower-cased, spaces folded to dashes, Latin and
  * Persian letters plus digits kept, everything else dropped.
  */

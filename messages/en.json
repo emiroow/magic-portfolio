@@ -220,6 +220,7 @@
     "anyAmountTitle": "Your own amount",
     "anyAmountDescription": "Method, destination and amount are all yours to choose in the window that opens. Nothing is taken before you confirm it there.",
     "anyPrice": "Any amount",
+    "fromPrice": "From",
     "freePrice": "Costs nothing",
     "freeTitle": "Support that costs nothing",
     "freeDescription": "A star, a follow, a bug report: none of these asks for money and all of them keep the project visible.",

@@ -1,11 +1,11 @@
 'use client';
 
-import { PriceTag } from '@/features/products/price-tag';
 import { IconTile, Tag } from '@/features/support/support-tile';
+import { SupportPrice } from '@/features/support/support-price';
 import { MODE_ICONS, nameDir, variantDetail, variantLabel } from '@/features/support/support-meta';
 import { Card } from '@/components/ui/card';
 import { cn, localizedCount } from '@/lib/utils';
-import { handlesMoney, usableVariants } from '@/features/support/variants';
+import { usableVariants } from '@/features/support/variants';
 import type { AppLocale } from '@/types';
 import type { IDonation } from '@/features/support/types';
 import { useLocale, useTranslations } from 'next-intl';
@@ -37,7 +37,6 @@ interface SupportCardProps {
  */
 export function SupportCard({ option, supporters, action, className }: SupportCardProps) {
   const t = useTranslations('support');
-  const tp = useTranslations('pricing');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
@@ -108,21 +107,12 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
           </p>
         )}
 
-        {/* Price and action share the bottom edge, so cards of any text length align. */}
+        {/* Price and action share the bottom edge, so cards of any text length align. The
+            price keeps its own line whole: a long amount or a list of units never gets
+            clipped, it takes the row and leaves the button the next one. */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
-          {!handlesMoney(option.mode) ? (
-            // A gesture asks for attention, not money: no number and no unit here.
-            <span className="text-sm font-semibold">{t('freePrice')}</span>
-          ) : option.amount > 0 ? (
-            <PriceTag amount={option.amount} currency={option.currency} className="text-sm font-semibold" />
-          ) : (
-            // An open amount still needs its unit: a number means nothing on its own.
-            <span className="flex items-baseline gap-1.5 text-sm font-semibold">
-              {t('anyPrice')}
-              <span className="text-[11px] font-normal text-muted-foreground">{tp(option.currency)}</span>
-            </span>
-          )}
-          <span className="relative z-[1]">{action}</span>
+          <SupportPrice option={option} className="min-w-0" />
+          <span className="relative z-[1] shrink-0">{action}</span>
         </div>
       </div>
     </Card>

@@ -1,7 +1,7 @@
 'use client';
 
-import { PriceTag } from '@/features/products/price-tag';
 import { IconTile, Tag } from '@/features/support/support-tile';
+import { SupportPrice } from '@/features/support/support-price';
 import { MODE_ICONS, nameDir, variantDetail, variantLabel } from '@/features/support/support-meta';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import Loading from '@/components/ui/loading';
 import { cn, documentKey, localizedCount } from '@/lib/utils';
-import { handlesMoney, usableVariants } from '@/features/support/variants';
+import { usableVariants } from '@/features/support/variants';
 import type { AppLocale } from '@/types';
 import type { IDonation } from '@/features/support/types';
 import { ExternalLink, Eye, EyeOff, Pencil, Trash2 } from 'lucide-react';
@@ -109,13 +109,9 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          {!handlesMoney(method.mode) ? (
-            <Tag>{ts('freePrice')}</Tag>
-          ) : method.amount > 0 ? (
-            <PriceTag amount={method.amount} currency={method.currency} className="text-sm font-semibold" />
-          ) : (
-            <Tag>{ts('anyPrice')}</Tag>
-          )}
+          {/* The same price line the public card draws, read through this method's own
+              first destination. */}
+          <SupportPrice option={method} />
 
           {/* Every destination the supporter will be offered, in page order. */}
           {named.length > 0 && (

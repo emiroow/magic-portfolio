@@ -1,11 +1,19 @@
 'use client';
 
 import { ChoiceGroup } from '@/features/support/steps/step-parts';
-import { MODE_ICONS, choiceRegion, nameDir, variantDetail, variantInstruction, variantLabel } from '@/features/support/support-meta';
+import {
+  MODE_ICONS,
+  choiceRegion,
+  nameDir,
+  optionCurrencies,
+  variantDetail,
+  variantInstruction,
+  variantLabel,
+} from '@/features/support/support-meta';
 import { ChoiceTile } from '@/features/support/support-tile';
 import { PriceTag } from '@/features/products/price-tag';
 import { Input } from '@/components/ui/input';
-import { cn, documentKey, formatPrice, localizedCount } from '@/lib/utils';
+import { cn, documentKey, formatPrice, localizedCount, localizedList } from '@/lib/utils';
 import { handlesMoney, variantCurrency } from '@/features/support/variants';
 import type { AppLocale, ProductCurrency } from '@/types';
 import type { IDonation, SupportVariant } from '@/features/support/types';
@@ -71,10 +79,10 @@ export function ChooseStep({
   const join = (parts: (string | undefined)[]) => parts.filter(Boolean).join(' · ');
   const destinationName = variantLabel(variant, t) || variantDetail(variant) || option.title;
   const instruction = variantInstruction(variant);
-  /** The bounds the method sets, said once, in the unit the amount is written in. */
+  /** The bounds the selected destination sets, said once, in the unit its amount is written in. */
   const bounds = join([
-    option.minAmount > 0 ? td('min', { amount: `${formatPrice(option.minAmount, lang)} ${tp(currency)}` }) : '',
-    option.maxAmount > 0 ? td('max', { amount: `${formatPrice(option.maxAmount, lang)} ${tp(currency)}` }) : '',
+    (variant?.minAmount ?? 0) > 0 ? td('min', { amount: `${formatPrice(variant?.minAmount ?? 0, lang)} ${tp(currency)}` }) : '',
+    (variant?.maxAmount ?? 0) > 0 ? td('max', { amount: `${formatPrice(variant?.maxAmount ?? 0, lang)} ${tp(currency)}` }) : '',
   ]);
 
   return (
@@ -85,11 +93,17 @@ export function ChooseStep({
           {choices.map(method => {
             const Icon = MODE_ICONS[method.mode];
             const modeLabel = t(`modes.${method.mode}`);
-            // Each tile speaks for its own method: a price in its own unit, or the
+            // Each tile speaks for its own method: the units it actually takes money
+            // in — all of them, since one method can hold two currencies — or the
             // fact that a gesture has none.
             const detail = join([
               method.title.trim() === modeLabel ? '' : modeLabel,
-              handlesMoney(method.mode) ? tp(method.currency) : t('freePrice'),
+              handlesMoney(method.mode)
+                ? localizedList(
+                    optionCurrencies(method).map(code => tp(code)),
+                    lang
+                  )
+                : t('freePrice'),
             ]);
 
             return (
