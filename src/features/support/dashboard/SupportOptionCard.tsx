@@ -48,7 +48,7 @@ const SupportOptionRow = ({ method, onEdit, onDelete, isDeleting, onToggleActive
   const href = `/${locale}/support${key ? `?option=${encodeURIComponent(key)}` : ''}`;
 
   return (
-    <Card className="transition-colors hover:border-foreground/30">
+    <Card className="group transition-colors hover:border-foreground/30">
       <CardHeader className="flex-row items-center justify-between space-y-0 p-4 sm:p-5">
         <div className="flex min-w-0 items-start gap-3">
           <IconTile icon={Icon} />

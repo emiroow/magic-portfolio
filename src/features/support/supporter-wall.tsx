@@ -2,7 +2,7 @@
 
 import { PriceTag } from '@/features/products/price-tag';
 import { storedVariantName, nameDir } from '@/features/support/support-meta';
-import { Tag } from '@/features/support/support-tile';
+import { IconTile, Monogram, Tag, itemFoot, itemFrame } from '@/features/support/support-tile';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { SUPPORTER_PAGE_SIZE } from '@/features/support/constants';
@@ -31,9 +31,7 @@ export function SupporterWall({ supporters }: { supporters: ISupporter[] }) {
   if (!supporters.length) {
     return (
       <div className="flex flex-col items-center gap-3 rounded-xl border border-dashed py-12 text-center">
-        <span aria-hidden className="flex size-10 items-center justify-center rounded-lg border bg-muted/40">
-          <HandHeart className="size-4 text-muted-foreground" />
-        </span>
+        <IconTile icon={HandHeart} />
         <p className="max-w-sm px-6 text-sm text-muted-foreground">{t('empty')}</p>
       </div>
     );
@@ -72,15 +70,10 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
 
   return (
     <li className={cn('h-full', className)}>
-      <Card className="flex h-full flex-col gap-3 rounded-xl p-4 transition-colors hover:border-foreground/30">
+      <Card className={itemFrame}>
         <div className="flex items-start gap-3">
           {/* Initial instead of an avatar: no third-party image host is involved. */}
-          <span
-            aria-hidden
-            className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40 text-sm font-bold text-muted-foreground"
-          >
-            {monogram}
-          </span>
+          <Monogram>{monogram}</Monogram>
           <div className="min-w-0 flex-1">
             <p className="break-words text-sm font-semibold leading-snug" dir={nameDir(display)}>
               {display}
@@ -107,7 +100,7 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
         )}
 
         {/* The amount keeps the bottom edge, exactly where a method card keeps its price. */}
-        <div className="mt-auto border-t pt-3">
+        <div className={itemFoot}>
           <PriceTag amount={supporter.amount} currency={supporter.currency} className="text-sm font-semibold" />
         </div>
       </Card>

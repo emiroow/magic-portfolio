@@ -42,11 +42,14 @@ export default function FlexibleSupport({ methods, onOpen, className }: Flexible
   return (
     <section
       aria-labelledby="flexible-support-heading"
-      className={cn('flex flex-col gap-4 rounded-xl border bg-card p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6 sm:p-5', className)}
+      className={cn(
+        'group flex flex-col gap-4 rounded-xl border bg-card p-4 transition-colors hover:border-foreground/30 sm:flex-row sm:items-center sm:justify-between sm:gap-6',
+        className
+      )}
     >
       <div className="flex min-w-0 items-start gap-4">
         {/* The section's own mark, held at the same scale as a card's icon tile. */}
-        <SupportMark className="size-9 shrink-0 text-muted-foreground" />
+        <SupportMark className="size-9 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
         <div className="min-w-0 space-y-1.5">
           <h2 id="flexible-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight">
             {t('anyAmountTitle')}

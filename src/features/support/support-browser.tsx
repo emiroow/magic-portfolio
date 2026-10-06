@@ -3,6 +3,7 @@
 import FlexibleSupport from '@/features/support/flexible-support';
 import { SupportCard } from '@/features/support/support-card';
 import { SupportDialog } from '@/features/support/support-dialog';
+import { IconTile } from '@/features/support/support-tile';
 import { SupporterWall } from '@/features/support/supporter-wall';
 import { flexibleMethods, variantLabel } from '@/features/support/support-meta';
 import { Button } from '@/components/ui/button';
@@ -149,9 +150,7 @@ export default function SupportBrowser({
 
       {methods.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
-          <span aria-hidden className="flex size-10 items-center justify-center rounded-lg border bg-muted/40">
-            <HandHeart className="size-4 text-muted-foreground" />
-          </span>
+          <IconTile icon={HandHeart} />
           <p className="max-w-md px-6 text-sm leading-relaxed text-muted-foreground">{t('empty')}</p>
         </div>
       ) : (

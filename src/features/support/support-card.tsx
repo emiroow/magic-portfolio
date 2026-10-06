@@ -1,6 +1,6 @@
 'use client';
 
-import { IconTile, Tag } from '@/features/support/support-tile';
+import { IconTile, Tag, itemFoot, itemFrame } from '@/features/support/support-tile';
 import { SupportPrice } from '@/features/support/support-price';
 import { MODE_ICONS, nameDir, variantDetail, variantLabel } from '@/features/support/support-meta';
 import { Card } from '@/components/ui/card';
@@ -51,14 +51,9 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
   ].filter(Boolean);
 
   return (
-    <Card
-      className={cn(
-        'group relative flex h-full flex-col gap-3 overflow-hidden rounded-xl p-4 transition-colors hover:border-foreground/30',
-        className
-      )}
-    >
+    <Card className={cn(itemFrame, className)}>
       <div className="flex items-start gap-3">
-        <IconTile icon={Icon} className="transition-colors group-hover:text-foreground" />
+        <IconTile icon={Icon} />
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-sm font-semibold leading-snug" dir={nameDir(option.title)}>
             {option.title}
@@ -111,7 +106,7 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
         {/* Price and action share the bottom edge, so cards of any text length align. The
             price keeps its own line whole: a long amount or a list of units never gets
             clipped, it takes the row and leaves the button the next one. */}
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t pt-3">
+        <div className={itemFoot}>
           <SupportPrice option={option} className="min-w-0" />
           <span className="relative z-[1] shrink-0">{action}</span>
         </div>
