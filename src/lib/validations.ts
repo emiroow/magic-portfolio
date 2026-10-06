@@ -1,4 +1,4 @@
-import { PRODUCT_CURRENCIES } from '@/constants/global';
+import { PRODUCT_CURRENCIES, SUPPORT_CURRENCIES } from '@/constants/global';
 import { z } from 'zod';
 
 /**
@@ -27,8 +27,15 @@ export const slugSchema = z
 /** Tags/technologies: trimmed, de-duplicated, bounded. */
 export const tagListSchema = () => z.array(z.string().trim().min(1).max(32)).max(12);
 
-/** Currency selector offered to a product price and a support method alike. */
+/** Currency selector offered to a product price: the moneys a shop can quote in. */
 export const productCurrencySchema = z.enum(PRODUCT_CURRENCIES, { errorMap: () => ({ message: 'Choose a currency' }) });
+
+/**
+ * Currency selector offered to a support method: the moneys above plus the coins a
+ * wallet can receive. A shop never quotes in coins, so the two lists stay apart even
+ * though both read their labels from the `pricing` namespace.
+ */
+export const supportCurrencySchema = z.enum(SUPPORT_CURRENCIES, { errorMap: () => ({ message: 'Choose a currency' }) });
 
 /** Wrap any create schema into an update schema keyed by `_id`. */
 export function forUpdate<S extends z.ZodRawShape>(schema: z.ZodObject<S>) {
