@@ -80,7 +80,7 @@ export function NavbarMenu({ routes, active }: NavbarMenuProps) {
           (active || open) && 'bg-accent text-accent-foreground'
         )}
       >
-        {active || open ? <PanelTopOpen className="size-4" /> : <PanelBottomOpen className="size-4" />}
+        {open ? <PanelTopOpen className="size-4" /> : <PanelBottomOpen className="size-4" />}
       </button>
 
       {open && (
