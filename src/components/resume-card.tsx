@@ -3,7 +3,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { ChevronDown, ExternalLink, PencilLine, Trash2 } from 'lucide-react';
+import { ChevronDown, ExternalLink } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import React from 'react';
@@ -18,14 +18,7 @@ interface ResumeCardProps {
   period?: string;
   /** Extra trailing segment on the meta line (e.g. the work location). */
   meta?: string;
-  /** `card` renders its own border; `row` sits inside a divided `Stack`. */
-  variant?: 'card' | 'row';
-  /** Dashboard mode: expansion is controlled by the parent. */
-  isExpanded?: boolean;
   description?: string;
-  onEdit?: () => void;
-  onDelete?: () => void;
-  onToggle?: () => void;
 }
 
 /** Absolute URLs open in a new tab; internal ones navigate in place. */
@@ -39,48 +32,23 @@ const Dot = () => (
 );
 
 /**
- * Timeline entry shared by the public site (work / education) and the
- * dashboard lists. Title on the first line, role · period · place on the
- * second, so no element floats to the opposite edge of the row.
- * The description is disclosed through an explicit toggle (CSS height
- * transition, no animation runtime) so an entry can link out *and* expand.
+ * One public timeline entry (work / education).
+ *
+ * Title on the first line, role · period · place on the second, so no element floats
+ * to the opposite edge of the row. The description is disclosed through an explicit
+ * toggle (CSS height transition, no animation runtime) so an entry can link out *and*
+ * expand.
+ *
+ * The dashboard lists its own records with `ResumeRow` instead: these are entries a
+ * visitor reads, not records an owner edits.
  */
-export const ResumeCard = ({
-  logoUrl,
-  altText,
-  title,
-  subtitle,
-  href,
-  badges,
-  period,
-  meta,
-  variant = 'card',
-  description,
-  onDelete,
-  onEdit,
-  isExpanded: isExpandedOuter,
-  onToggle,
-}: ResumeCardProps) => {
-  const [isExpandedInner, setIsExpandedInner] = React.useState(false);
-  const isExpanded = Boolean(isExpandedOuter) || isExpandedInner;
+export const ResumeCard = ({ logoUrl, altText, title, subtitle, href, badges, period, meta, description }: ResumeCardProps) => {
+  const t = useTranslations();
+  const [isExpanded, setIsExpanded] = React.useState(false);
   const headingId = React.useId();
-  const t = useTranslations('dashboard');
-
-  // The parent owns the state when it passes a toggle handler.
-  const toggle = () => (onToggle ? onToggle() : setIsExpandedInner(value => !value));
-
-  const iconButtonClass =
-    'flex size-8 shrink-0 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground';
 
   return (
-    <article
-      className={cn(
-        'group flex w-full flex-col',
-        variant === 'row'
-          ? 'px-4 py-4 transition-colors hover:bg-muted/40 focus-within:bg-muted/40 sm:px-5'
-          : 'rounded-xl border bg-card px-4 py-4 shadow-sm transition-colors hover:border-foreground/30 sm:px-5'
-      )}
-    >
+    <article className="group flex w-full flex-col px-4 py-4 transition-colors hover:bg-muted/40 focus-within:bg-muted/40 sm:px-5">
       <div className="flex items-start gap-3 sm:gap-4">
         {/* The gutter is always reserved so rows stay aligned without a logo. */}
         <Avatar className="size-9 shrink-0 border sm:size-11">
@@ -130,36 +98,21 @@ export const ResumeCard = ({
           )}
         </div>
 
-        {(description || onEdit || onDelete) && (
-          <div className="-me-1 flex shrink-0 items-center gap-0.5">
-            {description && (
-              <button
-                type="button"
-                onClick={toggle}
-                aria-expanded={isExpanded}
-                aria-controls={`${headingId}-panel`}
-                aria-label={t('details')}
-                className={cn(
-                  'inline-flex h-8 items-center gap-1 rounded-full px-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground',
-                  isExpanded && 'text-foreground'
-                )}
-              >
-                {/* Icon-only on the narrowest rows, labelled from `sm` up. */}
-                <span className="hidden sm:inline">{t('details')}</span>
-                <ChevronDown className={cn('size-4 transition-transform duration-300', isExpanded && 'rotate-180')} aria-hidden />
-              </button>
+        {description && (
+          <button
+            type="button"
+            onClick={() => setIsExpanded(value => !value)}
+            aria-expanded={isExpanded}
+            aria-controls={`${headingId}-panel`}
+            className={cn(
+              '-me-1 inline-flex h-8 shrink-0 items-center gap-1 self-start rounded-full px-1.5 text-[11px] font-medium text-muted-foreground transition-colors hover:text-foreground',
+              isExpanded && 'text-foreground'
             )}
-            {onEdit && (
-              <button type="button" onClick={onEdit} aria-label={t('edit')} className={iconButtonClass}>
-                <PencilLine className="size-4" aria-hidden />
-              </button>
-            )}
-            {onDelete && (
-              <button type="button" onClick={onDelete} aria-label={t('delete')} className={cn(iconButtonClass, 'hover:text-destructive')}>
-                <Trash2 className="size-4" aria-hidden />
-              </button>
-            )}
-          </div>
+          >
+            {/* The word carries the affordance; the chevron carries the state. */}
+            <span className="hidden sm:inline">{t('details')}</span>
+            <ChevronDown className={cn('size-4 transition-transform duration-300', isExpanded && 'rotate-180')} aria-hidden />
+          </button>
         )}
       </div>
 

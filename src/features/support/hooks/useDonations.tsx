@@ -11,6 +11,7 @@ import { useFieldArray, useForm, type UseFormRegister } from 'react-hook-form';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
 import { useToastMessages } from '@/hooks/useToastMessages';
+import { pendingRecordId } from '@/hooks/pendingRecordId';
 
 /** The API's own method shape, widened by the document id when editing. */
 export type DonationForm = DonationFormInput;
@@ -204,7 +205,7 @@ const useDonations = () => {
     onError: () => fail(),
   });
 
-  const { mutate: deleteDonation, isPending: deleting } = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/donation?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
@@ -217,7 +218,7 @@ const useDonations = () => {
    * Row-level toggles send only the flipped flag: the update schema is partial,
    * so a long-form body open in the edit panel is never rewritten by mistake.
    */
-  const toggleActive = useMutation({
+  const activeMutation = useMutation({
     mutationFn: (method: IDonation) => api.put<IDonation>(`/api/${locale}/admin/donation`, { _id: method._id, active: !method.active }),
     onSuccess: () => {
       ok();
@@ -339,9 +340,10 @@ const useDonations = () => {
     error,
     refetchDonations,
     save,
-    deleteDonation,
-    deleting,
-    toggleActive,
+    deleteDonation: deleteMutation.mutate,
+    deletingId: pendingRecordId(deleteMutation),
+    toggleActive: activeMutation.mutate,
+    togglingActiveId: pendingRecordId(activeMutation),
     addVariantSuggested,
     removeVariantSuggested,
     setVariantAsset,
@@ -350,9 +352,7 @@ const useDonations = () => {
     addVariant,
     removeVariant,
     variantFieldsArray: variantList,
-    emptyVariant: EMPTY_VARIANT,
     startEdit,
-    empty: EMPTY,
     onSubmit: (data: DonationForm, onSaved?: () => void) => save.mutate(data, { onSuccess: onSaved }),
   };
 };

@@ -1,9 +1,10 @@
 'use client';
 
-import { Field } from '@/features/dashboard/shared';
-import { Badge } from '@/components/ui/badge';
+import { ChipList } from '@/features/dashboard/components';
+import { Field } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Select } from '@/components/ui/select';
 import {
   ACTION_PROVIDERS,
   CRYPTO_NETWORKS,
@@ -145,14 +146,14 @@ const SupportVariantRow = ({
           {mode === 'platform' && (
             <>
               <Field label={t('platform')} id={control('provider')} error={errors?.provider?.message}>
-                <select id={control('provider')} {...register(path('provider'))} className="control">
+                <Select id={control('provider')} {...register(path('provider'))}>
                   <option value="">—</option>
                   {PLATFORM_PROVIDERS.map(value => (
                     <option key={value} value={value}>
                       {ts(`providers.${value}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
               <Field label={t('page')} id={control('href')} error={errors?.href?.message} hint={t('pageHint')}>
                 <Input id={control('href')} type="url" dir="ltr" {...register(path('href'))} placeholder={t('pagePlaceholder')} />
@@ -207,10 +208,9 @@ const SupportVariantRow = ({
               {/* Coin and ledger are two questions with two answers. The lists narrow each
                   other, so the pair on the row is one a wallet can actually pay. */}
               <Field label={t('asset')} id={control('asset')} error={errors?.asset?.message} hint={t('assetHint')}>
-                <select
+                <Select
                   id={control('asset')}
                   {...assetField}
-                  className="control"
                   onChange={event => {
                     assetField.onChange(event);
                     onAssetChange(index, event.target.value);
@@ -222,13 +222,12 @@ const SupportVariantRow = ({
                       {tp(value)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
               <Field label={t('cryptoNetwork')} id={control('network')} error={errors?.network?.message} hint={t('networkHint')}>
-                <select
+                <Select
                   id={control('network')}
                   {...networkField}
-                  className="control"
                   onChange={event => {
                     networkField.onChange(event);
                     onNetworkChange(index, event.target.value);
@@ -240,7 +239,7 @@ const SupportVariantRow = ({
                       {ts(`networks.${value}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
               <Field label={t('cryptoAddress')} id={control('address')} error={errors?.address?.message}>
                 <Input id={control('address')} dir="ltr" {...register(path('address'))} placeholder={t('cryptoAddressPlaceholder')} />
@@ -255,11 +254,10 @@ const SupportVariantRow = ({
               error={errors?.provider?.message}
               hint={gatewayMissing(variant?.provider) ? t('gatewayMissing') : t('gatewayHint')}
             >
-              <select
+              <Select
                 id={control('provider')}
                 {...register(path('provider'))}
-                className="control"
-                aria-invalid={gatewayMissing(variant?.provider) || undefined}
+                aria-invalid={gatewayMissing(variant?.provider) || Boolean(errors?.provider) || undefined}
               >
                 <option value="">—</option>
                 {GATEWAY_IDS.map(value => (
@@ -268,21 +266,21 @@ const SupportVariantRow = ({
                     {settings ? (settings.gateways.includes(value) ? ' ✓' : ' ✕') : ''}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
           )}
 
           {mode === 'action' && (
             <>
               <Field label={t('actionNetwork')} id={control('provider')} error={errors?.provider?.message}>
-                <select id={control('provider')} {...register(path('provider'))} className="control">
+                <Select id={control('provider')} {...register(path('provider'))}>
                   <option value="">—</option>
                   {ACTION_PROVIDERS.map(value => (
                     <option key={value} value={value}>
                       {ts(`providers.${value}`)}
                     </option>
                   ))}
-                </select>
+                </Select>
               </Field>
               <Field label={t('actionPage')} id={control('href')} error={errors?.href?.message} hint={t('actionPageHint')}>
                 <Input id={control('href')} type="url" dir="ltr" {...register(path('href'))} placeholder={t('actionPagePlaceholder')} />
@@ -330,25 +328,25 @@ const SupportVariantRow = ({
             <p className="self-end text-xs leading-relaxed text-muted-foreground">{t('cryptoCurrencyNote')}</p>
           ) : (
             <Field label={t('currencyOverride')} id={control('currency')} optionalLabel={t('optional')}>
-              <select id={control('currency')} {...register(path('currency'))} className="control">
+              <Select id={control('currency')} {...register(path('currency'))}>
                 <option value="">{t('inherit')}</option>
                 {PRODUCT_CURRENCIES.map(code => (
                   <option key={code} value={code}>
                     {tp(code)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
           )}
           <Field label={t('regionOverride')} id={control('region')} optionalLabel={t('optional')}>
-            <select id={control('region')} {...register(path('region'))} className="control">
+            <Select id={control('region')} {...register(path('region'))}>
               <option value="">{t('inherit')}</option>
               {DONATION_REGIONS.map(value => (
                 <option key={value} value={value}>
                   {ts(`regions.${value}`)}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         </div>
 
@@ -430,19 +428,17 @@ const SupportVariantRow = ({
                   {t('add')}
                 </Button>
               </div>
-              {suggested.length > 0 && (
-                <ul className="flex flex-wrap gap-1.5">
-                  {suggested.map((value, pos) => (
-                    <li key={`${value}-${pos}`}>
-                      <Badge variant="secondary" onDelete={() => onRemoveSuggested(index, pos)}>
-                        {/* Amounts are numeric runs: grouping must never mirror. */}
-                        <bdi dir="ltr">{formatPrice(value, lang)}</bdi>
-                        {variant?.currency && <span className="ms-1 opacity-70">{tp(variant.currency)}</span>}
-                      </Badge>
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <ChipList
+                items={suggested}
+                onRemove={pos => onRemoveSuggested(index, pos)}
+                renderChip={value => (
+                  <>
+                    {/* Amounts are numeric runs: grouping must never mirror. */}
+                    <bdi dir="ltr">{formatPrice(value, lang)}</bdi>
+                    {variant?.currency && <span className="ms-1 opacity-70">{tp(variant.currency)}</span>}
+                  </>
+                )}
+              />
             </Field>
           </div>
         )}

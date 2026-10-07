@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
 import { useLocale } from 'next-intl';
-import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -30,7 +29,6 @@ const EMPTY: WorkForm = {
 const useWorkExperience = () => {
   const locale = useLocale();
   const { ok, fail } = useToastMessages();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -121,7 +119,6 @@ const useWorkExperience = () => {
     uploadLogo,
     deleteLogo,
     startEdit,
-    fileInputRef,
     onSubmit: (data: WorkForm, onSaved?: () => void) => save.mutate(data, { onSuccess: onSaved }),
   };
 };

@@ -18,26 +18,32 @@ const badgeVariants = cva(
   }
 );
 
-export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {
-  /** Optional delete handler. If provided, a remove button is rendered. */
-  onDelete?: (event: React.MouseEvent<HTMLButtonElement>) => void;
-}
+interface BadgeBaseProps extends React.HTMLAttributes<HTMLDivElement>, VariantProps<typeof badgeVariants> {}
 
-function Badge({ className, variant, onDelete, children, ...props }: BadgeProps) {
+/**
+ * `removeLabel` is required the moment `onDelete` is, because the remove button is
+ * an icon on its own: without a name it announces as "button" in every language,
+ * and the chip it belongs to is the only thing that says what would be removed.
+ */
+export type BadgeProps =
+  | (BadgeBaseProps & { onDelete?: undefined; removeLabel?: undefined })
+  | (BadgeBaseProps & { onDelete: (event: React.MouseEvent<HTMLButtonElement>) => void; removeLabel: string });
+
+function Badge({ className, variant, onDelete, removeLabel, children, ...props }: BadgeProps) {
   return (
     <div className={cn(badgeVariants({ variant }), className)} {...props}>
       {children}
       {onDelete && (
         <button
           type="button"
-          onClick={e => {
-            e.stopPropagation();
-            onDelete(e);
+          onClick={event => {
+            event.stopPropagation();
+            onDelete(event);
           }}
-          aria-label="Remove"
-          className="-me-1 rounded-sm opacity-70 transition-opacity hover:opacity-100"
+          aria-label={removeLabel}
+          className="-me-1 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:opacity-100"
         >
-          <X className="h-3 w-3" />
+          <X className="size-3" aria-hidden />
         </button>
       )}
     </div>

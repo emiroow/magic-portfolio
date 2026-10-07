@@ -6,6 +6,7 @@ import type { IBlog } from '@/features/blog/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
+import { pendingRecordId } from '@/hooks/pendingRecordId';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -57,7 +58,7 @@ const useBlog = () => {
     onError: () => fail(),
   });
 
-  const { mutate: deletePost, isPending: deleting } = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/blog?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
@@ -67,7 +68,7 @@ const useBlog = () => {
   });
 
   // Publish/unpublish straight from the list row.
-  const togglePublished = useMutation({
+  const publishedMutation = useMutation({
     mutationFn: (post: IBlog) => api.put<IBlog>(`/api/${locale}/admin/blog`, { _id: post._id, published: !post.published }),
     onSuccess: () => {
       ok();
@@ -78,7 +79,7 @@ const useBlog = () => {
 
   // Home page pick from the list row. The update schema is partial, so only the
   // flipped flag is sent and an open edit panel is never rewritten.
-  const toggleFeatured = useMutation({
+  const featuredMutation = useMutation({
     mutationFn: (post: IBlog) => api.put<IBlog>(`/api/${locale}/admin/blog`, { _id: post._id, featured: !post.featured }),
     onSuccess: () => {
       ok();
@@ -132,7 +133,6 @@ const useBlog = () => {
     handleSubmit,
     setValue,
     watch,
-    getValues,
     reset,
     errors,
     posts,
@@ -141,10 +141,12 @@ const useBlog = () => {
     error,
     refetchPosts,
     save,
-    deletePost,
-    deleting,
-    togglePublished,
-    toggleFeatured,
+    deletePost: deleteMutation.mutate,
+    deletingId: pendingRecordId(deleteMutation),
+    togglePublished: publishedMutation.mutate,
+    togglingPublishedId: pendingRecordId(publishedMutation),
+    toggleFeatured: featuredMutation.mutate,
+    togglingFeaturedId: pendingRecordId(featuredMutation),
     uploadCover,
     deleteCover,
     startEdit,

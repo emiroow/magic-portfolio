@@ -9,12 +9,13 @@ import { useToastMessages } from '@/hooks/useToastMessages';
 import { useLocale, useTranslations } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
+import { MAX_SOCIALS } from '@/features/socials/constants';
 
 // Same schema as the API plus the optional document id for edits.
 const formSchema = socialSchema.extend({ _id: z.string().optional() });
 type SocialForm = z.infer<typeof formSchema>;
 
-const MAX_SOCIALS = 4;
+const EMPTY: SocialForm = { name: '', url: '', icon: '' };
 
 /** Social links list + CRUD mutations for the dashboard. */
 const useSocials = () => {
@@ -25,13 +26,12 @@ const useSocials = () => {
   const {
     register,
     handleSubmit,
-    setValue,
     reset,
     watch,
     formState: { errors },
   } = useForm<SocialForm>({
     resolver: zodResolver(formSchema),
-    defaultValues: { name: '', url: '', icon: '' },
+    defaultValues: EMPTY,
     mode: 'onTouched',
   });
 
@@ -40,7 +40,7 @@ const useSocials = () => {
     isPending,
     isError,
     error,
-    refetch,
+    refetch: refetchSocials,
   } = useQuery({
     queryKey: ['socials', locale],
     queryFn: () => api.get<ISocial[]>(`/api/${locale}/admin/social`),
@@ -51,8 +51,8 @@ const useSocials = () => {
       data._id ? api.put<ISocial>(`/api/${locale}/admin/social`, data) : api.post<ISocial>(`/api/${locale}/admin/social`, data),
     onSuccess: () => {
       ok();
-      reset();
-      refetch();
+      reset(EMPTY);
+      refetchSocials();
     },
     onError: () => fail(),
   });
@@ -61,47 +61,37 @@ const useSocials = () => {
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/social?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
-      refetch();
+      refetchSocials();
     },
     onError: () => fail(),
   });
 
-  const onsubmit = (data: SocialForm) => {
-    if (!data._id && (socials?.length ?? 0) >= MAX_SOCIALS) {
-      warn(t('maxReached'));
-      return;
-    }
-    save.mutate(data);
-  };
-
-  const edit = (social: ISocial) => {
-    setValue('_id', social._id);
-    setValue('name', social.name);
-    setValue('url', social.url);
-    setValue('icon', social.icon);
-  };
-
-  const resetForm = () => {
-    reset();
-    setValue('_id', undefined);
-  };
+  const startEdit = (social: ISocial) => reset({ ...EMPTY, ...social, _id: social._id });
 
   return {
     socials,
     isPending,
     isError,
     error,
+    refetchSocials,
     register,
     handleSubmit,
-    setValue,
-    reset: resetForm,
+    reset: () => reset(EMPTY),
     watch,
     errors,
-    onsubmit,
     save,
     deleteSocial,
     deleting,
-    edit,
+    startEdit,
+    maxReached: (socials?.length ?? 0) >= MAX_SOCIALS,
+    // The panel closes only on a saved record; a rejected save leaves it editable.
+    onSubmit: (data: SocialForm, onSaved?: () => void) => {
+      if (!data._id && (socials?.length ?? 0) >= MAX_SOCIALS) {
+        warn(t('maxReached'));
+        return;
+      }
+      save.mutate(data, { onSuccess: onSaved });
+    },
   };
 };
 

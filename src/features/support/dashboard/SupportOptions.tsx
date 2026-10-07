@@ -1,23 +1,26 @@
 'use client';
 
-import { CheckboxField, EmptyState, ErrorState, Field, FormPanel, LoadingRows, SectionShell } from '@/features/dashboard/shared';
+import { CardListSkeleton, EmptyState, EntityList, ErrorState, FormActions, FormPanel, SectionShell } from '@/features/dashboard/components';
 import FormGroup from '@/features/support/dashboard/SupportFormGroup';
 import SupportModePicker from '@/features/support/dashboard/SupportModePicker';
-import SupportOptionRow from '@/features/support/dashboard/SupportOptionCard';
+import SupportOptionRow from '@/features/support/dashboard/SupportOptionRow';
 import SupportVariantRow from '@/features/support/dashboard/SupportVariantRow';
+import { CheckboxField, Field } from '@/components/ui/field';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Loading from '@/components/ui/loading';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { DONATION_REGIONS } from '@/features/support/constants';
 import { PRODUCT_CURRENCIES } from '@/constants/global';
-import useDonations, { numberField } from '@/features/support/hooks/useDonations';
+import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
-import { localizedCount, slugify } from '@/lib/utils';
 import { useValidationMessage } from '@/hooks/useValidationMessage';
+import useDonations, { numberField } from '@/features/support/hooks/useDonations';
+import { localizedCount, slugify } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { DonationMode, DonationRegion, IDonation } from '@/features/support/types';
-import { AlertTriangle, Plus } from 'lucide-react';
+import { AlertTriangle, HeartHandshake, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
@@ -49,6 +52,7 @@ type GroupId = (typeof GROUPS)[number]['id'];
  */
 const SupportOptions = () => {
   const t = useTranslations('dashboard.support.options');
+  const td = useTranslations('dashboard');
   const ts = useTranslations('support');
   const tp = useTranslations('pricing');
   const locale = useLocale();
@@ -68,8 +72,9 @@ const SupportOptions = () => {
     error,
     save,
     deleteDonation,
-    deleting,
+    deletingId,
     toggleActive,
+    togglingActiveId,
     addVariantSuggested,
     removeVariantSuggested,
     setVariantAsset,
@@ -84,6 +89,7 @@ const SupportOptions = () => {
   } = useDonations();
 
   const panel = useFormPanel();
+  const confirm = useConfirmDelete(deleteDonation);
   const tv = useValidationMessage();
   /** The error summary only appears once a submit has been refused. */
   const [refused, setRefused] = useState(false);
@@ -94,17 +100,14 @@ const SupportOptions = () => {
   const region = watch('region') as DonationRegion;
   const variants = watch('variants') ?? [];
 
-  // Every method shows the same groups; the amount policy is edited per destination.
-  const groups = GROUPS;
-
   /** Which groups still hold a mistake, so the summary can point at one. */
   const brokenGroups = useMemo(() => {
     const names = Object.keys(errors as Record<string, unknown>);
-    return groups.filter(group => group.fields.some(field => names.includes(field))).map(group => group.id);
-  }, [errors, groups]);
+    return GROUPS.filter(group => group.fields.some(field => names.includes(field))).map(group => group.id);
+  }, [errors]);
 
   /** The number shown beside a group's heading, in the order the form asks. */
-  const stepOf = (id: GroupId) => groups.findIndex(group => group.id === id) + 1;
+  const stepOf = (id: GroupId) => GROUPS.findIndex(group => group.id === id) + 1;
 
   const autoSlug = !editingId && title ? slugify(title) : watch('slug');
 
@@ -142,9 +145,8 @@ const SupportOptions = () => {
       anchorRef={panel.anchorRef}
       action={
         !panel.isOpen && (
-          <Button size="sm" variant="outline" className="rounded-full" onClick={beginCreate}>
-            <Plus className="me-2 size-4" aria-hidden />
-            {t('addMethod')}
+          <Button size="icon" variant="outline" onClick={beginCreate} aria-label={t('addMethod')}>
+            <Plus className="size-4" aria-hidden />
           </Button>
         )
       }
@@ -159,7 +161,7 @@ const SupportOptions = () => {
           noValidate
         >
           {refused && brokenGroups.length > 0 && (
-            <div role="alert" className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/40 px-3 py-2.5">
+            <div role="alert" className="flex flex-wrap items-center gap-2 rounded-lg border border-destructive/40 bg-destructive/5 px-3 py-2.5">
               <span className="flex min-w-0 items-center gap-2 text-xs text-destructive">
                 <AlertTriangle className="size-4 shrink-0" aria-hidden />
                 {t('fixErrors')}
@@ -196,20 +198,21 @@ const SupportOptions = () => {
           >
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label={t('methodTitle')} id="support-title" error={errors.title?.message}>
-                <Input id="support-title" {...register('title')} placeholder={t('methodTitlePlaceholder')} dir="auto" />
+                <Input id="support-title" dir="auto" {...register('title')} placeholder={t('methodTitlePlaceholder')} autoComplete="off" />
               </Field>
               <Field label={t('methodSlug')} id="support-slug" error={errors.slug?.message} hint={t('methodSlugHint')}>
                 <Input
                   id="support-slug"
+                  dir="ltr"
                   value={autoSlug ?? ''}
                   onChange={event => setValue('slug', event.target.value, { shouldValidate: true, shouldDirty: true })}
                   placeholder={t('methodSlugPlaceholder')}
-                  dir="ltr"
+                  autoComplete="off"
                 />
               </Field>
             </div>
             <Field label={t('methodDescription')} id="support-description" error={errors.description?.message} hint={t('methodDescriptionHint')}>
-              <Textarea id="support-description" rows={3} {...register('description')} placeholder={t('methodDescriptionPlaceholder')} dir="auto" />
+              <Textarea id="support-description" rows={3} dir="auto" {...register('description')} placeholder={t('methodDescriptionPlaceholder')} />
             </Field>
           </FormGroup>
 
@@ -223,25 +226,27 @@ const SupportOptions = () => {
           >
             <SupportModePicker value={mode} onChange={setMode} />
 
-            <Field label={t('region')} id="support-region" error={errors.region?.message} hint={t('regionHint')}>
-              <select id="support-region" {...register('region')} className="control">
-                {DONATION_REGIONS.map(value => (
-                  <option key={value} value={value}>
-                    {ts(`regions.${value}`)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label={t('region')} id="support-region" error={errors.region?.message} hint={t('regionHint')}>
+                <Select id="support-region" {...register('region')}>
+                  {DONATION_REGIONS.map(value => (
+                    <option key={value} value={value}>
+                      {ts(`regions.${value}`)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
 
-            <Field label={t('currency')} id="support-currency" error={errors.currency?.message} hint={t('currencyHint')}>
-              <select id="support-currency" {...register('currency')} className="control">
-                {PRODUCT_CURRENCIES.map(code => (
-                  <option key={code} value={code}>
-                    {tp(code)}
-                  </option>
-                ))}
-              </select>
-            </Field>
+              <Field label={t('currency')} id="support-currency" error={errors.currency?.message} hint={t('currencyHint')}>
+                <Select id="support-currency" {...register('currency')}>
+                  {PRODUCT_CURRENCIES.map(code => (
+                    <option key={code} value={code}>
+                      {tp(code)}
+                    </option>
+                  ))}
+                </Select>
+              </Field>
+            </div>
 
             {/* Destinations: the places this method can actually arrive at. */}
             <div className="space-y-3 rounded-lg border bg-muted/20 p-3 sm:p-4">
@@ -315,42 +320,40 @@ const SupportOptions = () => {
             </div>
           </FormGroup>
 
-          <div className="flex flex-wrap items-center gap-2 border-t pt-5 max-sm:flex-col sm:justify-between">
-            <div className="flex w-full gap-2 max-sm:flex-col sm:w-auto">
-              <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto">
-                {save.isPending ? <Loading size="sm" className="me-2" /> : null}
-                {editingId ? t('update') : t('create')}
-              </Button>
-              <Button type="button" variant="outline" onClick={closeForm} className="w-full sm:w-auto">
-                {t('cancel')}
-              </Button>
-            </div>
-            <p className="text-xs text-muted-foreground/80">{t('fieldsRequiredHint')}</p>
-          </div>
+          <FormActions
+            submitLabel={editingId ? t('update') : t('create')}
+            cancelLabel={td('cancel')}
+            submitting={save.isPending}
+            onCancel={closeForm}
+            hint={t('fieldsRequiredHint')}
+            bordered
+          />
         </form>
       </FormPanel>
 
       {isPending ? (
-        <LoadingRows />
+        <CardListSkeleton media={false} mark />
       ) : isError ? (
         <ErrorState message={error?.message} onRetry={() => refetchDonations()} />
       ) : donations && donations.length > 0 ? (
-        <div className="space-y-4">
+        <EntityList>
           {donations.map(method => (
             <SupportOptionRow
               key={method._id}
               method={method}
               onEdit={beginEdit}
-              onDelete={id => deleteDonation(id)}
-              isDeleting={deleting}
-              onToggleActive={item => toggleActive.mutate(item)}
-              togglingActive={toggleActive.isPending}
+              onDelete={item => confirm.request(item._id, item.title)}
+              deleting={deletingId === method._id}
+              onToggleActive={item => toggleActive(item)}
+              togglingActive={togglingActiveId === method._id}
             />
           ))}
-        </div>
+        </EntityList>
       ) : (
-        !panel.isOpen && <EmptyState text={t('noMethods')} actionText={t('createFirstMethod')} onAction={beginCreate} />
+        !panel.isOpen && <EmptyState icon={HeartHandshake} text={t('noMethods')} actionText={t('createFirstMethod')} onAction={beginCreate} />
       )}
+
+      <ConfirmDialog {...confirm.dialogProps} />
     </SectionShell>
   );
 };

@@ -1,18 +1,18 @@
 'use client';
 
-import { EmptyState, ErrorState, LoadingRows, SectionShell } from '@/features/dashboard/shared';
+import { AdminToolbar, CardListSkeleton, EmptyState, EntityList, ErrorState, SectionShell } from '@/features/dashboard/components';
 import SupportRecordRow from '@/features/support/dashboard/SupportRecordRow';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { FilterChip } from '@/components/ui/filter-chip';
-import { Input } from '@/components/ui/input';
-import { SUPPORTER_STATUSES } from '@/features/support/constants';
+import { buttonVariants } from '@/components/ui/button';
+import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import useSupporters from '@/features/support/hooks/useSupporters';
-import { localizedCount } from '@/lib/utils';
+import { SUPPORTER_STATUSES } from '@/features/support/constants';
+import { cn, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { SupporterStatus } from '@/features/support/types';
-import { ExternalLink, Search, X } from 'lucide-react';
+import { ExternalLink, HeartHandshake } from 'lucide-react';
+import { Link } from '@/i18n/routing';
 import { useLocale, useTranslations } from 'next-intl';
-import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
 /**
@@ -24,15 +24,16 @@ import { useMemo, useState } from 'react';
  */
 const SupportRecords = () => {
   const t = useTranslations('dashboard.support.records');
+  const td = useTranslations('dashboard');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
-  const { supporters, isPending, isError, error, refetchSupporters, update, removeSupporter, deleting, setStatus, toggleWall, saveNote } =
+  const { supporters, isPending, isError, error, refetchSupporters, updatingId, removeSupporter, deletingId, setStatus, toggleWall, saveNote } =
     useSupporters();
 
   const [query, setQuery] = useState('');
   const [status, setStatusFilter] = useState<SupporterStatus | 'all'>('all');
-  const [confirmId, setConfirmId] = useState<string | null>(null);
+  const confirm = useConfirmDelete(removeSupporter);
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
@@ -46,72 +47,40 @@ const SupportRecords = () => {
   }, [supporters, query, status]);
 
   const pendingCount = (supporters ?? []).filter(record => record.status === 'pending').length;
-  const doomed = rows.find(record => record._id === confirmId);
+  const filtering = Boolean(query.trim()) || status !== 'all';
 
   return (
     <SectionShell
       title={t('title')}
       action={
-        <Link
-          href={`/${locale}/support`}
-          target="_blank"
-          className="inline-flex items-center gap-1.5 rounded-full border border-input px-3 py-1.5 text-xs font-medium transition-colors hover:bg-accent"
-        >
-          <ExternalLink className="size-3.5" aria-hidden />
+        <Link href="/support" target="_blank" className={cn(buttonVariants({ variant: 'outline', size: 'sm' }), 'rounded-full')}>
+          <ExternalLink className="me-2 size-3.5" aria-hidden />
           {t('openSupport')}
         </Link>
       }
     >
-      {/* Search and status chips sit above the list, like every other archive. */}
       {supporters && supporters.length > 0 && (
-        <div className="mb-5 space-y-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-            <div className="relative min-w-0 flex-1 sm:max-w-xs">
-              <Search className="pointer-events-none absolute start-3 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden />
-              <Input
-                value={query}
-                onChange={event => setQuery(event.target.value)}
-                placeholder={t('searchPlaceholder')}
-                aria-label={t('searchPlaceholder')}
-                className="h-9 rounded-full border-transparent bg-muted/50 ps-8 pe-8 text-sm shadow-none transition-colors hover:bg-muted"
-              />
-              {query && (
-                <button
-                  type="button"
-                  onClick={() => setQuery('')}
-                  aria-label={t('clearSearch')}
-                  className="absolute end-1.5 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-                >
-                  <X className="size-3" aria-hidden />
-                </button>
-              )}
-            </div>
-            {pendingCount > 0 && (
-              <p aria-live="polite" className="ms-auto shrink-0 text-xs tabular-nums text-muted-foreground">
-                {t('totalPending', { count: localizedCount(pendingCount, lang) })}
-              </p>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('statusFilter')}>
-            <FilterChip active={status === 'all'} onClick={() => setStatusFilter('all')}>
-              {t('all')}
-            </FilterChip>
-            {SUPPORTER_STATUSES.map(value => (
-              <FilterChip key={value} active={status === value} onClick={() => setStatusFilter(status === value ? 'all' : value)}>
-                {t(`statuses.${value}`)}
-              </FilterChip>
-            ))}
-          </div>
-        </div>
+        <AdminToolbar
+          query={query}
+          onQueryChange={setQuery}
+          searchLabel={t('searchPlaceholder')}
+          clearSearchLabel={td('clearSearch')}
+          chips={[{ value: 'all', label: t('all') }, ...SUPPORTER_STATUSES.map(value => ({ value, label: t(`statuses.${value}`) }))]}
+          active={status}
+          onPick={value => setStatusFilter(status === value ? 'all' : (value as SupporterStatus))}
+          chipsLabel={t('statusFilter')}
+          meta={
+            pendingCount > 0 ? <span className="tabular-nums">{t('totalPending', { count: localizedCount(pendingCount, lang) })}</span> : undefined
+          }
+        />
       )}
 
       {isPending ? (
-        <LoadingRows />
+        <CardListSkeleton media={false} />
       ) : isError ? (
         <ErrorState message={error?.message} onRetry={() => refetchSupporters()} />
       ) : rows.length > 0 ? (
-        <div className="space-y-4">
+        <EntityList>
           {rows.map(record => (
             <SupportRecordRow
               // The note is part of the key, so a saved or refreshed note remounts
@@ -119,30 +88,22 @@ const SupportRecords = () => {
               key={`${record._id}-${record.note ?? ''}`}
               record={record}
               lang={lang}
-              busy={update.isPending}
-              deleting={deleting}
+              busy={updatingId === record._id}
+              deleting={deletingId === record._id}
               onConfirm={() => setStatus(record, 'completed')}
               onFail={() => setStatus(record, 'failed')}
               onReopen={() => setStatus(record, 'pending')}
               onToggleWall={() => toggleWall(record)}
               onSaveNote={note => saveNote(record, note)}
-              onDelete={() => setConfirmId(record._id!)}
+              onDelete={() => confirm.request(record._id, record.name || record.donationTitle)}
             />
           ))}
-        </div>
+        </EntityList>
       ) : (
-        <EmptyState text={supporters && supporters.length ? t('noResults') : t('empty')} />
+        <EmptyState icon={HeartHandshake} text={filtering ? t('noResults') : t('empty')} />
       )}
 
-      <ConfirmDialog
-        open={Boolean(confirmId)}
-        onOpenChange={open => !open && setConfirmId(null)}
-        itemName={doomed?.name || doomed?.donationTitle || ''}
-        onConfirm={() => {
-          if (confirmId) removeSupporter(confirmId);
-          setConfirmId(null);
-        }}
-      />
+      <ConfirmDialog {...confirm.dialogProps} />
     </SectionShell>
   );
 };

@@ -1,143 +1,177 @@
 'use client';
 
+import {
+  CardListSkeleton,
+  EmptyState,
+  EntityCard,
+  EntityList,
+  ErrorState,
+  FormActions,
+  FormPanel,
+  RowAction,
+  SectionShell,
+} from '@/features/dashboard/components';
 import { iconDecider } from '@/components/icons';
-import { EmptyState, ErrorState, Field, LoadingRows, SectionShell } from '@/features/dashboard/shared';
-import { Button } from '@/components/ui/button';
+import { Field } from '@/components/ui/field';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Loading from '@/components/ui/loading';
+import { Select } from '@/components/ui/select';
+import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
+import { useFormPanel } from '@/hooks/useFormPanel';
 import useSocials from '@/features/socials/hooks/useSocials';
-import { useSectionScroll } from '@/hooks/useFormPanel';
-import { Pencil, X } from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { MAX_SOCIALS, SOCIAL_ICONS } from '@/features/socials/constants';
+import { localizedCount } from '@/lib/utils';
+import type { AppLocale } from '@/types';
 import type { ISocial } from '@/features/socials/types';
+import { Link2, Pencil, Plus, Trash2 } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 
-const AVAILABLE_ICONS = ['github', 'linkedin', 'x', 'instagram', 'telegram', 'whatsapp', 'youtube', 'website', 'email'];
-
-/** Social links section: inline create/edit form plus a badge list. */
+/** Social links section: the dock's outbound links, capped at what it can carry. */
 const Socials = () => {
   const t = useTranslations('dashboard.social');
-  const tDash = useTranslations('dashboard');
+  const td = useTranslations('dashboard');
   // Icon names are already labelled for the navigation dock; reuse those words.
   const tNav = useTranslations('navbar');
-  const { socials, isPending, isError, error, register, handleSubmit, reset, watch, errors, onsubmit, save, deleteSocial, edit } = useSocials();
+  const locale = useLocale();
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
-  const [pendingDelete, setPendingDelete] = useState<string | null>(null);
-  const { anchorRef, scrollToSection } = useSectionScroll();
+  const {
+    socials,
+    isPending,
+    isError,
+    error,
+    refetchSocials,
+    register,
+    handleSubmit,
+    reset,
+    watch,
+    errors,
+    save,
+    deleteSocial,
+    startEdit,
+    maxReached,
+    onSubmit,
+  } = useSocials();
+
+  const panel = useFormPanel();
+  const confirm = useConfirmDelete(deleteSocial);
+
   const selectedIcon = watch('icon');
   const editingId = watch('_id');
+  const count = socials?.length ?? 0;
 
   // An icon slug the dock has no label for stays readable as stored.
   const iconLabel = (value: string) => (tNav.has(`social.${value}`) ? tNav(`social.${value}`) : value);
 
-  // The form sits above the list, so an edit has to bring it back into view.
+  const closeForm = () => {
+    panel.close();
+    reset();
+  };
+
+  const beginCreate = () => {
+    reset();
+    panel.open();
+  };
+
   const beginEdit = (social: ISocial) => {
-    edit(social);
-    scrollToSection();
+    startEdit(social);
+    panel.open();
   };
 
   return (
-    <SectionShell title={t('title')} anchorRef={anchorRef}>
-      {/* Create / edit form */}
-      <form onSubmit={handleSubmit(onsubmit)} className="grid grid-cols-1 items-end gap-4 md:grid-cols-12">
-        <Field label={t('name')} id="social-name" error={errors.name?.message} className="md:col-span-3">
-          <Input id="social-name" {...register('name')} placeholder={t('namePlaceholder')} autoComplete="off" />
-        </Field>
-
-        <Field label={t('url')} id="social-url" error={errors.url?.message} className="md:col-span-4">
-          <Input id="social-url" {...register('url')} placeholder={t('urlPlaceholder')} type="url" dir="ltr" />
-        </Field>
-
-        <Field label={t('icon')} id="social-icon" error={errors.icon?.message} className="md:col-span-3">
-          <select id="social-icon" className="control" {...register('icon')}>
-            <option value="">{t('selectIcon')}</option>
-            {AVAILABLE_ICONS.map(icon => (
-              <option key={icon} value={icon}>
-                {iconLabel(icon)}
-              </option>
-            ))}
-          </select>
-        </Field>
-
-        <div className="flex h-10 items-center gap-2 md:col-span-2">
-          <Button type="submit" disabled={save.isPending} className="w-full md:w-auto">
-            {save.isPending ? <Loading size="sm" className="me-2" /> : null}
-            {t('save')}
-          </Button>
-          {editingId && (
-            <Button type="button" variant="outline" onClick={reset} className="w-full md:w-auto">
-              {tDash('cancel')}
-            </Button>
-          )}
-        </div>
-      </form>
-
-      {/* Selected icon preview + list */}
-      <div className="mt-8">
-        {isPending ? (
-          <LoadingRows rows={1} />
-        ) : isError ? (
-          <ErrorState message={error?.message} />
-        ) : (
+    <SectionShell
+      title={t('title')}
+      anchorRef={panel.anchorRef}
+      action={
+        !panel.isOpen && (
           <>
-            {selectedIcon && (
-              <p className="mb-3 flex items-center gap-2 text-xs text-muted-foreground">
-                <span aria-hidden className="inline-flex size-7 items-center justify-center rounded-md border bg-background">
+            <span aria-live="polite" className="text-xs tabular-nums text-muted-foreground">
+              {t('slotCount', { used: localizedCount(count, lang), max: localizedCount(MAX_SOCIALS, lang) })}
+            </span>
+            <Button
+              size="icon"
+              variant="outline"
+              onClick={beginCreate}
+              disabled={maxReached}
+              aria-label={t('create')}
+              title={maxReached ? t('maxReached') : t('create')}
+            >
+              <Plus className="size-4" aria-hidden />
+            </Button>
+          </>
+        )
+      }
+    >
+      <FormPanel open={panel.isOpen} title={editingId ? t('edit') : t('create')} onClose={closeForm}>
+        <form onSubmit={handleSubmit(data => onSubmit(data, panel.close))} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <Field label={t('name')} id="social-name" error={errors.name?.message}>
+              <Input id="social-name" {...register('name')} placeholder={t('namePlaceholder')} autoComplete="off" />
+            </Field>
+            <Field label={t('url')} id="social-url" error={errors.url?.message} className="sm:col-span-2">
+              <Input id="social-url" type="url" dir="ltr" {...register('url')} placeholder={t('urlPlaceholder')} autoComplete="off" />
+            </Field>
+          </div>
+
+          <Field label={t('icon')} id="social-icon" error={errors.icon?.message}>
+            <div className="flex items-center gap-3">
+              <Select id="social-icon" {...register('icon')} className="sm:max-w-56">
+                <option value="">{t('selectIcon')}</option>
+                {SOCIAL_ICONS.map(icon => (
+                  <option key={icon} value={icon}>
+                    {iconLabel(icon)}
+                  </option>
+                ))}
+              </Select>
+              {/* Seeing the glyph is the only way to know the slug picked the right one. */}
+              {selectedIcon && (
+                <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
                   {iconDecider(selectedIcon, 'size-4')}
                 </span>
-                {t('icon')}: {iconLabel(selectedIcon)}
-              </p>
-            )}
+              )}
+            </div>
+          </Field>
 
-            {socials && socials.length > 0 ? (
-              <div className="overflow-hidden rounded-xl border">
-                <ul className="divide-y divide-border">
-                  {socials.map(social => (
-                    <li key={social._id} className="flex items-center gap-3 p-3 transition-colors hover:bg-muted/40 sm:p-4">
-                      <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-background">
-                        {iconDecider(social.icon, 'size-4')}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm font-medium">{social.name}</span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          <bdi dir="ltr">{social.url}</bdi>
-                        </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-0.5">
-                        <Button size="icon" variant="ghost" className="size-8" onClick={() => beginEdit(social)} aria-label={tDash('edit')}>
-                          <Pencil className="size-4" aria-hidden />
-                        </Button>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="size-8 hover:text-destructive"
-                          onClick={() => social._id && setPendingDelete(social._id)}
-                          aria-label={tDash('delete')}
-                        >
-                          <X className="size-4" aria-hidden />
-                        </Button>
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            ) : (
-              <EmptyState text={t('noSocials')} />
-            )}
-          </>
-        )}
-      </div>
+          <FormActions
+            submitLabel={editingId ? t('save') : t('create')}
+            cancelLabel={td('cancel')}
+            submitting={save.isPending}
+            onCancel={closeForm}
+          />
+        </form>
+      </FormPanel>
 
-      <ConfirmDialog
-        open={Boolean(pendingDelete)}
-        onOpenChange={open => !open && setPendingDelete(null)}
-        itemName={socials?.find(s => s._id === pendingDelete)?.name}
-        onConfirm={() => {
-          if (pendingDelete) deleteSocial(pendingDelete);
-          setPendingDelete(null);
-        }}
-      />
+      {isPending ? (
+        <CardListSkeleton rows={2} mark body={false} actions={2} />
+      ) : isError ? (
+        <ErrorState message={error?.message} onRetry={() => refetchSocials()} />
+      ) : socials && socials.length > 0 ? (
+        <EntityList>
+          {socials.map(social => (
+            <EntityCard
+              key={social._id}
+              title={social.name}
+              meta={<bdi dir="ltr">{social.url}</bdi>}
+              leading={
+                <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
+                  {iconDecider(social.icon, 'size-4')}
+                </span>
+              }
+              actions={
+                <>
+                  <RowAction label={td('edit')} icon={Pencil} onClick={() => beginEdit(social)} />
+                  <RowAction label={td('delete')} icon={Trash2} danger onClick={() => confirm.request(social._id, social.name)} />
+                </>
+              }
+            />
+          ))}
+        </EntityList>
+      ) : (
+        !panel.isOpen && <EmptyState icon={Link2} text={t('noSocials')} actionText={t('addFirstSocial')} onAction={beginCreate} />
+      )}
+
+      <ConfirmDialog {...confirm.dialogProps} />
     </SectionShell>
   );
 };

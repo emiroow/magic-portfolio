@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from 'react';
 
 /** Bring a dashboard section back into view; the floating navbar sits at the bottom, so the top edge is free. */
-export function useSectionScroll() {
+function useSectionScroll() {
   const anchorRef = useRef<HTMLElement>(null);
 
   const scrollToSection = useCallback(() => {

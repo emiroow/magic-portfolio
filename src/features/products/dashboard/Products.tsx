@@ -1,31 +1,40 @@
 'use client';
 
-import { CheckboxField, EmptyState, ErrorState, Field, FormPanel, LoadingRows, SectionShell } from '@/features/dashboard/shared';
-import ProductRow from '@/features/products/dashboard/Product-card';
-import ImageCropperDialog from '@/components/ui/image-cropper';
-import { Badge } from '@/components/ui/badge';
+import {
+  CardListSkeleton,
+  ChipInput,
+  EmptyState,
+  EntityList,
+  ErrorState,
+  FormActions,
+  FormPanel,
+  ImageField,
+  SectionShell,
+} from '@/features/dashboard/components';
+import ProductRow from '@/features/products/dashboard/ProductRow';
+import { CheckboxField, Field } from '@/components/ui/field';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import MarkdownEditor from '@/components/ui/markdown-editor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import Loading from '@/components/ui/loading';
-import MarkdownEditor from '@/components/ui/markdown-editor';
+import { Select } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { PRODUCT_CURRENCIES } from '@/constants/global';
-import { HOME_PRODUCT_SLOTS } from '@/features/products/constants';
-import useProducts from '@/features/products/hooks/useProducts';
+import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
-import { isOptimizableImage, localizedCount, slugify } from '@/lib/utils';
+import useProducts from '@/features/products/hooks/useProducts';
+import { HOME_PRODUCT_SLOTS } from '@/features/products/constants';
+import { localizedCount, slugify } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IProduct } from '@/features/products/types';
-import { Plus, X } from 'lucide-react';
+import { Package, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Image from 'next/image';
-import { useRef, useState } from 'react';
 
-/** Products section: CRUD form (cover, price, currency, features) + list. */
+/** Products section: cover, price, currency and the "what you get" bullets. */
 const Products = () => {
   const t = useTranslations('dashboard.products');
+  const td = useTranslations('dashboard');
   const tp = useTranslations('pricing');
-  const tcrop = useTranslations('dashboard.crop');
   const locale = useLocale();
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
@@ -42,10 +51,13 @@ const Products = () => {
     error,
     save,
     deleteProduct,
-    deleting,
+    deletingId,
     toggleActive,
+    togglingActiveId,
     toggleAvailable,
+    togglingAvailableId,
     toggleFeatured,
+    togglingFeaturedId,
     uploadImage,
     deleteImage,
     addFeature,
@@ -56,10 +68,7 @@ const Products = () => {
   } = useProducts();
 
   const panel = useFormPanel();
-  const [feature, setFeature] = useState('');
-  const [cropOpen, setCropOpen] = useState(false);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const confirm = useConfirmDelete(deleteProduct);
 
   const title = watch('title');
   const details = watch('details');
@@ -94,7 +103,6 @@ const Products = () => {
   const closeForm = () => {
     panel.close();
     reset();
-    setFeature('');
   };
 
   const beginCreate = () => {
@@ -107,18 +115,13 @@ const Products = () => {
     panel.open();
   };
 
-  const commitFeature = () => {
-    addFeature(feature);
-    setFeature('');
-  };
-
   return (
     <SectionShell
       title={t('title')}
       anchorRef={panel.anchorRef}
       action={
         !panel.isOpen && (
-          <Button size="icon" variant="outline" className="size-8" onClick={beginCreate} aria-label={t('addProduct')}>
+          <Button size="icon" variant="outline" onClick={beginCreate} aria-label={t('addProduct')}>
             <Plus className="size-4" aria-hidden />
           </Button>
         )
@@ -129,67 +132,19 @@ const Products = () => {
           onSubmit={handleSubmit(data => onSubmit({ ...data, slug: autoSlug, featured: data.active && Boolean(data.featured) }, panel.close))}
           className="space-y-5"
         >
-          {/* Cover image */}
-          <Field label={t('productImage')} error={errors.image?.message} hint={t('uploadImageHint')}>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex h-24 w-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/20 sm:h-28 sm:w-36">
-                {image &&
-                  (isOptimizableImage(image) ? (
-                    <Image src={image} alt={t('productImage')} fill sizes="144px" className="object-cover" />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt={t('productImage')} className="size-full object-cover" />
-                  ))}
-                {image && (
-                  <Button
-                    type="button"
-                    variant="destructive"
-                    size="icon"
-                    className="absolute end-1.5 top-1.5 size-6 rounded-full"
-                    onClick={() => deleteImage.mutate()}
-                    disabled={deleteImage.isPending}
-                    aria-label={t('removeImage')}
-                  >
-                    {deleteImage.isPending ? <Loading size="sm" /> : <X className="size-3" aria-hidden />}
-                  </Button>
-                )}
-              </div>
-              <div className="flex flex-col items-start gap-1">
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadImage.isPending}>
-                  {uploadImage.isPending ? <Loading size="sm" className="me-2" /> : null}
-                  {t('uploadImage')}
-                </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setCropSrc(URL.createObjectURL(file));
-                    setCropOpen(true);
-                  }}
-                />
-              </div>
-            </div>
-          </Field>
-
-          <ImageCropperDialog
-            open={cropOpen}
-            onOpenChange={v => {
-              setCropOpen(v);
-              if (!v && cropSrc) {
-                URL.revokeObjectURL(cropSrc);
-                setCropSrc(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }
-            }}
-            src={cropSrc}
+          <ImageField
+            label={t('productImage')}
+            alt={title || t('productImage')}
+            value={image}
+            error={errors.image?.message}
+            hint={td('image.hint')}
+            frameClassName="h-24 w-32 rounded-lg sm:h-28 sm:w-40"
             aspect={4 / 3}
-            labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: t('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
             outputSize={1600}
-            onCropped={file => {
+            uploading={uploadImage.isPending}
+            removing={deleteImage.isPending}
+            onRemove={() => deleteImage.mutate()}
+            onUpload={file => {
               const formData = new FormData();
               formData.append('image', file);
               uploadImage.mutate(formData);
@@ -198,19 +153,23 @@ const Products = () => {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t('productTitle')} id="product-title" error={errors.title?.message}>
-              <Input id="product-title" {...register('title')} placeholder={t('productTitlePlaceholder')} />
+              <Input id="product-title" {...register('title')} placeholder={t('productTitlePlaceholder')} autoComplete="off" />
             </Field>
             <Field label={t('productSlug')} id="product-slug" error={errors.slug?.message} hint={t('productSlugHint')}>
               <Input
                 id="product-slug"
-                value={autoSlug}
-                onChange={e => setValue('slug', e.target.value, { shouldValidate: true, shouldDirty: true })}
-                placeholder={t('productSlugPlaceholder')}
                 dir="ltr"
+                value={autoSlug}
+                onChange={event => setValue('slug', event.target.value, { shouldValidate: true, shouldDirty: true })}
+                placeholder={t('productSlugPlaceholder')}
+                autoComplete="off"
               />
             </Field>
             <Field label={t('productCategory')} id="product-category" error={errors.category?.message} hint={t('productCategoryHint')}>
-              <Input id="product-category" {...register('category')} placeholder={t('productCategoryPlaceholder')} />
+              <Input id="product-category" {...register('category')} placeholder={t('productCategoryPlaceholder')} autoComplete="off" />
+            </Field>
+            <Field label={t('productUrl')} id="product-href" error={errors.href?.message} hint={t('productUrlHint')}>
+              <Input id="product-href" type="url" dir="ltr" {...register('href')} placeholder={t('productUrlPlaceholder')} autoComplete="off" />
             </Field>
             <Field label={t('productPrice')} id="product-price" error={errors.price?.message} hint={t('productPriceHint')}>
               {/* Prices are numeric runs: kept LTR so grouping and decimals never mirror. */}
@@ -226,17 +185,43 @@ const Products = () => {
               />
             </Field>
             <Field label={t('productCurrency')} id="product-currency" error={errors.currency?.message}>
-              <select id="product-currency" {...register('currency')} className="control">
+              <Select id="product-currency" {...register('currency')}>
                 {PRODUCT_CURRENCIES.map(code => (
                   <option key={code} value={code}>
                     {tp(code)}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
-            <Field label={t('productUrl')} id="product-href" error={errors.href?.message} hint={t('productUrlHint')}>
-              <Input id="product-href" {...register('href')} placeholder={t('productUrlPlaceholder')} type="url" dir="ltr" />
-            </Field>
+          </div>
+
+          <Field label={t('productDescription')} id="product-description" error={errors.description?.message} hint={t('productDescriptionHint')}>
+            <Textarea id="product-description" rows={3} {...register('description')} placeholder={t('productDescriptionPlaceholder')} />
+          </Field>
+
+          <ChipInput
+            label={t('features')}
+            hint={t('featuresHint')}
+            error={errors.features?.message}
+            items={features}
+            onAdd={addFeature}
+            onRemove={removeFeature}
+            placeholder={t('featurePlaceholder')}
+            addLabel={td('add')}
+            maxLength={40}
+          />
+
+          {/* Long-form body shown on the product page */}
+          <Field label={t('productDetails')} error={errors.details?.message} hint={t('productDetailsHint')}>
+            <MarkdownEditor
+              value={details ?? ''}
+              onChange={value => setValue('details', value, { shouldValidate: true, shouldDirty: true })}
+              placeholder={td('markdown.placeholder')}
+              height={320}
+            />
+          </Field>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <CheckboxField
               id="product-active"
               label={t('active')}
@@ -258,97 +243,49 @@ const Products = () => {
             <CheckboxField id="product-available" label={t('available')} hint={t('availableHint')} {...register('available')} />
           </div>
 
-          <Field label={t('productDescription')} id="product-description" error={errors.description?.message} hint={t('productDescriptionHint')}>
-            <Textarea id="product-description" rows={3} {...register('description')} placeholder={t('productDescriptionPlaceholder')} />
-          </Field>
-
-          {/* Features: the "what you get" bullets */}
-          <Field label={t('features')} error={errors.features?.message} hint={t('featuresHint')}>
-            <div className="flex gap-2">
-              <Input
-                value={feature}
-                onChange={e => setFeature(e.target.value)}
-                placeholder={t('featurePlaceholder')}
-                aria-label={t('featurePlaceholder')}
-                maxLength={40}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ',') {
-                    e.preventDefault();
-                    commitFeature();
-                  }
-                }}
-              />
-              <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={commitFeature}>
-                {t('add')}
-              </Button>
-            </div>
-            {features.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5">
-                {features.map((item, index) => (
-                  <li key={`${item}-${index}`}>
-                    <Badge variant="secondary" onDelete={() => removeFeature(index)}>
-                      {item}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Field>
-
-          {/* Long-form body shown on the product page */}
-          <Field label={t('productDetails')} error={errors.details?.message} hint={t('productDetailsHint')}>
-            <MarkdownEditor
-              value={details ?? ''}
-              onChange={value => setValue('details', value, { shouldValidate: true, shouldDirty: true })}
-              height={320}
-            />
-          </Field>
-
-          <div className="flex gap-2 max-sm:flex-col">
-            <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto">
-              {save.isPending ? <Loading size="sm" className="me-2" /> : null}
-              {editingId ? t('update') : t('create')}
-            </Button>
-            <Button type="button" variant="outline" onClick={closeForm} className="w-full sm:w-auto">
-              {t('cancel')}
-            </Button>
-          </div>
+          <FormActions
+            submitLabel={editingId ? t('update') : t('create')}
+            cancelLabel={td('cancel')}
+            submitting={save.isPending}
+            onCancel={closeForm}
+          />
         </form>
       </FormPanel>
 
       {isPending ? (
-        <LoadingRows />
+        <CardListSkeleton actions={6} />
       ) : isError ? (
         <ErrorState message={error?.message} onRetry={() => refetchProducts()} />
       ) : products && products.length > 0 ? (
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            {t('homeSlots', {
-              used: localizedCount(homePicks.length, lang),
-              total: localizedCount(HOME_PRODUCT_SLOTS, lang),
-            })}
+        <>
+          <p aria-live="polite" className="mb-3 text-xs text-muted-foreground">
+            {t('homeSlots', { used: localizedCount(homePicks.length, lang), total: localizedCount(HOME_PRODUCT_SLOTS, lang) })}
           </p>
-          {products.map(product => (
-            <ProductRow
-              key={product._id}
-              product={product}
-              onEdit={beginEdit}
-              onDelete={id => deleteProduct(id)}
-              isDeleting={deleting}
-              homePosition={homePosition(product._id)}
-              slotsFull={homePicks.length >= HOME_PRODUCT_SLOTS}
-              onToggleHome={product => toggleFeatured.mutate(product)}
-              togglingHome={toggleFeatured.isPending}
-              onToggleActive={product => toggleActive.mutate(product)}
-              togglingActive={toggleActive.isPending}
-              onToggleAvailable={product => toggleAvailable.mutate(product)}
-              togglingAvailable={toggleAvailable.isPending}
-            />
-          ))}
-        </div>
+          <EntityList>
+            {products.map(product => (
+              <ProductRow
+                key={product._id}
+                product={product}
+                onEdit={beginEdit}
+                onDelete={item => confirm.request(item._id, item.title)}
+                deleting={deletingId === product._id}
+                togglingActive={togglingActiveId === product._id}
+                togglingAvailable={togglingAvailableId === product._id}
+                togglingHome={togglingFeaturedId === product._id}
+                homePosition={homePosition(product._id)}
+                slotsFull={homePicks.length >= HOME_PRODUCT_SLOTS}
+                onToggleHome={item => toggleFeatured(item)}
+                onToggleActive={item => toggleActive(item)}
+                onToggleAvailable={item => toggleAvailable(item)}
+              />
+            ))}
+          </EntityList>
+        </>
       ) : (
-        !panel.isOpen && <EmptyState text={t('noProducts')} actionText={t('createFirstProduct')} onAction={beginCreate} />
+        !panel.isOpen && <EmptyState icon={Package} text={t('noProducts')} actionText={t('createFirstProduct')} onAction={beginCreate} />
       )}
+
+      <ConfirmDialog {...confirm.dialogProps} />
     </SectionShell>
   );
 };

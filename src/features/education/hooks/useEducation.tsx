@@ -7,7 +7,6 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
 import { useLocale } from 'next-intl';
-import { useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -21,7 +20,6 @@ const EMPTY: EducationForm = { school: '', degree: '', href: '', logoUrl: '', st
 const useEducation = () => {
   const locale = useLocale();
   const { ok, fail } = useToastMessages();
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -112,7 +110,6 @@ const useEducation = () => {
     uploadLogo,
     deleteLogo,
     startEdit,
-    fileInputRef,
     onSubmit: (data: EducationForm, onSaved?: () => void) => save.mutate(data, { onSuccess: onSaved }),
   };
 };

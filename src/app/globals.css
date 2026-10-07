@@ -230,11 +230,25 @@
     min-height: 0;
   }
 
-  /* Shared form-control surface: inputs, selects and the month pickers. */
+  /*
+   * Shared form-control surface: inputs, selects and the month pickers.
+   * `text-base` below `md` is not a styling choice — iOS Safari zooms the page on
+   * focus of any control whose font-size is under 16px, which on a phone turns
+   * filling in a form into a fight with the viewport.
+   */
   .control {
-    @apply flex h-10 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-sm shadow-sm transition-colors
-      placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring
-      disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full items-center rounded-lg border border-input bg-background px-3 py-2 text-base shadow-sm transition-colors
+      placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/40
+      disabled:cursor-not-allowed disabled:opacity-50 md:text-sm;
+  }
+
+  /*
+   * A refused field says so on the control itself, not only in the text under it.
+   * A selector rather than an `aria-invalid:` utility inside the `@apply` above,
+   * which Tailwind refuses to resolve from a stylesheet.
+   */
+  .control[aria-invalid='true'] {
+    @apply border-destructive ring-destructive/30;
   }
 
   /*

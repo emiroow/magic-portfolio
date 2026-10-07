@@ -6,6 +6,7 @@ import type { IProject } from '@/features/projects/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
+import { pendingRecordId } from '@/hooks/pendingRecordId';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -73,7 +74,7 @@ const useProjects = () => {
     onError: () => fail(),
   });
 
-  const { mutate: deleteProject, isPending: deleting } = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/project?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
@@ -86,7 +87,7 @@ const useProjects = () => {
    * Home page flag from the list row, without the form's `reset()` — an open
    * panel may hold unsaved edits that a row toggle must not throw away.
    */
-  const toggleFeatured = useMutation({
+  const featuredMutation = useMutation({
     mutationFn: (project: IProject) => {
       const { _id, title, slug, href, dates, active, description, details, technologies, links, image } = project;
       return api.put<IProject>(`/api/${locale}/admin/project`, {
@@ -180,7 +181,6 @@ const useProjects = () => {
     setValue,
     watch,
     reset,
-    getValues,
     errors,
     projects,
     isPending,
@@ -188,9 +188,10 @@ const useProjects = () => {
     error,
     refetchProjects,
     save,
-    deleteProject,
-    deleting,
-    toggleFeatured,
+    deleteProject: deleteMutation.mutate,
+    deletingId: pendingRecordId(deleteMutation),
+    toggleFeatured: featuredMutation.mutate,
+    togglingFeaturedId: pendingRecordId(featuredMutation),
     uploadImage,
     deleteImage,
     addTechnology,

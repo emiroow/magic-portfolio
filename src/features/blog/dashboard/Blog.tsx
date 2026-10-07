@@ -1,23 +1,33 @@
 'use client';
 
-import { CheckboxField, EmptyState, ErrorState, Field, FormPanel, LoadingRows, SectionShell } from '@/features/dashboard/shared';
-import BlogRow from '@/features/blog/dashboard/Blog-card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import ImageCropperDialog from '@/components/ui/image-cropper';
-import { Input } from '@/components/ui/input';
-import Loading from '@/components/ui/loading';
+import {
+  AdminToolbar,
+  CardListSkeleton,
+  ChipInput,
+  EmptyState,
+  EntityList,
+  ErrorState,
+  FormActions,
+  FormPanel,
+  ImageField,
+  SectionShell,
+} from '@/features/dashboard/components';
+import BlogRow from '@/features/blog/dashboard/BlogRow';
+import { CheckboxField, Field } from '@/components/ui/field';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import MarkdownEditor from '@/components/ui/markdown-editor';
-import useBlog from '@/features/blog/hooks/useBlog';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
-import { FilterChip } from '@/components/ui/filter-chip';
+import useBlog from '@/features/blog/hooks/useBlog';
 import { HOME_BLOG_SLOTS } from '@/features/blog/constants';
-import { isOptimizableImage, localizedCount, slugify } from '@/lib/utils';
+import { localizedCount, slugify } from '@/lib/utils';
+import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
-import { Plus } from 'lucide-react';
-import Image from 'next/image';
+import { FileText, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 /** Listing filter. */
 const STATUSES = ['all', 'published', 'draft'] as const;
@@ -25,13 +35,12 @@ type Status = (typeof STATUSES)[number];
 
 const isDraft = (post: IBlog) => post.published === false;
 
-/** Blog section: markdown editor with cover, tags, drafts and search. */
+/** Blog section: markdown editor with a cover, tags, drafts and search. */
 const Blog = () => {
   const t = useTranslations('dashboard.blog');
-  const tDash = useTranslations('dashboard');
-  const tcrop = useTranslations('dashboard.crop');
+  const td = useTranslations('dashboard');
   const locale = useLocale();
-  const lang = locale === 'fa' ? 'fa' : 'en';
+  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
   const {
     register,
@@ -46,9 +55,11 @@ const Blog = () => {
     error,
     save,
     deletePost,
-    deleting,
+    deletingId,
     togglePublished,
+    togglingPublishedId,
     toggleFeatured,
+    togglingFeaturedId,
     uploadCover,
     deleteCover,
     startEdit,
@@ -59,12 +70,9 @@ const Blog = () => {
   } = useBlog();
 
   const panel = useFormPanel();
+  const confirm = useConfirmDelete(deletePost);
   const [query, setQuery] = useState('');
   const [status, setStatus] = useState<Status>('all');
-  const [tagInput, setTagInput] = useState('');
-  const [cropOpen, setCropOpen] = useState(false);
-  const [cropSrc, setCropSrc] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const title = watch('title');
   const content = watch('content');
@@ -82,7 +90,6 @@ const Blog = () => {
   const closeForm = () => {
     panel.close();
     reset();
-    setTagInput('');
   };
 
   const beginCreate = () => {
@@ -93,11 +100,6 @@ const Blog = () => {
   const beginEdit = (post: IBlog) => {
     startEdit(post);
     panel.open();
-  };
-
-  const commitTag = () => {
-    addTag(tagInput);
-    setTagInput('');
   };
 
   const filtered = (posts ?? []).filter(post => {
@@ -133,13 +135,19 @@ const Blog = () => {
         ? t('featuredAllUsed')
         : t('featuredHint', { count: localizedCount(openSlots, lang) });
 
+  const statusLabel: Record<Status, string> = {
+    all: t('all'),
+    published: t('statusPublished'),
+    draft: t('statusDraft'),
+  };
+
   return (
     <SectionShell
       title={t('title')}
       anchorRef={panel.anchorRef}
       action={
         !panel.isOpen && (
-          <Button size="icon" variant="outline" className="size-8" onClick={beginCreate} aria-label={t('createBlog')}>
+          <Button size="icon" variant="outline" onClick={beginCreate} aria-label={t('createBlog')}>
             <Plus className="size-4" aria-hidden />
           </Button>
         )
@@ -152,59 +160,19 @@ const Blog = () => {
           )}
           className="space-y-5"
         >
-          {/* Cover image */}
-          <Field label={t('coverImage')} error={errors.image?.message} hint={t('uploadImageHint')}>
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative flex h-20 w-32 items-center justify-center overflow-hidden rounded-lg border border-dashed bg-muted/20">
-                {image &&
-                  (isOptimizableImage(image) ? (
-                    <Image src={image} alt={t('coverImage')} fill sizes="128px" className="object-cover" />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={image} alt={t('coverImage')} className="size-full object-cover" />
-                  ))}
-              </div>
-              <div className="flex flex-col items-start gap-1">
-                <Button type="button" variant="outline" size="sm" onClick={() => fileInputRef.current?.click()} disabled={uploadCover.isPending}>
-                  {uploadCover.isPending ? <Loading size="sm" className="me-2" /> : null}
-                  {t('uploadImage')}
-                </Button>
-                {image && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => deleteCover.mutate()} disabled={deleteCover.isPending}>
-                    {t('removeImage')}
-                  </Button>
-                )}
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  className="hidden"
-                  onChange={e => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    setCropSrc(URL.createObjectURL(file));
-                    setCropOpen(true);
-                  }}
-                />
-              </div>
-            </div>
-          </Field>
-
-          <ImageCropperDialog
-            open={cropOpen}
-            onOpenChange={v => {
-              setCropOpen(v);
-              if (!v && cropSrc) {
-                URL.revokeObjectURL(cropSrc);
-                setCropSrc(null);
-                if (fileInputRef.current) fileInputRef.current.value = '';
-              }
-            }}
-            src={cropSrc}
+          <ImageField
+            label={t('coverImage')}
+            alt={title || t('coverImage')}
+            value={image}
+            error={errors.image?.message}
+            hint={td('image.hint')}
+            frameClassName="h-20 w-32 rounded-lg sm:h-24 sm:w-40"
             aspect={16 / 9}
-            labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: tDash('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
             outputSize={1200}
-            onCropped={file => {
+            uploading={uploadCover.isPending}
+            removing={deleteCover.isPending}
+            onRemove={() => deleteCover.mutate()}
+            onUpload={file => {
               const formData = new FormData();
               formData.append('image', file);
               uploadCover.mutate(formData);
@@ -213,53 +181,43 @@ const Blog = () => {
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label={t('titleLabel')} id="blog-title" error={errors.title?.message}>
-              <Input id="blog-title" {...register('title')} placeholder={t('titlePlaceholder')} />
+              <Input id="blog-title" {...register('title')} placeholder={t('titlePlaceholder')} autoComplete="off" />
             </Field>
             <Field label={t('slugLabel')} id="blog-slug" error={errors.slug?.message} hint={t('slugHint')}>
               <Input
                 id="blog-slug"
-                value={autoSlug}
-                onChange={e => setValue('slug', e.target.value, { shouldValidate: true, shouldDirty: true })}
-                placeholder={t('slugPlaceholder')}
                 dir="ltr"
+                value={autoSlug}
+                onChange={event => setValue('slug', event.target.value, { shouldValidate: true, shouldDirty: true })}
+                placeholder={t('slugPlaceholder')}
+                autoComplete="off"
               />
             </Field>
           </div>
 
           <Field label={t('summaryLabel')} id="blog-summary" error={errors.summary?.message} hint={t('summaryHint')}>
-            <Input id="blog-summary" {...register('summary')} placeholder={t('summaryPlaceholder')} />
+            <Input id="blog-summary" {...register('summary')} placeholder={t('summaryPlaceholder')} autoComplete="off" />
           </Field>
 
-          {/* Tags */}
-          <Field label={t('tagsLabel')} error={errors.tags?.message} hint={t('tagsHint')}>
-            <div className="flex gap-2">
-              <Input
-                value={tagInput}
-                onChange={e => setTagInput(e.target.value)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ',') {
-                    e.preventDefault();
-                    commitTag();
-                  }
-                }}
-                placeholder={t('tagsPlaceholder')}
-                aria-label={t('tagsPlaceholder')}
-              />
-              <Button type="button" variant="outline" size="sm" className="shrink-0" onClick={commitTag}>
-                {tDash('add')}
-              </Button>
-            </div>
-            {tags.length > 0 && (
-              <ul className="flex flex-wrap gap-1.5">
-                {tags.map((tag, index) => (
-                  <li key={`${tag}-${index}`}>
-                    <Badge variant="secondary" onDelete={() => removeTag(index)}>
-                      {tag}
-                    </Badge>
-                  </li>
-                ))}
-              </ul>
-            )}
+          <ChipInput
+            label={t('tagsLabel')}
+            hint={t('tagsHint')}
+            error={errors.tags?.message}
+            items={tags}
+            onAdd={addTag}
+            onRemove={removeTag}
+            placeholder={t('tagsPlaceholder')}
+            addLabel={td('add')}
+          />
+
+          <Field label={t('contentLabel')} error={errors.content?.message} hint={t('wordCount', { count: localizedCount(words, lang) })}>
+            {/* The editor is uncontrolled from RHF's perspective; sync via setValue. */}
+            <MarkdownEditor
+              value={content ?? ''}
+              onChange={value => setValue('content', value, { shouldValidate: true, shouldDirty: true })}
+              placeholder={td('markdown.placeholder')}
+              height={360}
+            />
           </Field>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -281,84 +239,64 @@ const Blog = () => {
               disabled={!published || (slotsFull && !featured)}
             />
           </div>
-          <p className="text-xs text-muted-foreground">{t('wordCount', { count: localizedCount(words, lang) })}</p>
 
-          <Field label={t('contentLabel')} error={errors.content?.message}>
-            {/* The editor is uncontrolled from RHF's perspective; sync via setValue. */}
-            <MarkdownEditor
-              value={content ?? ''}
-              onChange={value => setValue('content', value, { shouldValidate: true, shouldDirty: true })}
-              height={360}
-            />
-          </Field>
-
-          <div className="flex gap-2 max-sm:flex-col">
-            <Button type="submit" disabled={save.isPending} className="w-full sm:w-auto">
-              {save.isPending ? <Loading size="sm" className="me-2" /> : null}
-              {t('save')}
-            </Button>
-            <Button type="button" variant="outline" onClick={closeForm} className="w-full sm:w-auto">
-              {tDash('cancel')}
-            </Button>
-          </div>
+          <FormActions submitLabel={t('save')} cancelLabel={td('cancel')} submitting={save.isPending} onCancel={closeForm} />
         </form>
       </FormPanel>
 
       {isPending ? (
-        <LoadingRows />
+        <CardListSkeleton actions={5} />
       ) : isError ? (
         <ErrorState message={error?.message} onRetry={() => refetchPosts()} />
       ) : posts && posts.length > 0 ? (
-        <div className="space-y-4">
-          <p className="text-xs text-muted-foreground">
-            {t('homeSlots', {
-              used: localizedCount(homePicks.length, lang),
-              total: localizedCount(HOME_BLOG_SLOTS, lang),
-            })}
-          </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <Input
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder={t('searchPlaceholder')}
-              aria-label={t('searchPlaceholder')}
-              className="sm:max-w-xs"
-            />
-            <div className="flex gap-1.5" role="group" aria-label={t('statusFilter')}>
-              {STATUSES.map(value => (
-                <FilterChip key={value} active={status === value} onClick={() => setStatus(value)}>
-                  {t(value)}
+        <>
+          <AdminToolbar
+            query={query}
+            onQueryChange={setQuery}
+            searchLabel={t('searchPlaceholder')}
+            clearSearchLabel={td('clearSearch')}
+            chips={STATUSES.map(value => ({
+              value,
+              label: (
+                <>
+                  {statusLabel[value]}
                   {value === 'draft' && drafts > 0 && <span className="tabular-nums">({localizedCount(drafts, lang)})</span>}
-                </FilterChip>
-              ))}
-            </div>
-          </div>
+                </>
+              ),
+            }))}
+            active={status}
+            onPick={value => setStatus(value as Status)}
+            chipsLabel={t('statusFilter')}
+            meta={t('homeSlots', { used: localizedCount(homePicks.length, lang), total: localizedCount(HOME_BLOG_SLOTS, lang) })}
+          />
 
           {filtered.length > 0 ? (
-            <div className="space-y-4">
+            <EntityList>
               {filtered.map(post => (
                 <BlogRow
                   key={post._id}
                   post={post}
                   onEdit={beginEdit}
-                  onDelete={id => deletePost(id)}
-                  isDeleting={deleting}
+                  onDelete={item => confirm.request(item._id, item.title)}
+                  deleting={deletingId === post._id}
+                  togglingPublished={togglingPublishedId === post._id}
+                  togglingHome={togglingFeaturedId === post._id}
                   homePosition={homePosition(post._id)}
                   slotsFull={homePicks.length >= HOME_BLOG_SLOTS}
-                  onToggleHome={post => toggleFeatured.mutate(post)}
-                  togglingHome={toggleFeatured.isPending}
-                  onTogglePublished={post => togglePublished.mutate(post)}
-                  togglingPublished={togglePublished.isPending}
+                  onToggleHome={item => toggleFeatured(item)}
+                  onTogglePublished={item => togglePublished(item)}
                 />
               ))}
-            </div>
+            </EntityList>
           ) : (
-            <EmptyState text={t('noResults')} />
+            <EmptyState icon={FileText} text={t('noResults')} />
           )}
-        </div>
+        </>
       ) : (
-        !panel.isOpen && <EmptyState text={t('noBlogs')} actionText={t('createBlog')} onAction={beginCreate} />
+        !panel.isOpen && <EmptyState icon={FileText} text={t('noBlogs')} actionText={t('createBlog')} onAction={beginCreate} />
       )}
+
+      <ConfirmDialog {...confirm.dialogProps} />
     </SectionShell>
   );
 };

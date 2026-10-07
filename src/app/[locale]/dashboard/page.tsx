@@ -1,5 +1,5 @@
-import Footer from '@/features/dashboard/footer';
-import Tab from '@/features/dashboard/tab';
+import AdminDock from '@/features/dashboard/AdminDock';
+import AdminTabs from '@/features/dashboard/AdminTabs';
 import { SectionHeader } from '@/components/section-header';
 import { getTranslations } from 'next-intl/server';
 
@@ -11,8 +11,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   return (
     <main className="w-full">
       <SectionHeader as="h1" label={t('eyebrow')} title={t('title')} delay={0.02} />
-      <Tab />
-      <Footer />
+      <AdminTabs />
+      <AdminDock />
     </main>
   );
 }

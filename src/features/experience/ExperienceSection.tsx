@@ -25,7 +25,6 @@ export function Experience({ index, label, title, description, meta, works, loca
         {works.map((work, id) => (
           <BlurFade key={work._id ?? `${work.company}-${id}`} delay={delay + 0.06 + id * 0.04} inView>
             <ResumeCard
-              variant="row"
               logoUrl={work.logoUrl}
               altText={work.company}
               title={work.company}

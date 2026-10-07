@@ -23,7 +23,6 @@ export function Education({ index, label, title, description, meta, educations, 
         {educations.map((education, id) => (
           <BlurFade key={education._id ?? `${education.school}-${id}`} delay={delay + 0.06 + id * 0.04} inView>
             <ResumeCard
-              variant="row"
               href={education.href}
               logoUrl={education.logoUrl}
               altText={education.school}

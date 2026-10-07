@@ -5,6 +5,7 @@ import type { ISupporter, SupporterStatus } from '@/features/support/types';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useLocale } from 'next-intl';
 import { useToastMessages } from '@/hooks/useToastMessages';
+import { pendingRecordId } from '@/hooks/pendingRecordId';
 
 /**
  * Support records for the dashboard: the list the owner works through to confirm
@@ -39,7 +40,7 @@ const useSupporters = () => {
     onError: () => fail(),
   });
 
-  const { mutate: removeSupporter, isPending: deleting } = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/supporter?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
@@ -58,9 +59,10 @@ const useSupporters = () => {
     isError,
     error,
     refetchSupporters,
-    update,
-    removeSupporter,
-    deleting,
+    removeSupporter: deleteMutation.mutate,
+    deletingId: pendingRecordId(deleteMutation),
+    /** The record whose status, wall flag or note is in flight — only that row waits. */
+    updatingId: pendingRecordId(update),
     setStatus,
     toggleWall,
     saveNote,

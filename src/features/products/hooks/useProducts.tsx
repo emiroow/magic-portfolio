@@ -6,6 +6,7 @@ import type { IProduct } from '@/features/products/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
+import { pendingRecordId } from '@/hooks/pendingRecordId';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -75,7 +76,7 @@ const useProducts = () => {
     onError: () => fail(),
   });
 
-  const { mutate: deleteProduct, isPending: deleting } = useMutation({
+  const deleteMutation = useMutation({
     mutationFn: (id: string) => api.del(`/api/${locale}/admin/product?id=${encodeURIComponent(id)}`),
     onSuccess: () => {
       ok();
@@ -88,7 +89,7 @@ const useProducts = () => {
    * Row-level toggles send only the flipped flag: the update schema is partial,
    * so a long-form body open in the edit panel is never rewritten by mistake.
    */
-  const toggleActive = useMutation({
+  const activeMutation = useMutation({
     mutationFn: (product: IProduct) => api.put<IProduct>(`/api/${locale}/admin/product`, { _id: product._id, active: !product.active }),
     onSuccess: () => {
       ok();
@@ -97,7 +98,7 @@ const useProducts = () => {
     onError: () => fail(),
   });
 
-  const toggleAvailable = useMutation({
+  const availableMutation = useMutation({
     mutationFn: (product: IProduct) => api.put<IProduct>(`/api/${locale}/admin/product`, { _id: product._id, available: !product.available }),
     onSuccess: () => {
       ok();
@@ -112,7 +113,7 @@ const useProducts = () => {
    * update schema is partial, so the whole record is resent with the flipped
    * flag to keep every required field valid.
    */
-  const toggleFeatured = useMutation({
+  const featuredMutation = useMutation({
     mutationFn: (product: IProduct) => {
       const { _id, title, slug, category, description, details, image, features, price, currency, available, href, active } = product;
       return api.put<IProduct>(`/api/${locale}/admin/product`, {
@@ -202,7 +203,6 @@ const useProducts = () => {
     setValue,
     watch,
     reset,
-    getValues,
     errors,
     products,
     isPending,
@@ -210,11 +210,14 @@ const useProducts = () => {
     error,
     refetchProducts,
     save,
-    deleteProduct,
-    deleting,
-    toggleActive,
-    toggleAvailable,
-    toggleFeatured,
+    deleteProduct: deleteMutation.mutate,
+    deletingId: pendingRecordId(deleteMutation),
+    toggleActive: activeMutation.mutate,
+    togglingActiveId: pendingRecordId(activeMutation),
+    toggleAvailable: availableMutation.mutate,
+    togglingAvailableId: pendingRecordId(availableMutation),
+    toggleFeatured: featuredMutation.mutate,
+    togglingFeaturedId: pendingRecordId(featuredMutation),
     uploadImage,
     deleteImage,
     addFeature,

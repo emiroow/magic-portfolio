@@ -1,55 +1,43 @@
 'use client';
+
 import { cn } from '@/lib/utils';
 import { useLocale } from 'next-intl';
 import { useTheme } from 'next-themes';
 import dynamic from 'next/dynamic';
 import { useMemo } from 'react';
 
-// Styles for the editor & preview
 import '@uiw/react-markdown-preview/markdown.css';
 import '@uiw/react-md-editor/markdown-editor.css';
 
-// Load editor on client only to avoid SSR issues
 type MDEditorProps = {
   value: string;
-  onChange: (val?: string) => void;
+  onChange: (value?: string) => void;
   height?: number;
-  hideToolbar?: boolean;
-  preview?: 'edit' | 'preview' | 'live';
-  /** The editor's own RTL mode: mirrors the shell, the toolbar and the preview. */
   direction?: 'rtl' | 'ltr';
   textareaProps?: { placeholder?: string; dir?: string };
 };
 
-const MDEditor = dynamic<MDEditorProps>(() => import('@uiw/react-md-editor'), {
-  ssr: false,
-});
+// The editor touches `window` on import, so it can never be part of a server render.
+const MDEditor = dynamic<MDEditorProps>(() => import('@uiw/react-md-editor'), { ssr: false });
 
 type MarkdownEditorProps = {
   value: string;
-  onChange: (val: string) => void;
-  placeholder?: string;
+  onChange: (value: string) => void;
+  /** Required: the editor has no language of its own to fall back on. */
+  placeholder: string;
   className?: string;
   height?: number;
-  label?: string;
-  required?: boolean;
-  error?: string | null;
-  maxLength?: number;
-  hideToolbar?: boolean;
 };
 
-export default function MarkdownEditor({
-  value,
-  onChange,
-  placeholder,
-  className,
-  height = 400,
-  label,
-  required,
-  error,
-  maxLength,
-  hideToolbar,
-}: MarkdownEditorProps) {
+/**
+ * Markdown surface for the long-form body of a post, a project and a product.
+ *
+ * The library ships a Latin-only face, its own colour scheme and no notion of the
+ * page's direction, so all three are imposed from here: the shell, the toolbar and the
+ * preview mirror the site's theme and direction, and the typing face is inherited
+ * rather than the editor's own (see `globals.css`).
+ */
+export default function MarkdownEditor({ value, onChange, placeholder, className, height = 400 }: MarkdownEditorProps) {
   const locale = useLocale();
   const dir = locale === 'fa' ? 'rtl' : 'ltr';
   const { theme, resolvedTheme } = useTheme();
@@ -59,42 +47,10 @@ export default function MarkdownEditor({
     return current === 'dark' ? 'dark' : 'light';
   }, [theme, resolvedTheme]);
 
-  const fallbackPlaceholder = useMemo(
-    () => placeholder ?? (locale === 'fa' ? 'محتوای خود را اینجا بنویسید...' : 'Write your content here...'),
-    [placeholder, locale]
-  );
-
-  const chars = value?.length ?? 0;
-  const limitReached = typeof maxLength === 'number' && chars > maxLength;
-
   return (
     <div className={cn('space-y-1', className)} dir={dir}>
-      {label && (
-        <label className="text-sm font-medium">
-          {label}
-          {required ? <span className="text-destructive"> *</span> : null}
-        </label>
-      )}
-
-      {/* The editor owns its direction; the wrapper only carries the site hairline. */}
-      <div data-color-mode={colorMode} className="rounded-md border">
-        <MDEditor
-          value={value}
-          onChange={(val: string | undefined) => onChange(val || '')}
-          height={height}
-          hideToolbar={hideToolbar}
-          direction={dir}
-          textareaProps={{ placeholder: fallbackPlaceholder, dir }}
-        />
-      </div>
-
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        {error ? <span className="text-destructive">{error}</span> : <span />}
-        {typeof maxLength === 'number' && (
-          <span className={cn(limitReached && 'text-destructive')}>
-            {locale === 'fa' ? `کاراکتر: ${chars}/${maxLength}` : `Characters: ${chars}/${maxLength}`}
-          </span>
-        )}
+      <div data-color-mode={colorMode} className="overflow-hidden rounded-lg border">
+        <MDEditor value={value} onChange={next => onChange(next ?? '')} height={height} direction={dir} textareaProps={{ placeholder, dir }} />
       </div>
     </div>
   );
