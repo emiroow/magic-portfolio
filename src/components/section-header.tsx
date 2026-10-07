@@ -1,4 +1,5 @@
 import BlurFade from '@/components/magicui/blur-fade';
+import { SectionMark, type SectionMarkKey } from '@/components/section-mark';
 import { cn } from '@/lib/utils';
 import type { ReactNode } from 'react';
 
@@ -23,6 +24,13 @@ export interface SectionHeadingProps {
   meta?: string;
 }
 
+/**
+ * `default` is the site's single header language. `spine` adds the section's own
+ * glyph on a fading rail at the inline-start; internal pages opt in, the home
+ * page never does.
+ */
+export type SectionHeaderVariant = 'default' | 'spine';
+
 interface SectionHeaderProps extends SectionHeadingProps {
   /** Trailing control aligned to the end of the title row. */
   action?: ReactNode;
@@ -34,6 +42,10 @@ interface SectionHeaderProps extends SectionHeadingProps {
   titleClassName?: string;
   /** Stagger offset for the entrance animation. */
   delay?: number;
+  /** Header treatment; see `SectionHeaderVariant`. */
+  variant?: SectionHeaderVariant;
+  /** Section the spine glyph belongs to; required for `variant="spine"`. */
+  mark?: SectionMarkKey;
 }
 
 /**
@@ -53,38 +65,57 @@ export function SectionHeader({
   className,
   titleClassName,
   delay = 0,
+  variant = 'default',
+  mark,
 }: SectionHeaderProps) {
   const hasEyebrow = Boolean(index || label || meta);
+  const spineMark = variant === 'spine' ? mark : undefined;
+
+  const fields = (
+    <>
+      {hasEyebrow && (
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex min-w-0 items-center gap-3">
+            {index && (
+              <span aria-hidden className="text-[11px] tabular-nums text-muted-foreground/70 ltr:font-mono">
+                {index}
+              </span>
+            )}
+            {index && label && <span aria-hidden className="h-px w-5 shrink-0 bg-border" />}
+            {label && <p className={cn(eyebrowClass, 'truncate')}>{label}</p>}
+          </div>
+          {meta && <p className="shrink-0 text-[11px] tabular-nums text-muted-foreground ltr:font-mono">{meta}</p>}
+        </div>
+      )}
+
+      <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-2', hasEyebrow && 'mt-3')}>
+        <Tag id={id} className={cn('text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl', titleClassName)}>
+          {title}
+        </Tag>
+        {action}
+      </div>
+
+      {description && <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>}
+
+      <div aria-hidden className="rule-fade mt-6" />
+    </>
+  );
 
   return (
     <BlurFade delay={delay}>
-      <header className={cn('mb-7', className)}>
-        {hasEyebrow && (
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              {index && (
-                <span aria-hidden className="text-[11px] tabular-nums text-muted-foreground/70 ltr:font-mono">
-                  {index}
-                </span>
-              )}
-              {index && label && <span aria-hidden className="h-px w-5 shrink-0 bg-border" />}
-              {label && <p className={cn(eyebrowClass, 'truncate')}>{label}</p>}
-            </div>
-            {meta && <p className="shrink-0 text-[11px] tabular-nums text-muted-foreground ltr:font-mono">{meta}</p>}
+      {spineMark ? (
+        <header className={cn('mb-7 flex items-stretch gap-4 sm:gap-5', className)}>
+          {/* Rail: the glyph opens the block and the hairline carries it down,
+              fading before the content ends. Vertical, so RTL needs no mirror. */}
+          <div aria-hidden className="flex w-7 shrink-0 flex-col items-center gap-3 sm:w-8">
+            <SectionMark mark={spineMark} className="size-5 text-muted-foreground" />
+            <span className="w-px flex-1 bg-gradient-to-b from-border to-transparent" />
           </div>
-        )}
-
-        <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-2', hasEyebrow && 'mt-3')}>
-          <Tag id={id} className={cn('text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl', titleClassName)}>
-            {title}
-          </Tag>
-          {action}
-        </div>
-
-        {description && <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>}
-
-        <div aria-hidden className="rule-fade mt-6" />
-      </header>
+          <div className="min-w-0 flex-1">{fields}</div>
+        </header>
+      ) : (
+        <header className={cn('mb-7', className)}>{fields}</header>
+      )}
     </BlurFade>
   );
 }

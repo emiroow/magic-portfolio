@@ -80,6 +80,8 @@ export default async function ProjectsPage({ params }: Props) {
           title={t('title')}
           description={t('description')}
           meta={projects.length ? t('count', { count: localizedCount(projects.length, lang) }) : undefined}
+          variant="spine"
+          mark="projects"
           delay={0.04}
         />
 

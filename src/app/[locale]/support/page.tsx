@@ -142,6 +142,8 @@ export default async function SupportPage({ params, searchParams }: Props) {
           title={t('title')}
           description={t('description')}
           meta={methods.length ? t('count', { count: localizedCount(methods.length, lang) }) : undefined}
+          variant="spine"
+          mark="support"
           delay={0.04}
         />
 

@@ -1,6 +1,7 @@
 import BlurFade from '@/components/magicui/blur-fade';
 import { ProductCard } from '@/features/products/ProductCard';
-import { SectionHeader, type SectionHeadingProps } from '@/components/section-header';
+import { SectionHeader, type SectionHeaderVariant, type SectionHeadingProps } from '@/components/section-header';
+import type { SectionMarkKey } from '@/components/section-mark';
 import { buttonVariants } from '@/components/ui/button';
 import { HOME_PRODUCT_SLOTS } from '@/features/products/constants';
 import { cn, documentKey } from '@/lib/utils';
@@ -25,10 +26,27 @@ interface ProductsProps extends SectionHeadingProps {
   /** Label for the catalogue link. */
   viewAllLabel: string;
   delay?: number;
+  /** Opt-in C03 header treatment (section rail + opposite mark). The home page leaves it off. */
+  headerVariant?: SectionHeaderVariant;
+  /** Section glyph for `headerVariant="spine"`. */
+  headerMark?: SectionMarkKey;
 }
 
 /** Grid of the active products, capped to a preview set. */
-export function Products({ index, label, title, description, meta, products, locale, unavailableLabel, viewAllLabel, delay = 0 }: ProductsProps) {
+export function Products({
+  index,
+  label,
+  title,
+  description,
+  meta,
+  products,
+  locale,
+  unavailableLabel,
+  viewAllLabel,
+  delay = 0,
+  headerVariant,
+  headerMark,
+}: ProductsProps) {
   const active = products.filter(product => product.active);
   if (!active.length) return null;
 
@@ -37,7 +55,17 @@ export function Products({ index, label, title, description, meta, products, loc
 
   return (
     <section id="products" aria-labelledby="products-heading">
-      <SectionHeader index={index} label={label} title={title} description={description} meta={meta} id="products-heading" delay={delay} />
+      <SectionHeader
+        index={index}
+        label={label}
+        title={title}
+        description={description}
+        meta={meta}
+        id="products-heading"
+        delay={delay}
+        variant={headerVariant}
+        mark={headerMark}
+      />
       {/* Three fixed tracks from `lg` up, so one or two products keep the same
           measure they would have in a full row instead of stretching. */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

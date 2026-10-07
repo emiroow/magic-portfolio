@@ -80,6 +80,8 @@ export default async function ProductsPage({ params }: Props) {
           title={t('title')}
           description={t('description')}
           meta={products.length ? t('count', { count: localizedCount(products.length, lang) }) : undefined}
+          variant="spine"
+          mark="products"
           delay={0.04}
         />
 

@@ -83,6 +83,8 @@ export default async function BlogPage({ params, searchParams }: Props) {
           title={t('title')}
           description={t('description')}
           meta={posts.length ? t('count', { count: localizedCount(posts.length, lang) }) : undefined}
+          variant="spine"
+          mark="blog"
           action={
             <Link
               href={`/${locale}/blog/rss.xml`}
