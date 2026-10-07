@@ -313,27 +313,28 @@
 }
 
 /*
- * Checkout wizard: it drops in from the top of the screen and leaves back the way
- * it came. The keyframes own the whole transform — including the `-50%` centring —
- * because a slide utility would fight the positioning translate and send the
- * surface drifting sideways while it fades.
+ * Checkout wizard: it rises into place from below and sinks back down the way it
+ * came when it is dismissed. The keyframes own the whole transform — including the
+ * `-50%` centring — because a slide utility would fight the positioning translate and
+ * send the surface drifting sideways while it fades. The exit travels a shorter
+ * distance than the entrance: leaving should feel quicker than arriving.
  *
  * `[role='dialog']` is part of the selector on purpose: the fade classes shadcn puts
  * on the same element carry one class plus one attribute, so an equal-specificity
  * rule would lose on source order and the wizard would keep the default fade.
  */
-[role='dialog'].sheet-from-top[data-state='open'] {
-  animation: sheet-in 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+[role='dialog'].wizard-rise[data-state='open'] {
+  animation: wizard-in 0.34s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-[role='dialog'].sheet-from-top[data-state='closed'] {
-  animation: sheet-out 0.22s ease-in forwards;
+[role='dialog'].wizard-rise[data-state='closed'] {
+  animation: wizard-out 0.22s ease-in forwards;
 }
 
-@keyframes sheet-in {
+@keyframes wizard-in {
   from {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 22px)) scale(0.985);
+    transform: translate(-50%, calc(-50% + 28px)) scale(0.98);
   }
 
   to {
@@ -342,7 +343,7 @@
   }
 }
 
-@keyframes sheet-out {
+@keyframes wizard-out {
   from {
     opacity: 1;
     transform: translate(-50%, -50%) scale(1);
@@ -350,6 +351,6 @@
 
   to {
     opacity: 0;
-    transform: translate(-50%, calc(-50% - 22px)) scale(0.985);
+    transform: translate(-50%, calc(-50% + 18px)) scale(0.985);
   }
 }

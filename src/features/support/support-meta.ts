@@ -12,6 +12,7 @@ import {
   variantStandingAmount,
 } from '@/features/support/variants';
 import { CRYPTO_NETWORKS, SUPPORT_PROVIDERS } from '@/features/support/constants';
+import { CRYPTO_ASSETS } from '@/constants/global';
 import { linkHost } from '@/lib/utils';
 
 /**
@@ -101,11 +102,21 @@ export function nameDir(value: string | undefined): 'ltr' | 'auto' {
  * A destination name stored on a support record, translated when it still matches a
  * catalogue id. Records keep the words the server had at the time, so a name an owner
  * typed by hand simply reads as what it is instead of breaking the line.
+ *
+ * A wallet is stored as its coin and its ledger together — the pair that decided where
+ * the money went — so both halves are named in the reader's own language too, the same
+ * way the destination tiles name them.
  */
-export function storedVariantName(label: string | undefined, t: Label): string {
+export function storedVariantName(label: string | undefined, t: Label, units: Label): string {
   if (!label) return '';
   if ((SUPPORT_PROVIDERS as string[]).includes(label)) return t(`providers.${label}`);
   if ((CRYPTO_NETWORKS as string[]).includes(label)) return t(`networks.${label}`);
+
+  const [asset, network] = label.split('-');
+  if ((CRYPTO_ASSETS as string[]).includes(asset) && (CRYPTO_NETWORKS as string[]).includes(network)) {
+    return `${units(asset)} · ${t(`networks.${network}`)}`;
+  }
+
   return label;
 }
 

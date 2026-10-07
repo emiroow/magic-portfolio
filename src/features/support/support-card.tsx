@@ -24,16 +24,20 @@ interface SupportCardProps {
 }
 
 /**
- * One support method as one card: what it is, where the money actually lands, and
+ * One support method as one row: what it is, where the money actually lands, and
  * what it costs — or that it costs nothing. There is exactly one of these per method,
  * so the page never asks a supporter to compare three prices for the same gesture.
  *
- * The destinations listed here are the ones the method itself carries: nothing from
- * another method can appear on this card, or in the wizard it opens.
+ * A row runs the full width of the page's main column rather than sitting in a track
+ * of its own: the number of open methods is whatever the owner left open, and a grid
+ * would leave the rest of a row empty as often as not.
  *
- * The card shares its parts — the framed icon, the hairline footer, the trailing
- * tags — with the tiles inside the wizard and the supporters wall, so the whole
- * section reads as one system.
+ * The destinations listed here are the ones the method itself carries: nothing from
+ * another method can appear on this row, or in the wizard it opens.
+ *
+ * The row shares its parts — the framed icon, the hairline footer, the trailing tags
+ * — with the tiles inside the wizard and the supporters wall, so the whole section
+ * reads as one system.
  */
 export function SupportCard({ option, supporters, action, className }: SupportCardProps) {
   const t = useTranslations('support');
@@ -45,23 +49,31 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
   const destinations = usableVariants(option);
   const named = destinations.slice(0, SHOWN_DESTINATIONS).map(variant => variantLabel(variant, t, tp) || variantDetail(variant));
   const hidden = destinations.length - named.length;
-  const meta = [
-    destinations.length > 1 ? t('destinations', { count: localizedCount(destinations.length, lang) }) : '',
-    supporters && supporters > 0 ? t('stats.supporters', { count: localizedCount(supporters, lang) }) : '',
-  ].filter(Boolean);
+  /** Who has already used this rail. The destinations above already say how many there are. */
+  const backed = supporters && supporters > 0 ? t('stats.supporters', { count: localizedCount(supporters, lang) }) : '';
 
   return (
     <Card className={cn(itemFrame, className)}>
-      <div className="flex items-start gap-3">
-        {/* The tile inverts under the card's pointer: the one place this section lets a
+      <div className="flex items-start gap-3.5">
+        {/* The tile inverts under the row's pointer: the one place this section lets a
             surface go solid, so a method you can act on feels alive before you commit. */}
         <IconTile icon={Icon} className="group-hover:border-foreground group-hover:bg-foreground group-hover:text-background" />
         <div className="min-w-0 flex-1">
           <h3 className="break-words text-sm font-semibold leading-snug" dir={nameDir(option.title)}>
             {option.title}
           </h3>
-          <p className="mt-0.5 break-words text-xs leading-snug text-muted-foreground" dir="auto">
-            {t(`modes.${option.mode}`)}
+          {/* What kind of rail this is, and who has already taken it — one line, because
+              the destinations below already say how many of them there are. */}
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-2 text-xs leading-snug text-muted-foreground">
+            <span dir="auto">{t(`modes.${option.mode}`)}</span>
+            {backed && (
+              <>
+                <span aria-hidden className="opacity-50">
+                  ·
+                </span>
+                <span className="tabular-nums">{backed}</span>
+              </>
+            )}
           </p>
         </div>
         <Tag className="mt-0.5">{t(`regions.${option.region}`)}</Tag>
@@ -90,22 +102,7 @@ export function SupportCard({ option, supporters, action, className }: SupportCa
           </ul>
         )}
 
-        {meta.length > 0 && (
-          <p className="flex flex-wrap items-center gap-x-2 text-[11px] text-muted-foreground">
-            {meta.map((line, index) => (
-              <span key={line} className="flex items-center gap-2">
-                {index > 0 && (
-                  <span aria-hidden className="opacity-50">
-                    ·
-                  </span>
-                )}
-                <span className="tabular-nums">{line}</span>
-              </span>
-            ))}
-          </p>
-        )}
-
-        {/* Price and action share the bottom edge, so cards of any text length align. The
+        {/* Price and action share the bottom edge, so rows of any text length align. The
             price keeps its own line whole: a long amount or a list of units never gets
             clipped, it takes the row and leaves the button the next one. */}
         <div className={itemFoot}>

@@ -55,9 +55,18 @@ export function SupportDialog({ choices, heading, option, open, onOpenChange, in
 
   return (
     <Dialog open={open} onOpenChange={next => (next ? onOpenChange(true) : close())}>
-      {/* The wizard arrives from above and leaves the same way it came. */}
-      <DialogContent className="sheet-from-top max-w-lg">
-        {option && open ? (
+      {/*
+       * The wizard rises from below and sinks back down on its way out (`wizard-rise`).
+       * Its own scroll happens inside the step body: the heading, the progress rail and
+       * the action row stay put, so the button a supporter is looking for is never
+       * below the fold on a phone — which is exactly what happened when the whole
+       * window scrolled.
+       */}
+      <DialogContent className="wizard-rise grid-rows-[auto_auto_minmax(0,1fr)_auto] max-w-lg overflow-hidden">
+        {/* Keyed on the method alone, not on `open`: the window is still on screen while
+            it sinks away, and dropping the content the moment `open` flipped left an empty
+            frame collapsing instead of a wizard sliding down. */}
+        {option ? (
           <SupportWizard
             option={option}
             choices={choices}
@@ -107,7 +116,8 @@ function SupportWizard({
 
   return (
     <>
-      <DialogHeader>
+      {/* `pe-10` keeps the title clear of the close mark, which sits over this corner. */}
+      <DialogHeader className="pe-10">
         <DialogTitle className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-base">
           <span className="break-words" dir={nameDir(title)}>
             {title}
@@ -132,14 +142,17 @@ function SupportWizard({
       {/* Step rail: one mark per step of this item's flow, the reached ones solid. */}
       <StepRail steps={wizard.flow} current={wizard.step} titleFor={stepTitle} />
 
+      {/* The step body is the only part that scrolls, and a step enters from below —
+          the same direction the window itself travels in. The negative trailing margin
+          puts the scrollbar in the window's own padding instead of over the content. */}
       <AnimatePresence mode="wait" initial={false}>
         <motion.div
           key={wizard.thanks ? 'thanks' : `${wizard.step}-${wizard.result?.kind ?? 'form'}`}
-          initial={{ opacity: 0, y: -12 }}
+          initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: 12 }}
-          transition={{ duration: 0.18, ease: 'easeOut' }}
-          className="space-y-5"
+          exit={{ opacity: 0, y: -8 }}
+          transition={{ duration: 0.2, ease: 'easeOut' }}
+          className="-me-2 min-h-0 space-y-5 overflow-y-auto overscroll-contain pe-2 pb-1"
         >
           {wizard.thanks ? (
             <Thanks note={td('donePending')} onClose={onClose} />

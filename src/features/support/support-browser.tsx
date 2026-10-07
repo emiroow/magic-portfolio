@@ -3,24 +3,21 @@
 import FlexibleSupport from '@/features/support/flexible-support';
 import { SupportCard } from '@/features/support/support-card';
 import { SupportDialog } from '@/features/support/support-dialog';
-import { IconTile } from '@/features/support/support-tile';
+import SupportRail from '@/features/support/support-rail';
+import { ChapterHeading, IconTile } from '@/features/support/support-tile';
 import { SupporterWall } from '@/features/support/supporter-wall';
 import { flexibleMethods, variantLabel } from '@/features/support/support-meta';
 import { Button } from '@/components/ui/button';
 import type { SupportStats } from '@/features/support/queries';
 import { handlesMoney, usableVariants } from '@/features/support/variants';
-import { cn, documentKey, formatPrice, localizedCount } from '@/lib/utils';
-import type { AppLocale } from '@/types';
+import { cn, documentKey } from '@/lib/utils';
 import type { IDonation, ISupporter } from '@/features/support/types';
-import { AlertTriangle, Check, ExternalLink, EyeOff, HandHeart, Unlock, X } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { AlertTriangle, Check, HandHeart, X } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /** Gateway return states, resolved by the page from its own query string. */
 export type SupportReturnStatus = 'success' | 'cancelled' | 'failed' | 'error';
-
-/** One honest icon per reassurance, so the trust row reads at a glance instead of as three clones. */
-const TRUST_ICONS = { noAccount: Unlock, private: EyeOff, monochrome: ExternalLink } as const;
 
 /** The mark a gateway return wears: a tick, a cross, or a warning. */
 const RETURN_ICONS = { success: Check, cancelled: X, failed: AlertTriangle, error: AlertTriangle } as const;
@@ -42,14 +39,19 @@ interface SupportBrowserProps {
 }
 
 /**
- * The support page: one card per method, the door to an amount of the visitor's own
+ * The support page: one row per method, the door to an amount of the visitor's own
  * choosing, and the wall of everyone whose support landed.
  *
- * Nothing is decided on the page itself, and no window is shared between cards: a
- * card opens a wizard holding that card's own destinations, currency, limits and
- * steps, while the “your own amount” box opens one that first asks between the
- * methods accepting an open amount. Methods that cost nothing are kept in their own
- * block, so a visitor can tell a payment from a gesture before opening either.
+ * The page is two columns wide from `lg` up — the rails in the main column, the door
+ * and the page's own claims in a rail beside them — and one honest stack below that.
+ * No list here is cut into fixed tracks, so a site with two open methods shows a full
+ * column rather than a row with a hole where the third card would have been.
+ *
+ * Nothing is decided on the page itself, and no window is shared between rows: a row
+ * opens a wizard holding that method's own destinations, currency, limits and steps,
+ * while the “your own amount” door opens one that first asks between the methods
+ * accepting an open amount. Methods that cost nothing are kept in their own chapter,
+ * so a visitor can tell a payment from a gesture before opening either.
  */
 export default function SupportBrowser({
   methods,
@@ -63,8 +65,6 @@ export default function SupportBrowser({
 }: SupportBrowserProps) {
   const t = useTranslations('support');
   const tp = useTranslations('pricing');
-  const locale = useLocale();
-  const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
 
   const flexible = flexibleMethods(methods);
   /** Money rails and free gestures are two kinds of ask; the page says which is which. */
@@ -105,7 +105,7 @@ export default function SupportBrowser({
     setPicked(amount);
   };
 
-  /** The one door on a card: it opens that method, and only its own destinations. */
+  /** The one door on a row: it opens that method, and only its own destinations. */
   const cardAction = (method: IDonation) => {
     const first = usableVariants(method)[0];
     const named = variantLabel(first, t, tp);
@@ -113,8 +113,10 @@ export default function SupportBrowser({
     // offered in the name of the account, wallet or page it lands in.
     const provider = (method.mode === 'action' && first?.provider ? t(`providers.${first.provider}`) : named) || t(`modes.${method.mode}`);
 
+    // The door above is the page's one solid button; a row's own action stays one
+    // step quieter, so the page has a single loudest ask.
     return (
-      <Button className="rounded-full px-5" onClick={() => openMethod(method)}>
+      <Button variant="outline" className="rounded-full px-4" onClick={() => openMethod(method)}>
         {t(`cta.${method.mode}`, { provider })}
       </Button>
     );
@@ -122,6 +124,8 @@ export default function SupportBrowser({
 
   const ReturnIcon = returnStatus ? RETURN_ICONS[returnStatus] : null;
   const returnFailed = returnStatus === 'failed' || returnStatus === 'error';
+  /** The door exists only while some rail here takes an amount the supporter names. */
+  const hasDoor = flexible.length > 0;
 
   return (
     <div className="flex flex-col gap-10">
@@ -138,95 +142,63 @@ export default function SupportBrowser({
         </div>
       )}
 
-      {/* Headline numbers, only where they mean something: each is a figure over its name. */}
-      {/* {(stats.supporters > 0 || stats.raised !== null) && (
-        <div className="flex flex-wrap items-start gap-x-12 gap-y-6 border-y py-5">
-          {stats.supporters > 0 && (
-            <div>
-              <p className="text-2xl font-bold leading-none tabular-nums sm:text-3xl">{localizedCount(stats.supporters, lang)}</p>
-              <p className="mt-2 text-xs text-muted-foreground">{t('stats.supportersLabel')}</p>
-            </div>
-          )}
-          {stats.raised !== null && stats.currency && (
-            <div>
-              <p className="flex items-baseline gap-1.5 text-2xl font-bold leading-none tabular-nums sm:text-3xl">
-                <bdi dir="ltr">{formatPrice(stats.raised, lang)}</bdi>
-                <span className="text-sm font-medium text-muted-foreground">{tp(stats.currency)}</span>
-              </p>
-              <p className="mt-2 text-xs text-muted-foreground">{t('stats.raisedLabel')}</p>
-            </div>
-          )}
-        </div>
-      )} */}
-
       {methods.length === 0 ? (
         <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed py-16 text-center">
           <IconTile icon={HandHeart} />
           <p className="max-w-md px-6 text-sm leading-relaxed text-muted-foreground">{t('empty')}</p>
         </div>
       ) : (
-        <div className="space-y-4">
-          {/* One door for “an amount of my own”: everything is chosen inside it. */}
-          {flexible.length > 0 && <FlexibleSupport methods={flexible} onOpen={openFlexible} />}
-
-          {paid.length > 0 && (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {paid.map(method => (
-                <SupportCard
-                  key={documentKey(method) || method.title}
-                  option={method}
-                  supporters={method._id ? counts[method._id] : undefined}
-                  action={cardAction(method)}
-                />
-              ))}
+        /*
+         * Two columns from `lg` up: the rails in the main column, the door and the
+         * page's claims in a rail of their own that keeps its place while the list
+         * scrolls. Nothing here is forced into fixed tracks, so one method or six
+         * leave the same tidy column instead of a row with a hole in it.
+         *
+         * The placements are written out rather than left to source order so the
+         * mobile stack stays honest — door, rails, claims — with no part of the rail
+         * rendered twice.
+         */
+        <div className="grid max-w-2xl grid-cols-1 gap-6 lg:max-w-none lg:grid-cols-[minmax(0,1fr)_17rem] lg:grid-rows-[auto_1fr] lg:gap-x-8">
+          {hasDoor && (
+            <div className="lg:col-start-2 lg:row-start-1">
+              <FlexibleSupport methods={flexible} onOpen={openFlexible} />
             </div>
           )}
 
-          {/* The asks that cost nothing, kept apart so they are never read as prices. */}
-          {free.length > 0 && (
-            <section aria-labelledby="free-support-heading" className={cn('space-y-4', paid.length > 0 && 'border-t pt-6')}>
-              <div>
-                <h2 id="free-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight sm:text-lg">
-                  {t('freeTitle')}
-                </h2>
-                <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('freeDescription')}</p>
-              </div>
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {free.map(method => (
-                  <SupportCard
-                    key={documentKey(method) || method.title}
-                    option={method}
-                    supporters={method._id ? counts[method._id] : undefined}
-                    action={cardAction(method)}
-                  />
+          <div className={cn('space-y-7 lg:col-start-1 lg:row-start-1', hasDoor && 'lg:row-span-2')}>
+            {paid.length > 0 && (
+              <ul className="space-y-3">
+                {paid.map(method => (
+                  <li key={documentKey(method) || method.title}>
+                    <SupportCard option={method} supporters={method._id ? counts[method._id] : undefined} action={cardAction(method)} />
+                  </li>
                 ))}
-              </div>
-            </section>
-          )}
+              </ul>
+            )}
 
-          {/* Trust line: what the page does not do with the supporter's data. Each promise
-              keeps its own icon, so the row is read at a glance rather than as three clones. */}
-          <ul className="flex flex-wrap gap-x-7 gap-y-3 border-t pt-6 text-xs text-muted-foreground">
-            {(['noAccount', 'private', 'monochrome'] as const).map(key => {
-              const Icon = TRUST_ICONS[key];
-              return (
-                <li key={key} className="flex items-center gap-2">
-                  <Icon className="size-4 shrink-0 text-foreground/70" aria-hidden />
-                  <span>{t(`trust.${key}`)}</span>
-                </li>
-              );
-            })}
-          </ul>
+            {/* The asks that cost nothing, kept apart so they are never read as prices. */}
+            {free.length > 0 && (
+              <section aria-labelledby="free-support-heading" className="space-y-4">
+                <ChapterHeading id="free-support-heading" title={t('freeTitle')} description={t('freeDescription')} />
+                <ul className="space-y-3">
+                  {free.map(method => (
+                    <li key={documentKey(method) || method.title}>
+                      <SupportCard option={method} supporters={method._id ? counts[method._id] : undefined} action={cardAction(method)} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
+          </div>
+
+          <div className={cn('lg:col-start-2 lg:sticky lg:self-start lg:top-10', hasDoor ? 'lg:row-start-2' : 'lg:row-start-1')}>
+            <SupportRail stats={stats} />
+          </div>
         </div>
       )}
 
       <section aria-labelledby="supporters-heading" className="space-y-5">
-        <div>
-          <h2 id="supporters-heading" className="text-xl font-bold leading-tight ltr:tracking-tight sm:text-2xl">
-            {t('wall.title')}
-          </h2>
-          <p className="mt-2 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground">{t('wall.description')}</p>
-        </div>
+        <ChapterHeading id="supporters-heading" title={t('wall.title')} description={t('wall.description')} />
         <SupporterWall supporters={supporters} />
       </section>
 

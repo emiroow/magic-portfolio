@@ -63,9 +63,14 @@ export function documentKey(item: { slug?: string; _id?: string }): string {
  * Price in the locale's own digits and grouping, so a Persian catalogue never
  * shows `120000 تومان` next to `۰۳`. The caller supplies the currency label,
  * which lives in the message catalogues.
+ *
+ * A fraction keeps its significant digits: a Bitcoin gift is written in thousandths of a
+ * coin, and rounding it to two places would tell a supporter they had sent zero.
  */
 export function formatPrice(value: number, locale: 'fa' | 'en' = 'en'): string {
-  return new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: 2 }).format(value);
+  const fractionDigits = value !== 0 && Math.abs(value) < 1 ? 8 : 2;
+
+  return new Intl.NumberFormat(locale === 'fa' ? 'fa-IR' : 'en-US', { maximumFractionDigits: fractionDigits }).format(value);
 }
 
 /** Estimate reading time in minutes (~200 words per minute). */

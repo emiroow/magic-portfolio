@@ -62,6 +62,7 @@ export function SupporterWall({ supporters }: { supporters: ISupporter[] }) {
 /** One card on the wall: who, how much, on which method, when, and what they said. */
 export function SupporterCard({ supporter, locale, className }: { supporter: ISupporter; locale: string; className?: string }) {
   const t = useTranslations('support');
+  const tp = useTranslations('pricing');
   const tw = useTranslations('support.wall');
   const lang: AppLocale = locale === 'fa' ? 'fa' : 'en';
   const name = supporter.anonymous ? '' : supporter.name?.trim() || '';
@@ -71,7 +72,7 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
   return (
     <li className={cn('h-full', className)}>
       <Card className={itemFrame}>
-        <div className="flex items-start gap-3">
+        <div className="flex items-start gap-3.5">
           {/* Initial instead of an avatar: no third-party image host is involved. It inverts
               on hover exactly like a method card's icon, so the wall reads as the same system. */}
           <Monogram className="group-hover:border-foreground group-hover:bg-foreground group-hover:text-background">{monogram}</Monogram>
@@ -86,12 +87,11 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
                   <span aria-hidden className="mx-1.5">
                     ·
                   </span>
-                  <span dir={nameDir(supporter.variantLabel)}>{storedVariantName(supporter.variantLabel, t)}</span>
+                  <span dir={nameDir(supporter.variantLabel)}>{storedVariantName(supporter.variantLabel, t, tp)}</span>
                 </>
               )}
             </p>
           </div>
-          <Tag className="mt-0.5">{formatYearMonthLocal(supporter.createdAt, lang)}</Tag>
         </div>
 
         {supporter.message && (
@@ -100,9 +100,12 @@ export function SupporterCard({ supporter, locale, className }: { supporter: ISu
           </blockquote>
         )}
 
-        {/* The amount keeps the bottom edge, exactly where a method card keeps its price. */}
+        {/* The amount keeps the bottom edge where a method card keeps its price, and the month
+            takes the far end of that same line: a Latin month name beside the heading used to
+            squeeze the name column until it split a supporter's own name in two. */}
         <div className={itemFoot}>
           <PriceTag amount={supporter.amount} currency={supporter.currency} className="text-sm font-semibold" />
+          <Tag className="shrink-0">{formatYearMonthLocal(supporter.createdAt, lang)}</Tag>
         </div>
       </Card>
     </li>

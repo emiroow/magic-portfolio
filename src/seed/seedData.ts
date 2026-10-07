@@ -7,6 +7,7 @@ import { profileModel } from '@/features/profile/model';
 import { projectModel } from '@/features/projects/model';
 import { skillModel } from '@/features/skills/model';
 import { socialModel } from '@/features/socials/model';
+import { supporterModel } from '@/features/support/supporter.model';
 import { workModel } from '@/features/experience/model';
 import mongoose from 'mongoose';
 import { describePersonas, getPersona } from '@/seed/personas/index';
@@ -19,10 +20,21 @@ import { seedProductData } from '@/seed/product.seed';
 import { seedProjectData } from '@/seed/project.seed';
 import { seedSkillsData } from '@/seed/skill.seed';
 import { seedSocialData } from '@/seed/social.seed';
+import { seedSupporterData } from '@/seed/supporter.seed';
 import { seedWorkData } from '@/seed/work.seed';
 
 /** One collection to fill, and the label used in the summary line. */
 type Step = readonly [label: string, run: (persona: Persona) => Promise<number>];
+
+/**
+ * The support rails and the wall built from them. Methods go first: every gift points
+ * at a destination of a method that has to exist by then, so the two cannot run side
+ * by side with the rest.
+ */
+const seedSupportData: Step[1] = async persona => {
+  const methods = await seedDonationData(persona);
+  return seedSupporterData(methods);
+};
 
 const STEPS: readonly Step[] = [
   ['profile', seedUserData],
@@ -33,7 +45,7 @@ const STEPS: readonly Step[] = [
   ['skills', seedSkillsData],
   ['socials', seedSocialData],
   ['blog', seedBlogData],
-  ['support', seedDonationData],
+  ['support', seedSupportData],
 ];
 
 /** `FORCE_SEED=true` or `--force`: drop the database before seeding. */
@@ -64,6 +76,7 @@ export const seedData = async (persona: Persona = getPersona()) => {
     skillModel.countDocuments(),
     blogModel.countDocuments(),
     donationModel.countDocuments(),
+    supporterModel.countDocuments(),
   ]);
 
   if (counts.some(count => count > 0)) {

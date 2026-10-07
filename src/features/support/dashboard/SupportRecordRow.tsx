@@ -50,6 +50,7 @@ const SupportRecordRow = ({
 }: SupportRecordRowProps) => {
   const t = useTranslations('dashboard.support.records');
   const ts = useTranslations('support');
+  const tp = useTranslations('pricing');
   const [note, setNote] = useState(record.note ?? '');
 
   const completed = record.status === 'completed';
@@ -74,7 +75,7 @@ const SupportRecordRow = ({
                 <span aria-hidden className="mx-1.5">
                   ·
                 </span>
-                <span dir={nameDir(record.variantLabel)}>{storedVariantName(record.variantLabel, ts)}</span>
+                <span dir={nameDir(record.variantLabel)}>{storedVariantName(record.variantLabel, ts, tp)}</span>
               </>
             )}
             <span aria-hidden className="mx-1.5">

@@ -71,6 +71,35 @@ export function Tag({ children, className, dir }: { children: ReactNode; classNa
   );
 }
 
+interface ChapterHeadingProps {
+  /** Heading id, so the section can point at it. */
+  id: string;
+  title: string;
+  /** One honest sentence about what the chapter holds. */
+  description?: string;
+}
+
+/**
+ * The heading a chapter of the support page wears: a quiet title, the hairline that
+ * carries the row out to the reading edge, and the sentence under it.
+ *
+ * One pattern shared by every chapter means the page reads as something that was
+ * built rather than as blocks that happened to stack up.
+ */
+export function ChapterHeading({ id, title, description }: ChapterHeadingProps) {
+  return (
+    <header className="space-y-2">
+      <div className="flex items-center gap-3">
+        <h2 id={id} className="shrink-0 text-sm font-semibold leading-tight">
+          {title}
+        </h2>
+        <span aria-hidden className="h-px min-w-6 flex-1 bg-border" />
+      </div>
+      {description && <p className="max-w-xl text-pretty text-xs leading-relaxed text-muted-foreground">{description}</p>}
+    </header>
+  );
+}
+
 interface ChoiceTileProps {
   /** Name of the radio group this tile belongs to. */
   group: string;
