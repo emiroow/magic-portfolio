@@ -368,3 +368,47 @@
     transform: translate(-50%, calc(-50% + 18px)) scale(0.985);
   }
 }
+
+/*
+ * Route progress bar.
+ *
+ * `@bprogress/next` is mounted with `disableStyle` (see `providers/routeProgress.tsx`), so
+ * this is the whole stylesheet for it: the sheet it brings itself paints a blue fill, a
+ * glowing peg and a spinner, and a monochrome site has none of those. The fill is a token,
+ * so the bar inverts with the theme without any JavaScript, and two pixels is the one
+ * weight that reads as an indicator rather than as a border that lost its page.
+ *
+ * `.bar` keeps a `left` anchor in both directions on purpose: the library mirrors the fill
+ * with a transform instead of moving the anchor, so a logical property here would make a
+ * Persian bar grow off the wrong edge.
+ */
+.bprogress {
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  /* Above the dock and any open dialog — a navigation started from either is still a
+     navigation, and the bar is the one thing that has to stay visible while it runs. */
+  z-index: 9999;
+}
+
+.bprogress .bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background-color: hsl(var(--foreground));
+}
+
+/* The peg is a glow, and an indeterminate run is a second affordance. Neither is used. */
+.bprogress .peg,
+.bprogress .indeterminate {
+  display: none;
+}
+
+/*
+ * Nothing is needed for reduced motion here, and that is worth stating: the guard in
+ * `@layer base` shortens every transition to nothing, and an author `!important` outranks
+ * the inline transition the library writes onto the bar. A visitor who asked for no motion
+ * still learns that a route is coming — it simply arrives in steps instead of a slide.
+ */
