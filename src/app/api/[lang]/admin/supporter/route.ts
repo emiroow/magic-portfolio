@@ -23,6 +23,9 @@ export const GET = async (_request: Request, { params }: RouteContext) => {
 
   try {
     await connectDB();
+    // Newest support first. The dashboard is a queue the owner works through from the latest
+    // gift, while the public wall orders these same records by worth (`scale.ts`): the two
+    // orders are deliberately different, so this sort is not meant to match the other.
     const docs = await supporterModel.find({ lang: parsed.data }).sort({ createdAt: -1 }).lean();
     return apiJson({ data: JSON.parse(JSON.stringify(docs)) });
   } catch (error) {

@@ -306,8 +306,9 @@ export const seedSupporterData = async (methods: IDonation[]) => {
     fa: GIFTS.fa.map(gift => recordFor(gift, rails, 'fa', now)),
   };
 
-  // The gifts carry their own `createdAt`, backdated over a year: the wall is sorted by
-  // it, and a history in which every gift landed today is not a history.
+  // The gifts carry their own `createdAt`, backdated over a year: the dashboard is ordered by
+  // it, the wall breaks a tie on it, and a history in which every gift landed today is not a
+  // history.
   const inserted = await supporterModel.insertMany(withBothLangs(pair));
 
   return inserted.length;

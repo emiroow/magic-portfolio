@@ -21,6 +21,10 @@ import { useMemo, useState } from 'react';
  * Card-to-card and crypto transfers arrive as `pending` — the site cannot see the
  * bank — so this is where the owner matches a reference against a statement and
  * confirms it. Confirming is what puts a name on the public wall.
+ *
+ * The list runs newest support first, straight from the API. The wall orders the same
+ * records by worth (`scale.ts`); this one is a queue, and a queue is read from the
+ * gift that landed last.
  */
 const SupportRecords = () => {
   const t = useTranslations('dashboard.support.records');
@@ -37,6 +41,8 @@ const SupportRecords = () => {
 
   const rows = useMemo(() => {
     const needle = query.trim().toLowerCase();
+    // Filtering only drops rows out of the server's order; nothing is re-sorted here, so
+    // the queue keeps arriving at the top.
     return (supporters ?? []).filter(record => {
       if (status !== 'all' && record.status !== status) return false;
       if (!needle) return true;

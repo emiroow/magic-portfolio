@@ -1,6 +1,7 @@
 import { tryConnectDB } from '@/config/dbConnection';
 import { donationModel } from '@/features/support/donation.model';
 import { supporterModel } from '@/features/support/supporter.model';
+import { byGreatestSupport } from '@/features/support/scale';
 import { handlesMoney, isOfferable, withUniqueKeys } from '@/features/support/variants';
 import { CRYPTO_ASSET_NETWORKS, CRYPTO_NETWORKS, DONATION_MODES, REGION_ORDER } from '@/features/support/constants';
 import { CRYPTO_ASSETS } from '@/constants/global';
@@ -222,24 +223,28 @@ export async function hasDonations(locale: AppLocale): Promise<boolean> {
 }
 
 /**
- * The supporter wall: confirmed gifts whose owner let them be shown. Anonymous
- * gifts still count, but their name is dropped here so it never reaches the
- * browser at all.
+ * The supporter wall: confirmed gifts whose owner let them be shown, greatest support
+ * first. Anonymous gifts still count, but their name is dropped here so it never reaches
+ * the browser at all.
+ *
+ * The order is decided in code, on the scale in `scale.ts`, because gifts travel in many
+ * units and the biggest one cannot be found by sorting any single column. That also means
+ * the whole eligible set is read rather than the newest `limit`: stopping at the newest
+ * sixty could hide the largest gift of all, and `limit` is applied to the ordered list.
  */
 export async function getSupporters(locale: AppLocale, limit = 60): Promise<ISupporter[]> {
   if (!(await tryConnectDB())) return [];
 
-  const docs = await supporterModel
-    .find({ lang: locale, status: 'completed', showOnWall: { $ne: false } })
-    .sort({ createdAt: -1 })
-    .limit(limit)
-    .lean();
+  const docs = await supporterModel.find({ lang: locale, status: 'completed', showOnWall: { $ne: false } }).lean();
 
-  return serializeList<ISupporter>(docs as Record<string, unknown>[]).map(record => ({
-    ...record,
-    anonymous: Boolean(record.anonymous),
-    name: record.anonymous ? '' : record.name || '',
-  }));
+  return serializeList<ISupporter>(docs as Record<string, unknown>[])
+    .map(record => ({
+      ...record,
+      anonymous: Boolean(record.anonymous),
+      name: record.anonymous ? '' : record.name || '',
+    }))
+    .sort(byGreatestSupport)
+    .slice(0, limit);
 }
 
 export interface SupportStats {

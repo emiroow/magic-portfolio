@@ -14,7 +14,12 @@ import { useLocale, useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 /**
- * The supporters wall: confirmed gifts, most recent first.
+ * The supporters wall: confirmed gifts, greatest support first.
+ *
+ * Gifts arrive in whatever unit the rail takes money in, so the order is set on the shared
+ * scale in `scale.ts` rather than on the raw numbers — a Bitcoin gift is placed among the
+ * toman ones by what it is worth, not by how many digits it is written with. Each card still
+ * shows the amount in the unit the gift actually travelled in.
  *
  * Anonymous gifts still take their place — the monogram and the label say so, and
  * the name never reaches the browser in the first place (the data layer drops it).

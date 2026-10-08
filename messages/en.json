@@ -379,7 +379,7 @@
     },
     "wall": {
       "title": "Supporters wall",
-      "description": "Everyone whose support has been confirmed. Messages are shown with the supporter's own permission.",
+      "description": "Confirmed supporters, the greatest support first — whichever currency it arrived in. Messages are shown with the supporter's own permission.",
       "empty": "No support has been confirmed yet — the first entry could be yours.",
       "anonymous": "Anonymous",
       "more": "Show {count} more"
