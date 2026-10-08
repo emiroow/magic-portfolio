@@ -55,9 +55,6 @@ export default function FlexibleSupport({ methods, onOpen, className }: Flexible
         className
       )}
     >
-      {/* The section's own mark, at the top of the panel rather than beside the text:
-          the panel is read as a door, not as another entry in a list. */}
-      <SupportMark className="size-9 shrink-0 text-muted-foreground transition-colors group-hover:text-foreground" />
 
       <div className="min-w-0 flex-1 space-y-2">
         <h2 id="flexible-support-heading" className="text-base font-bold leading-tight ltr:tracking-tight">
