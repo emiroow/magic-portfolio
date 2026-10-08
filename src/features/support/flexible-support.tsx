@@ -1,6 +1,5 @@
 'use client';
 
-import { SupportMark } from '@/features/support/support-mark';
 import { MODE_ICONS } from '@/features/support/support-meta';
 import { Tag } from '@/features/support/support-tile';
 import { Button } from '@/components/ui/button';
