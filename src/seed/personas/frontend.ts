@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
+import { bullets, cover, gallery, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Sara Mirzaei — front-end engineer working on design systems.
@@ -286,6 +286,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2026-05-30T10:00:00.000Z',
         image: cover('a11y-lens-devtools'),
+        images: gallery('a11y-lens-devtools', 4),
         description:
           'A browser extension that audits keyboard traps, focus order and RTL mirroring on any page — built because I kept failing my own design reviews.',
         technologies: ['TypeScript', 'React', 'Chrome Extension API', 'axe-core', 'Vite'],
@@ -349,6 +350,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2025-09-20T08:00:00.000Z',
         image: cover('nova-design-system'),
+        images: gallery('nova-design-system', 4),
         description: 'Tokens, 148 components and a contribution model for six product teams — one upgrade train, zero bespoke buttons.',
         technologies: ['React', 'TypeScript', 'Radix UI', 'Tailwind CSS', 'Style Dictionary', 'Storybook'],
         links: [
@@ -395,6 +397,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2023-12-02T09:00:00.000Z',
         image: cover('vitrin-storefront'),
+        images: gallery('vitrin-storefront', 4),
         description:
           'A Persian-first commerce rebuild: server components, an optimistic cart, and a checkout that still works on a five-year-old Android over 3G.',
         technologies: ['Next.js', 'TypeScript', 'React Server Components', 'Tailwind CSS', 'Zustand', 'Playwright'],
@@ -447,6 +450,7 @@ export const frontend: Persona = {
         featured: false,
         createdAt: '2022-10-10T07:00:00.000Z',
         image: cover('persian-date-kit'),
+        images: gallery('persian-date-kit', 2),
         description: 'A zero-dependency Jalaali date library with Intl-based formatting and RTL-safe React components. Around 40k downloads a week.',
         technologies: ['TypeScript', 'React', 'Intl API', 'Vitest'],
         links: [
@@ -494,6 +498,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2026-05-30T10:00:00.000Z',
         image: cover('a11y-lens-devtools'),
+        images: gallery('a11y-lens-devtools', 4),
         description:
           'افزونه‌ای برای مرورگر که تله‌های صفحه‌کلید، ترتیب فوکوس و آینه‌شدن RTL را در هر صفحه‌ای بررسی می‌کند؛ چون خودم بارها در ریویوهای طراحی شکخوردم.',
         technologies: ['TypeScript', 'React', 'Chrome Extension API', 'axe-core', 'Vite'],
@@ -544,6 +549,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2025-09-20T08:00:00.000Z',
         image: cover('nova-design-system'),
+        images: gallery('nova-design-system', 4),
         description: 'توکن‌ها، ۱۴۸ کامپوننت و یک مدل مشارکت برای شش تیم محصول؛ یک قطار ارتقا و صفر دکمه سلیقه‌ای.',
         technologies: ['React', 'TypeScript', 'Radix UI', 'Tailwind CSS', 'Style Dictionary', 'Storybook'],
         links: [
@@ -590,6 +596,7 @@ export const frontend: Persona = {
         featured: true,
         createdAt: '2023-12-02T09:00:00.000Z',
         image: cover('vitrin-storefront'),
+        images: gallery('vitrin-storefront', 4),
         description:
           'بازسازی فروشگاه با محوریت فارسی: رندر سمت سرور، سبد خرید خوش‌بینانه و فرایند پرداختی که روی اندروید پنج‌ساله با شبکه 3G هم کار می‌کند.',
         technologies: ['Next.js', 'TypeScript', 'React Server Components', 'Tailwind CSS', 'Zustand', 'Playwright'],
@@ -634,6 +641,7 @@ export const frontend: Persona = {
         featured: false,
         createdAt: '2022-10-10T07:00:00.000Z',
         image: cover('persian-date-kit'),
+        images: gallery('persian-date-kit', 2),
         description:
           'کتابخانه ابزار تاریخ جلالی بدون هیچ وابستگی، با قالب‌سازی بر پایه Intl و کامپوننت‌های React سازگار با RTL؛ حدود ۴۰ هزار نصب هفتگی.',
         technologies: ['TypeScript', 'React', 'Intl API', 'Vitest'],
@@ -679,6 +687,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2026-03-02T09:00:00.000Z',
         image: cover('prism-design-system-starter'),
+        images: gallery('prism-design-system-starter', 3),
         description:
           'The token pipeline and 60 accessible, RTL-correct components behind my design system — Style Dictionary in, a Tailwind preset and CSS variables out.',
         features: ['4-layer token pipeline', '60 Radix-based components', 'RTL + dark mode built in', 'Storybook docs', 'Changesets release setup'],
@@ -704,6 +713,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-12-01T09:00:00.000Z',
         image: cover('rtl-layout-toolkit'),
+        images: gallery('rtl-layout-toolkit', 3),
         description:
           'Logical-property utilities, a mirroring checklist and Playwright helpers that run your suite in both directions — the toolkit I wish existed on my first Persian project.',
         features: ['Logical-property ESLint rules', 'Icon-mirroring manifest', 'Dual-direction Playwright config', 'LTR-island (bdi) recipes'],
@@ -729,6 +739,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-09-15T09:00:00.000Z',
         image: cover('persian-date-kit-pro'),
+        images: gallery('persian-date-kit-pro', 3),
         description:
           'The zero-dependency Jalaali library, plus a commercial license, priority support and the RTL date-picker components — for teams that need someone to answer the phone.',
         features: ['Commercial single-seat license', 'Priority email support', 'DateField + DateRangePicker', '12 months of updates'],
@@ -754,6 +765,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-06-20T09:00:00.000Z',
         image: cover('a11y-audit-checklist'),
+        images: gallery('a11y-audit-checklist', 2),
         description:
           'The one-page checklist I take into every design review: focus order, hit areas, labels and RTL mirroring. Free, because the basics should never be behind a paywall.',
         features: ['20-point keyboard path', 'Contrast & label checks', 'RTL mirror pass', 'Printable one-pager'],
@@ -779,6 +791,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2026-03-02T09:00:00.000Z',
         image: cover('prism-design-system-starter'),
+        images: gallery('prism-design-system-starter', 3),
         description:
           'خط لوله توکن و ۶۰ کامپوننت دسترس‌پذیر و سازگار با RTL که سیستم طراحی من رویشان ساخته شده؛ ورودی Style Dictionary، خروجی preset تیلویند و متغیرهای CSS.',
         features: [
@@ -810,6 +823,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-12-01T09:00:00.000Z',
         image: cover('rtl-layout-toolkit'),
+        images: gallery('rtl-layout-toolkit', 3),
         description:
           'ابزارهای خاصیت منطقی، چک‌لیست آینه‌کردن و کمکی‌های Playwright که مجموعه تست شما را در هر دو جهت اجرا می‌کنند؛ همان جعبه‌ابزاری که در اولین پروژه فارسی‌ام لازم داشتم.',
         features: ['قوانین ESLint برای خاصیت منطقی', 'فهرست آینه‌شدن آیکون‌ها', 'پیکربندی Playwright دوجهتی', 'دستوربندی جزیره LTR (bdi)'],
@@ -835,6 +849,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-09-15T09:00:00.000Z',
         image: cover('persian-date-kit-pro'),
+        images: gallery('persian-date-kit-pro', 3),
         description:
           'کتابخانه جلالی بدون وابستگی، به‌همراه لایسنس تجاری، پشتیبانی اولویت‌دار و کامپوننت‌های انتخابگر تاریخ سازگار با RTL؛ برای تیم‌هایی که لازم دارند کسی جواب تلفن را بدهد.',
         features: ['لایسنس تجاری تک‌نفره', 'پشتیبانی ایمیلی اولویت‌دار', 'DateField و DateRangePicker', '۱۲ ماه بروزرسانی'],
@@ -860,6 +875,7 @@ export const frontend: Persona = {
         currency: 'toman',
         createdAt: '2025-06-20T09:00:00.000Z',
         image: cover('a11y-audit-checklist'),
+        images: gallery('a11y-audit-checklist', 2),
         description:
           'همان چک‌لیست یک‌صفحه‌ای که به هر ریویو طراحی می‌برم: ترتیب فوکوس، سطح لمس، برچسب‌ها و آینه RTL. رایگان، چون اصول اولیه هیچ‌وقت نباید پشت paywall باشد.',
         features: ['مسیر ۲۰ مرحله‌ای صفحه‌کلید', 'بررسی کنتراست و برچسب', 'گذر آینه RTL', 'برگه قابل چاپ'],
@@ -886,6 +902,7 @@ export const frontend: Persona = {
         published: true,
         createdAt: '2026-06-15T09:00:00.000Z',
         image: cover('design-tokens-rebrand'),
+        images: gallery('design-tokens-rebrand', 3),
         content: [
           'When Nova announced a rebrand, my first thought was: how many files contain the word `brand-blue`? The honest answer was 612. Eighteen months later, the same rebrand touched three files. The difference was a token structure with four layers and no exceptions.',
           '',
@@ -928,6 +945,7 @@ export const frontend: Persona = {
         published: true,
         createdAt: '2025-11-08T09:00:00.000Z',
         image: cover('rtl-without-fork'),
+        images: gallery('rtl-without-fork', 3),
         content: [
           'Every RTL project I have joined eventually reaches the same fork: someone copies the stylesheet, flips the `left`s to `right`s, and now there are two codebases that drift apart on the first hotfix.',
           '',
@@ -971,6 +989,7 @@ export const frontend: Persona = {
         createdAt: '2025-02-19T09:00:00.000Z',
         updatedAt: '2025-06-30T09:00:00.000Z',
         image: cover('performance-budget'),
+        images: gallery('performance-budget', 3),
         content: [
           'We had a performance budget for a year and it changed nothing. It lived in a Notion page, everyone agreed with it, and every page still got slower. Then we made three changes.',
           '',
@@ -1012,6 +1031,7 @@ export const frontend: Persona = {
         published: false,
         createdAt: '2026-08-20T09:00:00.000Z',
         image: cover('frontend-guild-notes'),
+        images: gallery('frontend-guild-notes', 1),
         content: [
           'Draft — collecting notes before the next quarterly review.',
           '',
@@ -1035,6 +1055,7 @@ export const frontend: Persona = {
         published: true,
         createdAt: '2026-06-15T09:00:00.000Z',
         image: cover('design-tokens-rebrand'),
+        images: gallery('design-tokens-rebrand', 3),
         content: [
           'وقتی نووا تغییر برند را اعلام کرد، اولین فکرم این بود: چند فایل کلمه `brand-blue` را دارند؟ پاسخ صادقانه ۶۱۲ بود. هجده ماه بعد، همان تغییر برند سه فایل را لمس کرد. تفاوت، یک ساختار توکنی با چهار لایه و بدون استثنا بود.',
           '',
@@ -1067,6 +1088,7 @@ export const frontend: Persona = {
         published: true,
         createdAt: '2025-11-08T09:00:00.000Z',
         image: cover('rtl-without-fork'),
+        images: gallery('rtl-without-fork', 3),
         content: [
           'هر پروژه RTL که در آن شرکت کرده‌ام بالاخره به همان فورک می‌رسد: یکی stylesheet را کپی می‌کند، همه `left`ها را به `right` تبدیل می‌کند و از آن به بعد دو کدبیس داریم که با اولین hotfix از هم دور می‌شوند.',
           '',
@@ -1101,6 +1123,7 @@ export const frontend: Persona = {
         createdAt: '2025-02-19T09:00:00.000Z',
         updatedAt: '2025-06-30T09:00:00.000Z',
         image: cover('performance-budget'),
+        images: gallery('performance-budget', 3),
         content: [
           'یک سال بودجه عملکرد داشتیم و هیچ‌چیز عوض نشد. بودجه در یک صفحه Notion زندگی می‌کرد، همه با آن موافق بودند و صفحه‌ها کندتر می‌شدند. بعد سه تغییر دادیم.',
           '',
@@ -1129,6 +1152,7 @@ export const frontend: Persona = {
         published: false,
         createdAt: '2026-08-20T09:00:00.000Z',
         image: cover('frontend-guild-notes'),
+        images: gallery('frontend-guild-notes', 1),
         content: [
           'پیش‌نویس — پیش از بازبینی فصلی، یادداشت‌ها را جمع می‌کنم.',
           '',

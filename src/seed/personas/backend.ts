@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
+import { bullets, cover, gallery, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Kian Rahmani — back-end engineer working on payments and event pipelines.
@@ -287,6 +287,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2026-03-22T08:00:00.000Z',
         image: cover('outbox-go-library'),
+        images: gallery('outbox-go-library', 4),
         description:
           'A small Go library for the transactional outbox pattern: publish domain events in the same transaction as the write, and never lose one to a broker outage.',
         technologies: ['Go', 'PostgreSQL', 'Kafka', 'OpenTelemetry'],
@@ -344,6 +345,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2024-11-06T08:00:00.000Z',
         image: cover('settlement-pipeline'),
+        images: gallery('settlement-pipeline', 4),
         description:
           'The nightly settlement batch rebuilt as an event-driven pipeline: money moves in near real time and reconciliation is a query instead of a war room.',
         technologies: ['Go', 'Kafka', 'PostgreSQL', 'Kubernetes', 'gRPC', 'ClickHouse'],
@@ -399,6 +401,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2024-06-10T08:00:00.000Z',
         image: cover('switch-observability'),
+        images: gallery('switch-observability', 4),
         description:
           "Tracing, RED metrics and business-level SLOs for a payment switch that used to be debugged by reading logs over someone's shoulder.",
         technologies: ['OpenTelemetry', 'Grafana', 'Prometheus', 'Go', 'Loki'],
@@ -440,6 +443,7 @@ export const backend: Persona = {
         featured: false,
         createdAt: '2022-10-05T08:00:00.000Z',
         image: cover('ledger-service'),
+        images: gallery('ledger-service', 2),
         description:
           'A double-entry ledger every transfer, refund and fee runs through: append-only, replayable, and the only source of truth for how much money we hold.',
         technologies: ['Go', 'PostgreSQL', 'gRPC', 'Kafka'],
@@ -489,6 +493,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2026-03-22T08:00:00.000Z',
         image: cover('outbox-go-library'),
+        images: gallery('outbox-go-library', 4),
         description:
           'یک کتابخانه کوچک Go برای الگوی transactional outbox: رویدادهای دامنه را در همان تراکنش نوشتن منتشر کن و هیچ‌وقت یکی را به قطعی broker واگذار نکن.',
         technologies: ['Go', 'PostgreSQL', 'Kafka', 'OpenTelemetry'],
@@ -534,6 +539,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2024-11-06T08:00:00.000Z',
         image: cover('settlement-pipeline'),
+        images: gallery('settlement-pipeline', 4),
         description:
           'باتچ تسویه شبانه، بازسازیشده به شکل یک پایپ‌لاین رویدادمحور: پول تقریباً بلادرنگ جابه‌جا می‌شود و مغایرت‌گیری یک کوئری است، نه یک اتاق جنگ.',
         technologies: ['Go', 'Kafka', 'PostgreSQL', 'Kubernetes', 'gRPC', 'ClickHouse'],
@@ -580,6 +586,7 @@ export const backend: Persona = {
         featured: true,
         createdAt: '2024-06-10T08:00:00.000Z',
         image: cover('switch-observability'),
+        images: gallery('switch-observability', 4),
         description: 'تریسینگ، متریک RED و SLO در سطح کسب‌وکار برای سوییچ پرداختی که دیباگش با خواندن لاگ از روی شانه یک نفر انجام می‌شد.',
         technologies: ['OpenTelemetry', 'Grafana', 'Prometheus', 'Go', 'Loki'],
         links: [
@@ -620,6 +627,7 @@ export const backend: Persona = {
         featured: false,
         createdAt: '2022-10-05T08:00:00.000Z',
         image: cover('ledger-service'),
+        images: gallery('ledger-service', 2),
         description:
           'دفتر کل دوبل‌انتی که هر انتقال، بازگشت وجه و کارمزد از آن رد می‌شود: فقط-افزودنی، قابل replay و تنها منبع حقیقت برای اینکه چقدر پول نزد ما است.',
         technologies: ['Go', 'PostgreSQL', 'gRPC', 'Kafka'],
@@ -659,6 +667,7 @@ export const backend: Persona = {
         published: true,
         createdAt: '2026-05-12T09:00:00.000Z',
         image: cover('idempotency-contract'),
+        images: gallery('idempotency-contract', 1),
         content: [
           'Every payments API docs page says "use idempotency keys". Very few say what happens when the key is reused with a *different* body, how long the key lives, or what a client should do when the first request timed out but the operation actually succeeded.',
           '',
@@ -697,6 +706,7 @@ export const backend: Persona = {
         published: true,
         createdAt: '2025-08-25T09:00:00.000Z',
         image: cover('backpressure-admission'),
+        images: gallery('backpressure-admission', 1),
         content: [
           'When a dependency slows down, every service in the graph keeps accepting work. The queue grows, timeouts fire, clients retry, and the original 200ms latency becomes a three-hour incident. Not because anything crashed — because nothing pushed back.',
           '',
@@ -733,6 +743,7 @@ export const backend: Persona = {
         createdAt: '2024-12-03T09:00:00.000Z',
         updatedAt: '2025-04-20T09:00:00.000Z',
         image: cover('postgres-migrations'),
+        images: gallery('postgres-migrations', 1),
         content: [
           'A migration does not need to be dangerous. It needs to be sequenced. Every incident I have caused with a schema change came from taking a lock longer than the `statement_timeout` of something else.',
           '',
@@ -779,6 +790,7 @@ export const backend: Persona = {
         published: false,
         createdAt: '2026-08-15T09:00:00.000Z',
         image: cover('rfc-that-get-read'),
+        images: gallery('rfc-that-get-read', 1),
         content: [
           'Draft. The format that has worked for us:',
           '',
@@ -803,6 +815,7 @@ export const backend: Persona = {
         published: true,
         createdAt: '2026-05-12T09:00:00.000Z',
         image: cover('idempotency-contract'),
+        images: gallery('idempotency-contract', 1),
         content: [
           'هر صفحه مستندات API پرداخت می‌نویسد «از idempotency key استفاده کنید». خیلی کمند که بگویند اگر کلید دوباره استفاده شد اما body *متفاوت* بود چه می‌شود، کلید چقدر عمر می‌کند، یا کلاینتی که اولین درخواستش timeout شده ولی عملیات در واقع انجام شده باید چه کار کند.',
           '',
@@ -832,6 +845,7 @@ export const backend: Persona = {
         published: true,
         createdAt: '2025-08-25T09:00:00.000Z',
         image: cover('backpressure-admission'),
+        images: gallery('backpressure-admission', 1),
         content: [
           'وقتی یک وابستگی کند می‌شود، هر سرویس در گراف به پذیرفتن کار ادامه می‌دهد. صف بزرگ می‌شود، timeout فعال می‌شود، کلاینت retry می‌کند و تأخیر دویست‌میلی‌ثانیه‌ای به یک رخداد سه‌ساعته تبدیل می‌شود. نه به خاطر اینکه چیزی crash کرد، به خاطر اینکه چیزی فشار برگشتی وارد نکرد.',
           '',
@@ -860,6 +874,7 @@ export const backend: Persona = {
         createdAt: '2024-12-03T09:00:00.000Z',
         updatedAt: '2025-04-20T09:00:00.000Z',
         image: cover('postgres-migrations'),
+        images: gallery('postgres-migrations', 1),
         content: [
           'یک مهاجرت لازم نیست خطرناک باشد؛ باید ترتیب‌دار باشد. هر رخدادی که من با تغییر schema ساخته‌ام از این آمده که قفل را بلندتر از `statement_timeout` چیز دیگری نگه داشته‌ام.',
           '',
@@ -885,6 +900,7 @@ export const backend: Persona = {
         published: false,
         createdAt: '2026-08-15T09:00:00.000Z',
         image: cover('rfc-that-get-read'),
+        images: gallery('rfc-that-get-read', 1),
         content: [
           'پیش‌نویس. قالبی که برای ما کار کرده:',
           '',

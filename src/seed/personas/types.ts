@@ -85,6 +85,21 @@ export const cover = (seed: string) => (IMAGES_ENABLED ? `https://picsum.photos/
 /** Square portrait for the profile avatar. */
 export const portrait = (seed: string) => (IMAGES_ENABLED ? `https://picsum.photos/seed/${seed}/512/512?grayscale` : '');
 
+/**
+ * A record's demo picture set, cover first.
+ *
+ * The gallery is the source of truth for every picture page and the cover is its
+ * entry one, so a seeded record carries both exactly the way the dashboard writes
+ * them — never a lone `image` beside a gallery that disagrees with it. The extra
+ * shots hang off the same seed word, so the English and the Persian copy of one
+ * record get the identical set, and `SEED_IMAGES=false` yields an empty list, which
+ * is the zero-picture shape the pages are built to render.
+ */
+export const gallery = (seed: string, count = 3) => {
+  if (!IMAGES_ENABLED) return [];
+  return Array.from({ length: Math.max(count, 1) }, (_, index) => (index === 0 ? cover(seed) : cover(`${seed}-${index + 1}`)));
+};
+
 // Company and school logos stay empty on purpose: a random photo squeezed into the
 // 44px gutter reads as noise, while the initial the cards already fall back to looks deliberate.
 

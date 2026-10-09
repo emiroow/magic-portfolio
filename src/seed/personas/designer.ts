@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
+import { bullets, cover, gallery, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Mina Rahimi — product designer working on interfaces, design systems and motion.
@@ -287,6 +287,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2026-01-20T09:00:00.000Z',
         image: cover('sepidar-persian-numerals'),
+        images: gallery('sepidar-persian-numerals', 4),
         description:
           'A numeral and punctuation specimen for Persian interfaces: tabular Persian digits, correct separators, and the tests that prove a receipt aligns in both directions.',
         technologies: ['Figma', 'Glyphs', 'CSS', 'OpenType'],
@@ -338,6 +339,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2024-10-05T09:00:00.000Z',
         image: cover('havva-booking-flow'),
+        images: gallery('havva-booking-flow', 4),
         description:
           'Rebuilding a medical appointment flow around the one question patients actually ask: can I see a doctor today? Abandoned bookings down 26%.',
         technologies: ['Figma', 'User Research', 'Usability Testing', 'Design Tokens', 'Rive'],
@@ -393,6 +395,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2024-04-12T09:00:00.000Z',
         image: cover('nikan-onboarding'),
+        images: gallery('nikan-onboarding', 4),
         description:
           'Account opening in nine screens instead of twenty-three, with a compliance team in the room for every one of them. Activation up 19%, drop-off at identity verification down by half.',
         technologies: ['Figma', 'Prototyping', 'Usability Testing', 'Motion Design'],
@@ -436,6 +439,7 @@ export const designer: Persona = {
         featured: false,
         createdAt: '2023-07-01T09:00:00.000Z',
         image: cover('golbang-design-system'),
+        images: gallery('golbang-design-system', 2),
         description:
           'The design system I co-built with one front-end engineer: tokens, 64 components, and the contribution ritual that made teams actually use it.',
         technologies: ['Figma', 'Design Tokens', 'Storybook', 'Accessibility', 'Variables'],
@@ -483,6 +487,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2026-01-20T09:00:00.000Z',
         image: cover('sepidar-persian-numerals'),
+        images: gallery('sepidar-persian-numerals', 4),
         description:
           'یک نمونه‌حرف و مجموعه قاعده برای ارقام در رابط فارسی: ارقام فارسی tabular، جداکننده درست و تست‌هایی که ثابت می‌کنند یک فاکتور در هر دو جهت راست‌به‌چپ و چپ‌به‌راست تراز می‌ماند.',
         technologies: ['Figma', 'Glyphs', 'CSS', 'OpenType'],
@@ -525,6 +530,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2024-10-05T09:00:00.000Z',
         image: cover('havva-booking-flow'),
+        images: gallery('havva-booking-flow', 4),
         description: 'بازسازی جریان وقت پزشکی حول همان سؤالی که بیمار واقعاً می‌پرسد: امروز می‌توانم دکتر ببینم؟ قرارهای رهاشده ۲۶ درصد کمتر.',
         technologies: ['Figma', 'تحقیق کاربر', 'تست کاربردپذیری', 'Design Tokens', 'Rive'],
         links: [
@@ -579,6 +585,7 @@ export const designer: Persona = {
         featured: true,
         createdAt: '2024-04-12T09:00:00.000Z',
         image: cover('nikan-onboarding'),
+        images: gallery('nikan-onboarding', 4),
         description:
           'باز کردن حساب در نه صفحه به‌جای بیست و سه صفحه، با تیم انطباق در اتاق هر تصمیم. فعال‌سازی ۱۹ درصد بالاتر و رها کردن در احراز هویت نصف.',
         technologies: ['Figma', 'نمونه‌سازی', 'تست کاربردپذیری', 'طراحی موشن'],
@@ -622,6 +629,7 @@ export const designer: Persona = {
         featured: false,
         createdAt: '2023-07-01T09:00:00.000Z',
         image: cover('golbang-design-system'),
+        images: gallery('golbang-design-system', 2),
         description: 'سیستم طراحی‌ای که با یک مهندس فرانت‌اند دو نفره ساختیم: توکن، ۶۴ کامپوننت و آیین مشارکتی که تیم‌ها واقعاً از آن استفاده کردند.',
         technologies: ['Figma', 'Design Tokens', 'Storybook', 'دسترس‌پذیری', 'Variables'],
         links: [
@@ -670,6 +678,7 @@ export const designer: Persona = {
         published: true,
         createdAt: '2026-03-05T09:00:00.000Z',
         image: cover('persian-typography-numbers'),
+        images: gallery('persian-typography-numbers', 1),
         content: [
           'Every Persian design review I attend argues about typefaces. The layout breaks over digits.',
           '',
@@ -707,6 +716,7 @@ export const designer: Persona = {
         published: true,
         createdAt: '2025-05-19T09:00:00.000Z',
         image: cover('handoff-myth'),
+        images: gallery('handoff-myth', 1),
         content: [
           'A handoff document is a letter to the past. By the time the file is exported, the decision that mattered is already three days old, and the engineer who needed it has built something reasonable and different.',
           '',
@@ -736,6 +746,7 @@ export const designer: Persona = {
         createdAt: '2024-08-14T09:00:00.000Z',
         updatedAt: '2024-11-02T09:00:00.000Z',
         image: cover('research-you-can-afford'),
+        images: gallery('research-you-can-afford', 1),
         content: [
           'Teams do not fail to do research because there is no budget. They fail because the version of research they imagine requires a lab, a recruit, a synthesis and a two-week calendar. The minimum viable study is smaller than that.',
           '',
@@ -764,6 +775,7 @@ export const designer: Persona = {
         published: false,
         createdAt: '2026-08-02T09:00:00.000Z',
         image: cover('what-motion-is-for'),
+        images: gallery('what-motion-is-for', 1),
         content: [
           'Draft. Working thesis: motion is only justified when it answers a question the user is already asking.',
           '',
@@ -786,6 +798,7 @@ export const designer: Persona = {
         published: true,
         createdAt: '2026-03-05T09:00:00.000Z',
         image: cover('persian-typography-numbers'),
+        images: gallery('persian-typography-numbers', 1),
         content: [
           'در هر بازبینی طراحی فارسی که شرکت کرده‌ام بحث سر تایپ‌فیس بوده است. چیدمان اما روی ارقام می‌شکند.',
           '',
@@ -816,6 +829,7 @@ export const designer: Persona = {
         published: true,
         createdAt: '2025-05-19T09:00:00.000Z',
         image: cover('handoff-myth'),
+        images: gallery('handoff-myth', 1),
         content: [
           'سند تحویل، نامه‌ای است به گذشته. وقتی فایل export می‌شود، تصمیم مهم سه روز عمر دارد و مهندسی که به آن نیاز داشته، چیز معقول و متفاوتی ساخته است.',
           '',
@@ -844,6 +858,7 @@ export const designer: Persona = {
         createdAt: '2024-08-14T09:00:00.000Z',
         updatedAt: '2024-11-02T09:00:00.000Z',
         image: cover('research-you-can-afford'),
+        images: gallery('research-you-can-afford', 1),
         content: [
           'تیم‌ها پژوهش نمی‌کنند چون بودجه نیست؛ پژوهش نمی‌کنند چون تصویری که از آن دارند آزمایشگاه می‌خواهد، جذب شرکت‌کننده، سنتز و دو هفته جا در تقویم. کوچک‌ترین مطالعه قابل‌اتکا کوچک‌تر از آن است.',
           '',
@@ -872,6 +887,7 @@ export const designer: Persona = {
         published: false,
         createdAt: '2026-08-02T09:00:00.000Z',
         image: cover('what-motion-is-for'),
+        images: gallery('what-motion-is-for', 1),
         content: [
           'پیش‌نویس. فرضیه کاری: موشن فقط وقتی توجیه دارد که به سؤالی جواب دهد که کاربر از قبل می‌پرسد.',
           '',

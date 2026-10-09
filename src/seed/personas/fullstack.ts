@@ -1,4 +1,4 @@
-import { bullets, cover, portrait, type Persona } from '@/seed/personas/types';
+import { bullets, cover, gallery, portrait, type Persona } from '@/seed/personas/types';
 
 /**
  * Alex Carter — full stack developer on small product teams.
@@ -286,6 +286,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2026-03-01T08:00:00.000Z',
         image: cover('ledgerly-invoicing'),
+        images: gallery('ledgerly-invoicing', 4),
         description:
           'Self-hosted invoicing for freelancers: one Docker container, one Postgres, no subscription. 3,100 installs and a paid hosted tier that funds the rest.',
         technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Prisma', 'Docker', 'Stripe'],
@@ -342,6 +343,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2025-07-15T08:00:00.000Z',
         image: cover('monochrome-portfolio'),
+        images: gallery('monochrome-portfolio', 4),
         description:
           'The engine behind this site: a bilingual, RTL-capable portfolio with a dashboard, blog and one-command deploy. Open source, and the reason the Persian version exists.',
         technologies: ['Next.js', 'MongoDB', 'Tailwind CSS', 'shadcn/ui', 'next-intl', 'NextAuth'],
@@ -387,6 +389,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2024-06-10T08:00:00.000Z',
         image: cover('devboard-kanban'),
+        images: gallery('devboard-kanban', 4),
         description:
           'A self-hosted kanban board for engineering teams: realtime collaboration, keyboard-first navigation and no feature you cannot turn off.',
         technologies: ['Next.js', 'TypeScript', 'MongoDB', 'WebSockets', 'Docker'],
@@ -432,6 +435,7 @@ export const fullstack: Persona = {
         featured: false,
         createdAt: '2023-11-02T08:00:00.000Z',
         image: cover('nimbus-sync-webhooks'),
+        images: gallery('nimbus-sync-webhooks', 2),
         description:
           'The webhook delivery service behind Nimbus Labs: retries with jittered backoff, a dead-letter queue, signed payloads and a delivery log support can read.',
         technologies: ['Node.js', 'TypeScript', 'MongoDB', 'Redis', 'BullMQ', 'OpenTelemetry'],
@@ -489,6 +493,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2026-03-01T08:00:00.000Z',
         image: cover('ledgerly-invoicing'),
+        images: gallery('ledgerly-invoicing', 4),
         description:
           'فاکتور خودمیزبان برای فریلنسرها: یک کانتینر Docker، یک Postgres و بدون اشتراک. ۳٬۱۰۰ نصب و یک پلن میزبانی‌شده پولی که بقیه را تأمین می‌کند.',
         technologies: ['Next.js', 'TypeScript', 'PostgreSQL', 'Prisma', 'Docker', 'Stripe'],
@@ -536,6 +541,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2025-07-15T08:00:00.000Z',
         image: cover('monochrome-portfolio'),
+        images: gallery('monochrome-portfolio', 4),
         description:
           'موتور همین سایتی که می‌بینید: نمونه‌کاری دوزبانه با پشتیبانی RTL، داشبورد، وبلاگ و دیپلوی با یک دستور. اوپن‌سورس، و دلیل اینکه نسخه فارسی وجود دارد.',
         technologies: ['Next.js', 'MongoDB', 'Tailwind CSS', 'shadcn/ui', 'next-intl', 'NextAuth'],
@@ -573,6 +579,7 @@ export const fullstack: Persona = {
         featured: true,
         createdAt: '2024-06-10T08:00:00.000Z',
         image: cover('devboard-kanban'),
+        images: gallery('devboard-kanban', 4),
         description: 'بورد کانبان خودمیزبان برای تیم‌های مهندسی: همکاری بلادرنگ، پیمایش با صفحه‌کلید و هیچ قابلیت‌ای که خاموش‌کردنی نباشد.',
         technologies: ['Next.js', 'TypeScript', 'MongoDB', 'WebSockets', 'Docker'],
         links: [
@@ -617,6 +624,7 @@ export const fullstack: Persona = {
         featured: false,
         createdAt: '2023-11-02T08:00:00.000Z',
         image: cover('nimbus-sync-webhooks'),
+        images: gallery('nimbus-sync-webhooks', 2),
         description:
           'سرویس تحویل webhook پشت نیمبس لبز: retry با backoff پل‌کانی، صف مرده، payload امضاشده و لاگ تحویلی که پشتیبانی می‌تواند بخواند.',
         technologies: ['Node.js', 'TypeScript', 'MongoDB', 'Redis', 'BullMQ', 'OpenTelemetry'],
@@ -669,6 +677,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2026-02-10T08:00:00.000Z',
         image: cover('ledgerly-starter'),
+        images: gallery('ledgerly-starter', 3),
         description:
           'The exact Next.js + Prisma foundation Ledgerly runs on: money as integers, PDF invoices from React, and Stripe wired for a self-hosted or hosted deploy.',
         features: ['Next.js 15 App Router', 'Prisma + PostgreSQL schema', 'Integer money helpers', 'React-to-PDF invoices', 'Docker + deploy config'],
@@ -698,6 +707,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-11-20T08:00:00.000Z',
         image: cover('nextauth-roles-starter'),
+        images: gallery('nextauth-roles-starter', 3),
         description:
           'Auth.js v5 with a typed role model, protected routes, a seeded admin and the tests that prove the guards actually block. Boring, in the best way.',
         features: [
@@ -733,6 +743,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-08-05T08:00:00.000Z',
         image: cover('postgres-migrations-playbook'),
+        images: gallery('postgres-migrations-playbook', 3),
         description:
           'The runbook behind a zero-downtime schema-change process: additive vs destructive migrations, online index builds, pausable backfills and the CI check that catches drift.',
         features: ['18-page PDF + Markdown', 'Copy-paste migration templates', 'Shadow-DB CI recipe', 'Expand/contract checklist'],
@@ -761,12 +772,13 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-05-12T08:00:00.000Z',
         image: cover('boring-deploy-configs'),
+        images: gallery('boring-deploy-configs', 2),
         description:
           'The Dockerfiles, compose files and CI pipelines I reuse on every project. Free, because good deployment defaults should not be someone’s paywall.',
         features: [
-          'Multi-stage Node & Next Dockerfiles',
-          'Docker Compose for local Postgres',
-          'GitHub Actions lint/typecheck/build',
+          'Multi-stage Node/Next images',
+          'Docker Compose: local Postgres',
+          'Actions lint/typecheck/build',
           'Healthchecks & graceful shutdown',
         ],
         details: [
@@ -793,6 +805,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2026-02-10T08:00:00.000Z',
         image: cover('ledgerly-starter'),
+        images: gallery('ledgerly-starter', 3),
         description:
           'دقیقاً همان پایه Next.js و Prisma که لجرلی رویش اجرا می‌شود؛ پول به عدد صحیح، فاکتور PDF از React و Stripe آماده برای دیپلوی خودمیزبان یا ابری.',
         features: [
@@ -828,6 +841,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-11-20T08:00:00.000Z',
         image: cover('nextauth-roles-starter'),
+        images: gallery('nextauth-roles-starter', 3),
         description:
           'Auth.js v5 با مدل نقش تایپ‌شده، مسیرهای محافظت‌شده، ادمین seedشده و تست‌هایی که ثابت می‌کنند گاردها واقعاً مسدود می‌کنند. کسل‌کننده، به بهترین شکل.',
         features: [
@@ -863,6 +877,7 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-08-05T08:00:00.000Z',
         image: cover('postgres-migrations-playbook'),
+        images: gallery('postgres-migrations-playbook', 3),
         description:
           'runbook پشت یک فرایند تغییر اسکیما بدون قطعی: مهاجرت افزودنی در برابر تخریبی، ساخت ایندکس آنلاین، backfill قابل مکث و بررسی CI که واگرایی را می‌گیرد.',
         features: ['PDF ۱۸ صفحه‌ای + Markdown', 'قالب‌های آماده مهاجرت', 'دستور CI با shadow-DB', 'چک‌لیست expand/contract'],
@@ -891,14 +906,10 @@ export const fullstack: Persona = {
         currency: 'usd',
         createdAt: '2025-05-12T08:00:00.000Z',
         image: cover('boring-deploy-configs'),
+        images: gallery('boring-deploy-configs', 2),
         description:
           'Dockerfileها، فایل‌های compose و پایپ‌لاین‌های CI که در هر پروژه دوباره استفاده می‌کنم. رایگان، چون پیش‌فرض‌های خوب دیپلوی نباید پشت paywall کسی باشد.',
-        features: [
-          'Dockerfile چندمرحله‌ای Node و Next',
-          'Docker Compose برای Postgres محلی',
-          'GitHub Actions برای لینت/تایپ‌چک/بیلد',
-          'Healthcheck و shutdown محترمانه',
-        ],
+        features: ['Build چندمرحله‌ای Node/Next', 'Compose برای Postgres محلی', 'Actions: لینت/تایپ‌چک/بیلد', 'Healthcheck و shutdown محترمانه'],
         details: [
           '## ایده',
           '',
@@ -924,6 +935,7 @@ export const fullstack: Persona = {
         published: true,
         createdAt: '2026-02-11T09:00:00.000Z',
         image: cover('prisma-migrations'),
+        images: gallery('prisma-migrations', 3),
         content: [
           'Eleven minutes of downtime for a change that added a column. The migration was correct; the order of operations was not. This is the write-up I wished I had before that afternoon.',
           '',
@@ -963,6 +975,7 @@ export const fullstack: Persona = {
         createdAt: '2025-09-24T09:00:00.000Z',
         updatedAt: '2026-01-10T09:00:00.000Z',
         image: cover('server-components-two-years'),
+        images: gallery('server-components-two-years', 3),
         content: [
           'Two years into writing RSC product code, the interesting question is no longer "can it render on the server". It is where the seam should be.',
           '',
@@ -996,6 +1009,7 @@ export const fullstack: Persona = {
         published: true,
         createdAt: '2025-07-18T09:00:00.000Z',
         image: cover('monochrome-build-notes'),
+        images: gallery('monochrome-build-notes', 3),
         content: [
           'This site is also a project, so it gets a post. Every choice in it came from one constraint: the work should be the most visible thing on the page.',
           '',
@@ -1028,6 +1042,7 @@ export const fullstack: Persona = {
         published: false,
         createdAt: '2026-07-30T09:00:00.000Z',
         image: cover('pricing-side-project'),
+        images: gallery('pricing-side-project', 1),
         content: [
           'Draft, mostly numbers I have not verified twice yet.',
           '',
@@ -1050,6 +1065,7 @@ export const fullstack: Persona = {
         published: true,
         createdAt: '2026-02-11T09:00:00.000Z',
         image: cover('prisma-migrations'),
+        images: gallery('prisma-migrations', 3),
         content: [
           'یازده دقیقه قطعی، برای تغییری که فقط یک ستون اضافه می‌کرد. خود مهاجرت درست بود؛ ترتیب عملیات نبود. این همان نوشته‌ای است که کاش قبل از آن بعدازظهر خوانده بودمش.',
           '',
@@ -1079,6 +1095,7 @@ export const fullstack: Persona = {
         createdAt: '2025-09-24T09:00:00.000Z',
         updatedAt: '2026-01-10T09:00:00.000Z',
         image: cover('server-components-two-years'),
+        images: gallery('server-components-two-years', 3),
         content: [
           'دو سال بعد از نوشتن کد محصول با RSC، سؤال جالب «آیا می‌شود سمت سرور رندر کرد» دیگر مطرح نیست؛ سؤال این است درز کجا باید باشد.',
           '',
@@ -1108,6 +1125,7 @@ export const fullstack: Persona = {
         published: true,
         createdAt: '2025-07-18T09:00:00.000Z',
         image: cover('monochrome-build-notes'),
+        images: gallery('monochrome-build-notes', 3),
         content: [
           'این سایت خودش یک پروژه است، پس یک پست هم می‌گیرد. هر انتخاب در آن از یک محدودیت می‌آید: قابل‌مشاهده‌ترین چیز صفحه باید کار باشد، نه تزئیناتش.',
           '',
@@ -1140,6 +1158,7 @@ export const fullstack: Persona = {
         published: false,
         createdAt: '2026-07-30T09:00:00.000Z',
         image: cover('pricing-side-project'),
+        images: gallery('pricing-side-project', 1),
         content: [
           'پیش‌نویس؛ بیشتر اعداد هنوز دوبار چک نشده‌اند.',
           '',
