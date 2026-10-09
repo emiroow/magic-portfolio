@@ -2,6 +2,7 @@ import { JsonLd } from '@/components/JsonLd';
 import BlurFade from '@/components/magicui/blur-fade';
 import PostShare from '@/features/blog/post-share';
 import { MarkdownBody } from '@/components/markdown-body';
+import { ImageGallery } from '@/components/image-gallery';
 import Navbar from '@/components/navbar';
 import { eyebrowClass } from '@/components/section-header';
 import { Badge } from '@/components/ui/badge';
@@ -9,11 +10,10 @@ import { getBlogBySlug, getBlogList, getRelatedPosts } from '@/features/blog/que
 import { getProfile } from '@/features/profile/queries';
 import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
-import { cn, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { cn, formatYearMonthLocal, galleryUrls, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
 import { ArrowLeft, ArrowRight, Clock } from 'lucide-react';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
@@ -102,7 +102,7 @@ export default async function BlogPostPage({ params }: Props) {
   const rawMinutes = post.readingMinutes ?? 0;
   const minutes = localizedCount(rawMinutes, lang);
   const author = profile?.fullName || profile?.name;
-  const cover = post.image;
+  const gallery = galleryUrls(post);
 
   return (
     <main>
@@ -114,7 +114,7 @@ export default async function BlogPostPage({ params }: Props) {
             mainEntityOfPage: { '@type': 'WebPage', '@id': url },
             headline: post.title,
             description: post.summary || undefined,
-            image: cover ? [cover] : undefined,
+            image: gallery.length > 0 ? gallery : undefined,
             keywords: post.tags?.join(', ') || undefined,
             datePublished: post.createdAt,
             dateModified: post.updatedAt || post.createdAt,
@@ -191,24 +191,9 @@ export default async function BlogPostPage({ params }: Props) {
           <div aria-hidden className="rule-fade mt-6" />
         </header>
 
-        {cover && (
+        {gallery.length > 0 && (
           <BlurFade delay={0.08} className="mb-9">
-            <figure className="overflow-hidden rounded-xl border bg-card shadow-sm">
-              {isOptimizableImage(cover) ? (
-                <Image
-                  src={cover}
-                  alt={post.title}
-                  width={1200}
-                  height={630}
-                  priority
-                  sizes="(max-width: 768px) 100vw, 768px"
-                  className="aspect-[16/9] w-full object-cover object-top"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={cover} alt={post.title} className="aspect-[16/9] w-full object-cover" decoding="async" />
-              )}
-            </figure>
+            <ImageGallery images={gallery} alt={post.title} sizes="(max-width: 768px) 100vw, 768px" />
           </BlurFade>
         )}
 

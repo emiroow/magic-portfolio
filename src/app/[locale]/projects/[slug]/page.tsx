@@ -1,6 +1,7 @@
 import Navbar from '@/components/navbar';
 import PostShare from '@/features/blog/post-share';
 import { ProjectCard } from '@/features/projects/project-card';
+import { ImageGallery } from '@/components/image-gallery';
 import { MarkdownBody } from '@/components/markdown-body';
 import { JsonLd } from '@/components/JsonLd';
 import { iconDecider } from '@/components/icons';
@@ -12,11 +13,10 @@ import { getProfile } from '@/features/profile/queries';
 import { getProjectByKey, getProjects } from '@/features/projects/queries';
 import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
-import { cn, documentKey, isOptimizableImage, linkHost } from '@/lib/utils';
+import { cn, documentKey, galleryUrls, linkHost } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IProject } from '@/features/projects/types';
 import { ArrowLeft, ArrowRight, ArrowUpRight } from 'lucide-react';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
@@ -90,7 +90,7 @@ export default async function ProjectPage({ params }: Props) {
   const more = all.filter(item => item._id !== project._id).slice(0, 3);
 
   const url = projectUrl(locale, project);
-  const cover = project.image;
+  const gallery = galleryUrls(project);
   const author = profile?.fullName || profile?.name;
 
   // The product URL leads the list; a stored link pointing at the same
@@ -111,7 +111,7 @@ export default async function ProjectPage({ params }: Props) {
             description: project.description || undefined,
             url,
             inLanguage: locale,
-            image: cover || undefined,
+            image: gallery.length > 0 ? gallery : undefined,
             applicationCategory: 'WebApplication',
             keywords: project.technologies.join(', '),
             dateCreated: project.dates || undefined,
@@ -175,24 +175,9 @@ export default async function ProjectPage({ params }: Props) {
           <div aria-hidden className="rule-fade mt-6" />
         </header>
 
-        {cover && (
+        {gallery.length > 0 && (
           <BlurFade delay={0.08} className="mb-10">
-            <figure className="overflow-hidden rounded-xl border bg-card shadow-sm">
-              {isOptimizableImage(cover) ? (
-                <Image
-                  src={cover}
-                  alt={project.title}
-                  width={1600}
-                  height={900}
-                  priority
-                  sizes="(max-width: 640px) 100vw, 848px"
-                  className="aspect-[16/9] w-full object-cover object-top"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={cover} alt={project.title} className="aspect-[16/9] w-full object-cover" decoding="async" />
-              )}
-            </figure>
+            <ImageGallery images={gallery} alt={project.title} sizes="(max-width: 640px) 100vw, 848px" />
           </BlurFade>
         )}
 

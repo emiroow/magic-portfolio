@@ -2,6 +2,7 @@ import Navbar from '@/components/navbar';
 import PostShare from '@/features/blog/post-share';
 import { PriceTag } from '@/features/products/price-tag';
 import { ProductCard } from '@/features/products/ProductCard';
+import { ImageGallery } from '@/components/image-gallery';
 import { JsonLd } from '@/components/JsonLd';
 import { MarkdownBody } from '@/components/markdown-body';
 import { eyebrowClass } from '@/components/section-header';
@@ -12,11 +13,10 @@ import { getProfile } from '@/features/profile/queries';
 import { getProductByKey, getProducts } from '@/features/products/queries';
 import { getSocials } from '@/features/socials/queries';
 import { languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
-import { cn, documentKey, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { cn, documentKey, formatYearMonthLocal, galleryUrls, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IProduct } from '@/features/products/types';
 import { ArrowLeft, ArrowUpRight, CalendarDays, Check, ShoppingBag, Tag } from 'lucide-react';
-import Image from 'next/image';
 import type { Metadata } from 'next';
 import { getTranslations } from 'next-intl/server';
 import Link from 'next/link';
@@ -87,7 +87,7 @@ export default async function ProductPage({ params }: Props) {
   const more = all.filter(item => item._id !== product._id).slice(0, 3);
   const url = productUrl(locale, product);
   const author = profile?.fullName || profile?.name;
-  const cover = product.image;
+  const gallery = galleryUrls(product);
   const purchasable = product.available && Boolean(product.href);
 
   return (
@@ -101,7 +101,7 @@ export default async function ProductPage({ params }: Props) {
             description: product.description || undefined,
             url,
             inLanguage: locale,
-            image: cover || undefined,
+            image: gallery.length > 0 ? gallery : undefined,
             category: product.category || undefined,
             brand: author ? { '@type': 'Brand', name: author } : undefined,
             offers: {
@@ -226,24 +226,9 @@ export default async function ProductPage({ params }: Props) {
           </aside>
 
           <div className="min-w-0 space-y-8">
-            {cover && (
+            {gallery.length > 0 && (
               <BlurFade delay={0.08}>
-                <figure className="overflow-hidden rounded-xl border bg-card shadow-sm">
-                  {isOptimizableImage(cover) ? (
-                    <Image
-                      src={cover}
-                      alt={product.title}
-                      width={1600}
-                      height={1200}
-                      priority
-                      sizes="(max-width: 1023px) 100vw, 620px"
-                      className="aspect-[4/3] w-full object-cover object-top"
-                    />
-                  ) : (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={cover} alt={product.title} className="aspect-[4/3] w-full object-cover" decoding="async" />
-                  )}
-                </figure>
+                <ImageGallery images={gallery} alt={product.title} aspectClass="aspect-[4/3]" sizes="(max-width: 1023px) 100vw, 620px" />
               </BlurFade>
             )}
 
