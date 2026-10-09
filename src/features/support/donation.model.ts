@@ -1,5 +1,6 @@
 import type { IDonation } from '@/features/support/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 /**
  * One destination of a payment method — and the amount rules of that destination.
@@ -61,4 +62,4 @@ const donationItemSchema = new Schema<IDonation>(
   { timestamps: true }
 );
 
-export const donationModel = mongoose.models.donation || mongoose.model<IDonation>('donation', donationItemSchema);
+export const donationModel = registerModel<IDonation>('donation', donationItemSchema);

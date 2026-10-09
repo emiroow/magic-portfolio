@@ -1,5 +1,6 @@
 import { ISocial } from '@/features/socials/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const socialSchema = new Schema<ISocial>({
   name: { type: String, required: true },
@@ -8,4 +9,4 @@ export const socialSchema = new Schema<ISocial>({
   lang: { type: String, required: true },
 });
 
-export const socialModel = mongoose.models.social || mongoose.model<ISocial>('social', socialSchema);
+export const socialModel = registerModel<ISocial>('social', socialSchema);

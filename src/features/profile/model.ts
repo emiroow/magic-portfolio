@@ -1,5 +1,6 @@
 import { IProfile } from '@/features/profile/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const profileSchema = new Schema<IProfile>({
   name: { type: String, required: true },
@@ -13,4 +14,4 @@ export const profileSchema = new Schema<IProfile>({
   lang: { type: String, required: true },
 });
 
-export const profileModel = mongoose.models.profile || mongoose.model<IProfile>('profile', profileSchema);
+export const profileModel = registerModel<IProfile>('profile', profileSchema);

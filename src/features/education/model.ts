@@ -1,5 +1,6 @@
 import { IEducation } from '@/features/education/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const educationSchema = new Schema<IEducation>({
   school: { type: String },
@@ -11,4 +12,4 @@ export const educationSchema = new Schema<IEducation>({
   lang: { type: String, required: true },
 });
 
-export const educationModel = mongoose.models.education || mongoose.model<IEducation>('education', educationSchema);
+export const educationModel = registerModel<IEducation>('education', educationSchema);

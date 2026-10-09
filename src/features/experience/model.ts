@@ -1,5 +1,6 @@
 import { IWork } from '@/features/experience/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const workSchema = new Schema<IWork>({
   company: { type: String, required: true },
@@ -13,4 +14,4 @@ export const workSchema = new Schema<IWork>({
   lang: { type: String, required: true },
 });
 
-export const workModel = mongoose.models.work || mongoose.model<IWork>('work', workSchema);
+export const workModel = registerModel<IWork>('work', workSchema);

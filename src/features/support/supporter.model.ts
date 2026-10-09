@@ -1,5 +1,6 @@
 import type { ISupporter } from '@/features/support/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 /**
  * One act of support: created when a visitor starts a checkout and confirmed
@@ -38,4 +39,4 @@ const supporterSchema = new Schema<ISupporter>(
 // A gateway callback arrives with its own id; the same id must never confirm twice.
 supporterSchema.index({ externalId: 1, lang: 1 }, { unique: true, partialFilterExpression: { externalId: { $type: 'string' } } });
 
-export const supporterModel = mongoose.models.supporter || mongoose.model<ISupporter>('supporter', supporterSchema);
+export const supporterModel = registerModel<ISupporter>('supporter', supporterSchema);
