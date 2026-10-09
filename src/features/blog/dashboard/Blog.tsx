@@ -23,7 +23,9 @@ import { useFormPanel } from '@/hooks/useFormPanel';
 import useBlog from '@/features/blog/hooks/useBlog';
 import { HOME_BLOG_SLOTS } from '@/features/blog/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
+import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
+import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
 import { FileText, Plus } from 'lucide-react';
@@ -170,8 +172,8 @@ const Blog = () => {
             hint={td('gallery.hint')}
             max={MAX_GALLERY_IMAGES}
             frameClassName="h-20 w-36 rounded-lg"
-            aspect={16 / 9}
-            outputSize={1200}
+            aspect={IMAGE_SPECS.blog.aspect}
+            outputSize={IMAGE_SPECS.blog.width}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -203,6 +205,8 @@ const Blog = () => {
             onRemove={removeTag}
             placeholder={t('tagsPlaceholder')}
             addLabel={td('add')}
+            maxLength={MAX_TAG_ITEM_LENGTH}
+            blockedReason={tags.length >= MAX_TAG_ITEMS ? td('maxEntries', { count: localizedCount(MAX_TAG_ITEMS, lang) }) : undefined}
           />
 
           <Field label={t('contentLabel')} error={errors.content?.message} hint={t('wordCount', { count: localizedCount(words, lang) })}>

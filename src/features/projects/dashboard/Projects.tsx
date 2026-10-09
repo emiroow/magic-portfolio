@@ -25,7 +25,9 @@ import { useFormPanel } from '@/hooks/useFormPanel';
 import useProjects from '@/features/projects/hooks/useProjects';
 import { HOME_PROJECT_SLOTS } from '@/features/projects/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
+import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
+import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IProject } from '@/features/projects/types';
 import { FolderGit2, Plus } from 'lucide-react';
@@ -36,6 +38,16 @@ import { useState } from 'react';
 const LINK_TYPES = ['github', 'demo', 'website', 'figma', 'docs', 'video', 'download'] as const;
 
 const EMPTY_LINK = { type: '', href: '', icon: '' };
+
+/** A link must be an absolute http(s) URL, which is exactly what `projectLinkSchema.href` demands. */
+function isHttpUrl(value: string): boolean {
+  try {
+    const protocol = new URL(value).protocol;
+    return protocol === 'http:' || protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
 
 /** Projects section: cover, slug, long-form body and outbound links. */
 const Projects = () => {
@@ -106,6 +118,10 @@ const Projects = () => {
   // Slug drives `/projects/[slug]`; it is auto-derived until edited by hand.
   const autoSlug = !editingId && title ? slugify(title) : watch('slug');
 
+  // A half-typed link URL is flagged as it is entered, before it can reach the list and
+  // block the save with a nested error the composer would never surface.
+  const linkHrefInvalid = link.href.trim() !== '' && !isHttpUrl(link.href.trim());
+
   // A stored type is a slug, so anything unexpected falls through readable.
   const linkLabel = (value: string) => (tLink.has(value) ? tLink(value) : value);
 
@@ -157,8 +173,8 @@ const Projects = () => {
             hint={td('gallery.hint')}
             max={MAX_GALLERY_IMAGES}
             frameClassName="h-20 w-36 rounded-lg"
-            aspect={16 / 9}
-            outputSize={1600}
+            aspect={IMAGE_SPECS.project.aspect}
+            outputSize={IMAGE_SPECS.project.width}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -195,9 +211,11 @@ const Projects = () => {
             onRemove={removeTechnology}
             placeholder={t('technologyPlaceholder')}
             addLabel={td('add')}
+            maxLength={MAX_TAG_ITEM_LENGTH}
+            blockedReason={technologies.length >= MAX_TAG_ITEMS ? td('maxEntries', { count: localizedCount(MAX_TAG_ITEMS, lang) }) : undefined}
           />
 
-          <Field label={t('projectLinks')} error={errors.links?.message}>
+          <Field label={t('projectLinks')} error={errors.links?.message ?? (linkHrefInvalid ? t('linkUrlInvalid') : undefined)}>
             <div className="flex flex-col gap-2 sm:flex-row">
               <Select
                 value={link.type}
@@ -217,6 +235,13 @@ const Projects = () => {
                 dir="ltr"
                 value={link.href}
                 onChange={event => setLink({ ...link, href: event.target.value })}
+                onKeyDown={event => {
+                  // Enter here means "add this link", not "save the project".
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    if (link.type && !linkHrefInvalid) commitLink();
+                  }
+                }}
                 placeholder={t('linkUrlPlaceholder')}
                 aria-label={t('linkUrl')}
                 autoComplete="off"
@@ -226,7 +251,7 @@ const Projects = () => {
                 variant="outline"
                 size="sm"
                 className="shrink-0 rounded-full"
-                disabled={!link.type || !link.href}
+                disabled={!link.type || !link.href || linkHrefInvalid}
                 onClick={commitLink}
               >
                 <Plus className="me-1.5 size-3.5" aria-hidden />

@@ -25,7 +25,9 @@ import { useFormPanel } from '@/hooks/useFormPanel';
 import useProducts from '@/features/products/hooks/useProducts';
 import { HOME_PRODUCT_SLOTS } from '@/features/products/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
+import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
+import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IProduct } from '@/features/products/types';
 import { Package, Plus } from 'lucide-react';
@@ -142,8 +144,8 @@ const Products = () => {
             hint={td('gallery.hint')}
             max={MAX_GALLERY_IMAGES}
             frameClassName="h-24 w-32 rounded-lg"
-            aspect={4 / 3}
-            outputSize={1600}
+            aspect={IMAGE_SPECS.product.aspect}
+            outputSize={IMAGE_SPECS.product.width}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -203,7 +205,8 @@ const Products = () => {
             onRemove={removeFeature}
             placeholder={t('featurePlaceholder')}
             addLabel={td('add')}
-            maxLength={40}
+            maxLength={MAX_TAG_ITEM_LENGTH}
+            blockedReason={features.length >= MAX_TAG_ITEMS ? td('maxEntries', { count: localizedCount(MAX_TAG_ITEMS, lang) }) : undefined}
           />
 
           {/* Long-form body shown on the product page */}
