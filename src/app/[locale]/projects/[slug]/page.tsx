@@ -9,6 +9,7 @@ import BlurFade from '@/components/magicui/blur-fade';
 import { eyebrowClass } from '@/components/section-header';
 import { Stack } from '@/components/stack';
 import { Badge } from '@/components/ui/badge';
+import { IMAGE_SPECS, OG_CARD, HERO_IMAGE_SIZES } from '@/constants/imageSpecs';
 import { getProfile } from '@/features/profile/queries';
 import { getProjectByKey, getProjects } from '@/features/projects/queries';
 import { getSocials } from '@/features/socials/queries';
@@ -52,7 +53,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const url = projectUrl(locale, project);
   const description = project.description || t('defaultDescription');
-  const image = project.image || ogImageFor(project.title, locale);
+  const cover = project.image;
+  const image = cover || ogImageFor(project.title, locale);
+  // A real cover ships at the catalogue's canonical size; the generated fallback is a
+  // 1.91:1 card. Declaring the right pixels keeps social previewers from resampling.
+  const imageWidth = cover ? IMAGE_SPECS.project.width : OG_CARD.width;
+  const imageHeight = cover ? IMAGE_SPECS.project.height : OG_CARD.height;
 
   return {
     title: project.title,
@@ -65,7 +71,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url,
       locale: locale === 'fa' ? 'fa_IR' : 'en_US',
-      images: [{ url: image, width: 1200, height: 630, alt: project.title }],
+      images: [{ url: image, width: imageWidth, height: imageHeight, alt: project.title }],
     },
     twitter: { card: 'summary_large_image', title: project.title, description, images: [image] },
   };
@@ -177,7 +183,7 @@ export default async function ProjectPage({ params }: Props) {
 
         {gallery.length > 0 && (
           <BlurFade delay={0.08} className="mb-10">
-            <ImageGallery images={gallery} alt={project.title} sizes="(max-width: 640px) 100vw, 848px" />
+            <ImageGallery images={gallery} alt={project.title} aspectClass={IMAGE_SPECS.project.aspectClass} sizes={HERO_IMAGE_SIZES} />
           </BlurFade>
         )}
 

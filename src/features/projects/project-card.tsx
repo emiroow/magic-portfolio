@@ -1,6 +1,7 @@
 import { iconDecider } from '@/components/icons';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { CARD_IMAGE_SIZES, IMAGE_SPECS } from '@/constants/imageSpecs';
 import { cn, isOptimizableImage } from '@/lib/utils';
 import { ArrowUpRight } from 'lucide-react';
 import Image from 'next/image';
@@ -51,7 +52,7 @@ export function ProjectCard({
   liveLabel,
   className,
   priority = false,
-  sizes = '(max-width: 640px) 100vw, (max-width: 1023px) 46vw, 272px',
+  sizes = CARD_IMAGE_SIZES,
   headingLevel: Heading = 'h3',
 }: ProjectCardProps) {
   const cover = image && isOptimizableImage(image) ? image : undefined;
@@ -63,7 +64,7 @@ export function ProjectCard({
 
   return (
     <Card className={cn('group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30', className)}>
-      <div className="relative aspect-[16/9] w-full overflow-hidden border-b bg-muted">
+      <div className={cn('relative w-full overflow-hidden border-b bg-muted', IMAGE_SPECS.project.aspectClass)}>
         {cover ? (
           <Image
             src={cover}

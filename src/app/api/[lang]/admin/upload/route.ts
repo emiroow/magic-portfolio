@@ -1,12 +1,14 @@
 import { apiError, apiJson, requireAdmin } from '@/lib/api';
 import { connectDB } from '@/config/dbConnection';
 import { profileModel } from '@/features/profile/model';
+import { specForUploadType, type ImageSpec } from '@/constants/imageSpecs';
 import { langSchema } from '@/lib/validations';
 import { del, put } from '@vercel/blob';
 import { constants } from 'fs';
 import { access, mkdir, unlink, writeFile } from 'fs/promises';
 import { NextRequest } from 'next/server';
 import path from 'path';
+import sharp from 'sharp';
 
 /**
  * Admin image upload. Dev stores files under `/public`; production uses
@@ -18,6 +20,25 @@ const isDev = process.env.NODE_ENV === 'development';
 /** 5 MB upload limit. */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
 const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/**
+ * Re-bake a catalogue cover onto its canonical canvas.
+ *
+ * The dashboard cropper already frames the selection at the right aspect, but the
+ * server is the last honest word: a file POSTed straight to this route, an EXIF
+ * rotation the browser misread, or a crop a hair off the ratio all land here and
+ * leave at exactly `spec.width × spec.height`. `fit: cover` centre-trims any residual
+ * difference instead of stretching it, so nothing is ever distorted to hit the size,
+ * and JPEG output keeps the catalogue uniform whatever format was uploaded.
+ */
+async function normalizeToSpec(input: ArrayBuffer, spec: ImageSpec): Promise<Buffer> {
+  return sharp(Buffer.from(input))
+    .rotate() // honour the EXIF orientation, so a phone upload lands upright rather than sideways
+    .flatten({ background: '#ffffff' }) // covers are opaque; clear alpha before the JPEG encode
+    .resize({ width: spec.width, height: spec.height, fit: 'cover', position: 'centre', kernel: 'lanczos3' })
+    .jpeg({ quality: 88, progressive: true })
+    .toBuffer();
+}
 
 /** Maps the `type` query param to a storage folder. */
 function folderForType(type: string | null): string {
@@ -68,7 +89,20 @@ export async function POST(req: NextRequest) {
       return apiError('File exceeds the 5 MB size limit');
     }
 
-    const ext = file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+    const spec = specForUploadType(type);
+    const sourceBytes = await file.arrayBuffer();
+    // Catalogue covers are re-baked to their canonical canvas; everything else
+    // (avatar, logos, certificates) is stored as uploaded, alpha and all. A cover that
+    // cannot be decoded is refused rather than filed in a shape the pages cannot frame.
+    let payload: Buffer;
+    try {
+      payload = spec ? await normalizeToSpec(sourceBytes, spec) : Buffer.from(sourceBytes);
+    } catch (error) {
+      console.error('[api/admin/upload] image processing failed:', error);
+      return apiError('The image could not be processed', 400);
+    }
+
+    const ext = spec ? 'jpg' : file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
     const fileName = type === 'avatar' ? `avatarImage.${ext}` : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     await connectDB();
@@ -77,7 +111,6 @@ export async function POST(req: NextRequest) {
 
     if (isDev) {
       // Local development: persist under /public so hot reload serves it.
-      const bytes = await file.arrayBuffer();
       const uploadDir = path.join(process.cwd(), 'public', folder);
 
       try {
@@ -97,11 +130,11 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      await writeFile(path.join(uploadDir, fileName), Buffer.from(bytes));
+      await writeFile(path.join(uploadDir, fileName), payload);
       fileUrl = `/${folder}/${fileName}`;
     } else {
       // Production: Vercel Blob storage.
-      const blob = await put(`${folder}/${fileName}`, file, {
+      const blob = await put(`${folder}/${fileName}`, payload, {
         access: 'public',
         addRandomSuffix: type !== 'avatar',
         allowOverwrite: true,

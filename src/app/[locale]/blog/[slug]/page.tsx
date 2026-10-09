@@ -6,6 +6,7 @@ import { ImageGallery } from '@/components/image-gallery';
 import Navbar from '@/components/navbar';
 import { eyebrowClass } from '@/components/section-header';
 import { Badge } from '@/components/ui/badge';
+import { IMAGE_SPECS, OG_CARD } from '@/constants/imageSpecs';
 import { getBlogBySlug, getBlogList, getRelatedPosts } from '@/features/blog/queries';
 import { getProfile } from '@/features/profile/queries';
 import { getSocials } from '@/features/socials/queries';
@@ -53,6 +54,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const url = localeUrl(locale, `/blog/${post.slug}`);
   const description = post.summary || t('defaultDescription');
   const image = postImage(post, locale);
+  // A real cover ships at the catalogue's canonical size; the generated fallback is a
+  // 1.91:1 card. Declaring the right pixels keeps social previewers from resampling.
+  const imageWidth = post.image ? IMAGE_SPECS.blog.width : OG_CARD.width;
+  const imageHeight = post.image ? IMAGE_SPECS.blog.height : OG_CARD.height;
 
   return {
     title: post.title,
@@ -68,7 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: post.createdAt,
       modifiedTime: post.updatedAt || post.createdAt,
       tags: post.tags,
-      images: [{ url: image, width: 1200, height: 630, alt: post.title }],
+      images: [{ url: image, width: imageWidth, height: imageHeight, alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',
@@ -193,7 +198,7 @@ export default async function BlogPostPage({ params }: Props) {
 
         {gallery.length > 0 && (
           <BlurFade delay={0.08} className="mb-9">
-            <ImageGallery images={gallery} alt={post.title} sizes="(max-width: 768px) 100vw, 768px" />
+            <ImageGallery images={gallery} alt={post.title} aspectClass={IMAGE_SPECS.blog.aspectClass} sizes="(max-width: 768px) 100vw, 768px" />
           </BlurFade>
         )}
 

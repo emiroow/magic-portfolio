@@ -9,6 +9,7 @@ import { eyebrowClass } from '@/components/section-header';
 import BlurFade from '@/components/magicui/blur-fade';
 import { buttonVariants } from '@/components/ui/button';
 import { PRODUCT_CURRENCY_CODES } from '@/constants/global';
+import { IMAGE_SPECS, OG_CARD } from '@/constants/imageSpecs';
 import { getProfile } from '@/features/profile/queries';
 import { getProductByKey, getProducts } from '@/features/products/queries';
 import { getSocials } from '@/features/socials/queries';
@@ -52,7 +53,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   const url = productUrl(locale, product);
   const description = product.description || t('defaultDescription');
-  const image = product.image || ogImageFor(product.title, locale);
+  const cover = product.image;
+  const image = cover || ogImageFor(product.title, locale);
+  // A real cover ships at the catalogue's canonical size; the generated fallback is a
+  // 1.91:1 card. Declaring the right pixels keeps social previewers from resampling.
+  const imageWidth = cover ? IMAGE_SPECS.product.width : OG_CARD.width;
+  const imageHeight = cover ? IMAGE_SPECS.product.height : OG_CARD.height;
 
   return {
     title: product.title,
@@ -65,7 +71,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description,
       url,
       locale: locale === 'fa' ? 'fa_IR' : 'en_US',
-      images: [{ url: image, width: 1200, height: 630, alt: product.title }],
+      images: [{ url: image, width: imageWidth, height: imageHeight, alt: product.title }],
     },
     twitter: { card: 'summary_large_image', title: product.title, description, images: [image] },
   };
@@ -228,7 +234,7 @@ export default async function ProductPage({ params }: Props) {
           <div className="min-w-0 space-y-8">
             {gallery.length > 0 && (
               <BlurFade delay={0.08}>
-                <ImageGallery images={gallery} alt={product.title} aspectClass="aspect-[4/3]" sizes="(max-width: 1023px) 100vw, 620px" />
+                <ImageGallery images={gallery} alt={product.title} aspectClass={IMAGE_SPECS.product.aspectClass} sizes="(max-width: 1023px) 100vw, 620px" />
               </BlurFade>
             )}
 

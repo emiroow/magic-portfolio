@@ -48,8 +48,22 @@ function CropperBody({ src, aspect, labels, outputSize, onCropped, onClose }: Cr
     const image = new Image();
     const blob = await new Promise<Blob | null>(resolve => {
       image.onload = () => {
-        const outW = outputSize;
-        const outH = Math.round(outputSize / aspect);
+        const { width: natW, height: natH } = image;
+        // Clamp the selection to real pixels: a rounding past an edge would make
+        // drawImage sample outside the source and paint a black band into the file.
+        const x = Math.max(0, Math.min(croppedAreaPixels.x, natW - 1));
+        const y = Math.max(0, Math.min(croppedAreaPixels.y, natH - 1));
+        const sw = Math.max(1, Math.min(croppedAreaPixels.width, natW - x));
+        const sh = Math.max(1, Math.min(croppedAreaPixels.height, natH - y));
+
+        // Never enlarge: hand the crop over at its own resolution, capped at the
+        // canonical width. The upload route resizes to the exact standard, so upscaling
+        // here would only bake in blur the server cannot take back out.
+        const outW = Math.max(1, Math.round(Math.min(outputSize, sw)));
+        // Derive the height from the target aspect, not the sampled region, so the file
+        // always matches the ratio the page frames it in — no stretch, no letterbox.
+        const outH = Math.max(1, Math.round(outW / aspect));
+
         const canvas = document.createElement('canvas');
         canvas.width = outW;
         canvas.height = outH;
@@ -57,8 +71,7 @@ function CropperBody({ src, aspect, labels, outputSize, onCropped, onClose }: Cr
         if (!ctx) return resolve(null);
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        const { x, y, width, height } = croppedAreaPixels;
-        ctx.drawImage(image, x, y, width, height, 0, 0, outW, outH);
+        ctx.drawImage(image, x, y, sw, sh, 0, 0, outW, outH);
         canvas.toBlob(b => resolve(b), 'image/jpeg', 0.92);
       };
       image.src = src;

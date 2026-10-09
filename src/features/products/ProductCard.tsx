@@ -1,6 +1,7 @@
 import { PriceTag } from '@/features/products/price-tag';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { CARD_IMAGE_SIZES, IMAGE_SPECS } from '@/constants/imageSpecs';
 import { cn, isOptimizableImage } from '@/lib/utils';
 import type { ProductCurrency } from '@/types';
 import Image from 'next/image';
@@ -53,7 +54,7 @@ export function ProductCard({
   unavailableLabel,
   className,
   priority = false,
-  sizes = '(max-width: 640px) 100vw, (max-width: 1023px) 46vw, 300px',
+  sizes = CARD_IMAGE_SIZES,
   headingLevel: Heading = 'h3',
 }: ProductCardProps) {
   const cover = image && isOptimizableImage(image) ? image : undefined;
@@ -61,7 +62,7 @@ export function ProductCard({
 
   return (
     <Card className={cn('group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30', className)}>
-      <div className="relative aspect-[4/3] w-full overflow-hidden border-b bg-muted">
+      <div className={cn('relative w-full overflow-hidden border-b bg-muted', IMAGE_SPECS.product.aspectClass)}>
         {cover ? (
           <Image
             src={cover}

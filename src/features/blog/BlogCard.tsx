@@ -1,5 +1,6 @@
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
+import { CARD_IMAGE_SIZES, IMAGE_SPECS } from '@/constants/imageSpecs';
 import { cn, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
@@ -35,14 +36,14 @@ export function BlogCard({ post, locale, lang, className, priority = false, head
 
   return (
     <Card className={cn('group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30', className)}>
-      <div className="relative aspect-[16/9] w-full overflow-hidden border-b bg-muted">
+      <div className={cn('relative w-full overflow-hidden border-b bg-muted', IMAGE_SPECS.blog.aspectClass)}>
         {cover ? (
           <Image
             src={cover}
             alt={post.title}
             fill
             priority={priority}
-            sizes="(max-width: 640px) 100vw, (max-width: 1023px) 46vw, 300px"
+            sizes={CARD_IMAGE_SIZES}
             className="object-cover object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
           />
         ) : src ? (
