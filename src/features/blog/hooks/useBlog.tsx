@@ -123,6 +123,7 @@ const useBlog = () => {
     const current = getValues('tags') || [];
     if (!current.some(item => item.toLowerCase() === tag.toLowerCase())) {
       setValue('tags', [...current, tag], { shouldDirty: true });
+      trigger('tags');
     }
   };
 
@@ -133,6 +134,7 @@ const useBlog = () => {
       current.filter((_, i) => i !== index),
       { shouldDirty: true }
     );
+    trigger('tags');
   };
 
   return {

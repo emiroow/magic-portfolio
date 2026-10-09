@@ -1,11 +1,11 @@
-import { optionalString, optionalUrl } from '@/lib/validations';
+import { optionalImagePath, optionalString, optionalUrl } from '@/lib/validations';
 import { z } from 'zod';
 
 export const educationSchema = z.object({
   school: z.string().min(1, 'School is required'),
   href: optionalUrl(),
   degree: optionalString(),
-  logoUrl: optionalUrl(),
+  logoUrl: optionalImagePath(),
   start: optionalString(),
   end: optionalString(),
 });

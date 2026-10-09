@@ -1,4 +1,4 @@
-import { optionalEmail, optionalString, optionalUrl } from '@/lib/validations';
+import { optionalEmail, optionalImagePath, optionalString } from '@/lib/validations';
 import { z } from 'zod';
 
 export const profileSchema = z.object({
@@ -7,7 +7,7 @@ export const profileSchema = z.object({
   jobTitle: z.string().min(1, 'Job title is required'),
   description: optionalString(),
   summary: optionalString(),
-  avatarUrl: optionalUrl(),
+  avatarUrl: optionalImagePath(),
   tel: optionalString(),
   email: optionalEmail(),
 });

@@ -503,6 +503,7 @@
     },
     "clearSearch": "پاک کردن جستجو",
     "duplicateChip": "قبلاً در فهرست است.",
+    "maxEntries": "حداکثر {count} مورد مجاز است.",
     "profile": {
       "title": "پروفایل",
       "name": "نام",
@@ -668,6 +669,7 @@
       "projectLinks": "پیوندهای پروژه",
       "selectLinkType": "نوع پیوند را انتخاب کنید",
       "linkUrlPlaceholder": "نشانی را وارد کنید (https://...)",
+      "linkUrlInvalid": "یک پیوند کامل وارد کنید که با https:// شروع شود",
       "projectImages": "تصویرهای پروژه"
     },
     "products": {
@@ -944,6 +946,10 @@
     "destinationsTooMany": "برای یک روش، مقصد‌ها بیش از حد زیادند.",
     "imagePathRequired": "یکی از تصویرها بارگذاری نشد.",
     "imagesTooMany": "برای یک رکورد تصویر بیش از حد زیاد است.",
+    "invalidImagePath": "یک مسیر یا نشانی معتبر برای تصویر وارد کنید.",
+    "entriesTooMany": "موردها بیش از حد زیادند.",
+    "entryEmpty": "یک مورد نمی‌تواند خالی باشد.",
+    "entryTooLong": "یکی از موارد بیش از حد بلند است.",
     "duplicateDestination": "دو مقصد یک نام را دارند.",
     "platformInvalid": "یک پلتفرم حمایت انتخاب کنید.",
     "gatewayInvalid": "آن سرویس درگاه نیست.",

@@ -503,6 +503,7 @@
     },
     "clearSearch": "Clear search",
     "duplicateChip": "Already in the list.",
+    "maxEntries": "You can add up to {count}.",
     "profile": {
       "title": "Profile",
       "name": "Name",
@@ -668,6 +669,7 @@
       "projectLinks": "Project links",
       "selectLinkType": "Select link type",
       "linkUrlPlaceholder": "Enter URL (https://...)",
+      "linkUrlInvalid": "Enter a full link, starting with https://",
       "projectImages": "Project images"
     },
     "products": {
@@ -944,6 +946,10 @@
     "destinationsTooMany": "That is too many destinations for one method.",
     "imagePathRequired": "An image did not come through.",
     "imagesTooMany": "That is too many images for one record.",
+    "invalidImagePath": "Enter a valid image path or URL.",
+    "entriesTooMany": "That is too many entries.",
+    "entryEmpty": "An entry cannot be empty.",
+    "entryTooLong": "An entry is too long.",
     "duplicateDestination": "Two destinations share one name.",
     "platformInvalid": "Choose a support platform.",
     "gatewayInvalid": "That service is not a gateway.",

@@ -1,4 +1,4 @@
-import { optionalString, optionalUrl } from '@/lib/validations';
+import { optionalImagePath, optionalString, optionalUrl } from '@/lib/validations';
 import { z } from 'zod';
 
 export const workSchema = z.object({
@@ -6,7 +6,7 @@ export const workSchema = z.object({
   href: optionalUrl(),
   location: optionalString(),
   title: optionalString(),
-  logoUrl: optionalUrl(),
+  logoUrl: optionalImagePath(),
   start: optionalString(),
   end: optionalString(),
   description: optionalString(),

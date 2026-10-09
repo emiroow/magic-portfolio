@@ -18,6 +18,23 @@ export const optionalString = () => z.string().optional();
 export const optionalUrl = () => z.string().url().optional().or(z.literal(''));
 export const optionalEmail = () => z.string().email().optional().or(z.literal(''));
 
+/**
+ * A stored image reference: the site-relative path a `/public` upload returns in
+ * development (`/education/123.jpg`), an absolute URL a remote/Blob upload returns
+ * in production, or nothing.
+ *
+ * Distinct from `optionalUrl` on purpose. A logo/avatar upload is saved as a bare
+ * path, which `z.string().url()` rejects outright — so validating an image field with
+ * `optionalUrl` makes a record silently refuse to save the moment a picture is added.
+ * Image paths are checked for shape, not treated as URLs.
+ */
+export const optionalImagePath = () =>
+  z
+    .string()
+    .trim()
+    .refine(value => value === '' || value.startsWith('/') || /^https?:\/\//i.test(value), 'Enter a valid image path or URL')
+    .optional();
+
 /** URL segment: Latin/Persian letters, digits and single dashes. */
 export const slugSchema = z
   .string()
@@ -25,7 +42,30 @@ export const slugSchema = z
   .regex(/^[a-z0-9\u0600-\u06FF]+(?:-[a-z0-9\u0600-\u06FF]+)*$/, 'Slug may contain letters, digits and dashes');
 
 /** Tags/technologies: trimmed, de-duplicated, bounded. */
-export const tagListSchema = () => z.array(z.string().trim().min(1).max(32)).max(12);
+export const MAX_TAG_ITEMS = 12;
+export const MAX_TAG_ITEM_LENGTH = 32;
+
+/**
+ * A list of short names — technologies, features, tags.
+ *
+ * The per-item rules are enforced through `superRefine` rather than chained `.min/.max`
+ * on the element schema so that every violation is reported on the array itself. A
+ * react-hook-form field only reads `errors.<name>.message`, and zod files a per-index
+ * error (`features.2`) that the composer never renders — which is how an over-long chip
+ * silently blocked a save. Attaching the issue to the array root makes it visible.
+ */
+export const tagListSchema = () =>
+  z
+    .array(z.string())
+    .max(MAX_TAG_ITEMS, 'That is too many entries')
+    .superRefine((items, ctx) => {
+      if (items.some(item => item.trim() === '')) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'An entry cannot be empty' });
+      }
+      if (items.some(item => item.trim().length > MAX_TAG_ITEM_LENGTH)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'An entry is too long' });
+      }
+    });
 
 /**
  * Ordered image gallery, first entry being the cover.
