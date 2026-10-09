@@ -23,6 +23,9 @@ export interface IProject {
   details?: string;
   technologies: string[];
   links: IProjectLink[];
+  /** Cover: always the first entry of `images`, kept for cards and social cards. */
   image: string;
+  /** Ordered screenshots; the first one is the cover. */
+  images?: string[];
   lang: AppLocale;
 }

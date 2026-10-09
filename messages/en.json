@@ -110,6 +110,14 @@
     "video": "Video",
     "download": "Download"
   },
+  "gallery": {
+    "counter": "{current} of {total}",
+    "previous": "Previous image",
+    "next": "Next image",
+    "expand": "View image {at} full screen",
+    "list": "All images",
+    "pick": "Show image {at}"
+  },
   "blogPage": {
     "title": "Blog",
     "eyebrow": "Writing",
@@ -474,6 +482,22 @@
       "remove": "Remove image",
       "hint": "JPG, PNG or WebP, up to 5 MB"
     },
+    "gallery": {
+      "add": "Add images",
+      "cover": "Cover",
+      "remove": "Remove image",
+      "moveEarlier": "Move one place earlier",
+      "moveLater": "Move one place later",
+      "count": "{current} of {total} images",
+      "stored": "{count} images",
+      "uploading": "Uploading…",
+      "readyToCrop": "Ready to crop",
+      "queued": "{count} more waiting",
+      "limitReached": "One record holds at most {count} images",
+      "trimmed": "Only the first {count} of that selection fit",
+      "uploadFailed": "That upload did not go through",
+      "hint": "The first image is the cover every card and social preview shows. JPG, PNG or WebP, up to 5 MB each."
+    },
     "markdown": {
       "placeholder": "Write in Markdown"
     },
@@ -554,7 +578,7 @@
       "summaryLabel": "Summary",
       "summaryPlaceholder": "Short summary",
       "summaryHint": "Used in the listing and social preview cards.",
-      "coverImage": "Cover image",
+      "imagesLabel": "Images",
       "tagsLabel": "Tags",
       "tagsPlaceholder": "Type a tag and press Enter",
       "tagsHint": "Powers the listing filter and related posts.",
@@ -644,7 +668,7 @@
       "projectLinks": "Project links",
       "selectLinkType": "Select link type",
       "linkUrlPlaceholder": "Enter URL (https://...)",
-      "projectImage": "Cover image"
+      "projectImages": "Project images"
     },
     "products": {
       "title": "Products",
@@ -677,7 +701,7 @@
       "features": "What you get",
       "featuresHint": "Up to 12 short bullets, shown on the card and the product page.",
       "featurePlaceholder": "Add a bullet (Source code, 6 months of support)",
-      "productImage": "Cover image",
+      "productImages": "Product images",
       "active": "Published",
       "activeHint": "An unpublished product stays out of the catalogue.",
       "disabled": "Hidden",
@@ -918,6 +942,8 @@
     "destinationsRequired": "Add at least one destination.",
     "destinationActiveRequired": "Turn on at least one destination.",
     "destinationsTooMany": "That is too many destinations for one method.",
+    "imagePathRequired": "An image did not come through.",
+    "imagesTooMany": "That is too many images for one record.",
     "duplicateDestination": "Two destinations share one name.",
     "platformInvalid": "Choose a support platform.",
     "gatewayInvalid": "That service is not a gateway.",

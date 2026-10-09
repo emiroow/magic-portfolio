@@ -31,6 +31,13 @@ export const MenuRoutes: readonly NavbarRoute[] = [
 ];
 
 /**
+ * How many images one record may carry in its gallery. Products, projects and
+ * posts all read the same ceiling: it bounds the zod schema, the dashboard
+ * counter and the number of lightbox steps a reader is expected to click through.
+ */
+export const MAX_GALLERY_IMAGES = 8;
+
+/**
  * Currencies the dashboard offers for a product price. The tuple is annotated
  * with `ProductCurrency` from `src/types`, so a code can only be added in one
  * place; zod's enum and the labels under the `pricing` namespace in the message

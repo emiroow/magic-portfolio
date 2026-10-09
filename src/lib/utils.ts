@@ -205,3 +205,39 @@ export function isOptimizableImage(src: string | undefined): boolean {
     return false;
   }
 }
+
+/**
+ * Stored form of an uploaded image: the display-only `?cb=` cache buster removed,
+ * everything else left exactly as it was.
+ *
+ * Only `cb` goes. A pasted external URL can carry a query that means something —
+ * `?grayscale` on a placeholder host, a signed token, a requested width — and
+ * dropping the whole query string would quietly change the picture.
+ */
+export function cleanImageUrl(src: string | undefined): string {
+  const raw = (src ?? '').trim();
+  const [base, query = '', ...rest] = raw.split('?');
+  // More than one `?` is not a query the browser would resolve anyway; keep it whole.
+  if (!query || rest.length > 0) return raw;
+
+  const kept = query.split('&').filter(pair => pair.length > 0 && pair !== 'cb' && !pair.startsWith('cb='));
+
+  return kept.length > 0 ? `${base}?${kept.join('&')}` : base;
+}
+
+/**
+ * Every image of a record, in display order, cover first.
+ *
+ * The gallery is the source of truth for what a page renders, but documents saved
+ * before it existed carry a lone `image` — so the fallback lives here instead of in
+ * every card, row and editor. Repeats are dropped because the list keys the lightbox
+ * and the reorder controls; a record with no image at all stays empty rather than
+ * inventing one.
+ */
+export function galleryUrls(item: { image?: string; images?: string[] }): string[] {
+  const list = (item.images ?? []).map(cleanImageUrl).filter(Boolean);
+  if (list.length > 0) return Array.from(new Set(list));
+
+  const cover = cleanImageUrl(item.image);
+  return cover ? [cover] : [];
+}

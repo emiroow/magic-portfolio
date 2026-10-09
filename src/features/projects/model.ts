@@ -1,5 +1,6 @@
 import { IProject } from '@/features/projects/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const projectSchema = new Schema<IProject>(
   {
@@ -20,10 +21,13 @@ export const projectSchema = new Schema<IProject>(
         icon: { type: String },
       },
     ],
+    /** Cover, always `images[0]`; cards and social read this one. */
     image: { type: String },
+    /** Ordered gallery rendered on the project page; first entry leads. */
+    images: { type: [String], default: [] },
     lang: { type: String, required: true },
   },
   { timestamps: true }
 );
 
-export const projectModel = mongoose.models.project || mongoose.model<IProject>('project', projectSchema);
+export const projectModel = registerModel<IProject>('project', projectSchema);

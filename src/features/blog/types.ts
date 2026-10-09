@@ -9,6 +9,8 @@ export interface IBlog {
   slug: string;
   /** Cover image shown on the list, the article header and social cards. */
   image?: string;
+  /** Ordered images of the article; the first one is the cover. */
+  images?: string[];
   /** Free-form labels used for filtering and related posts. */
   tags?: string[];
   /** `false` keeps a post out of every public surface (legacy docs: published). */

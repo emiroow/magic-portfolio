@@ -1,6 +1,6 @@
 import { tryConnectDB } from '@/config/dbConnection';
 import { blogModel } from '@/features/blog/model';
-import { readingTime } from '@/lib/utils';
+import { galleryUrls, readingTime } from '@/lib/utils';
 import { byLocaleOrder, serialize, serializeList } from '@/lib/serialize';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
@@ -24,6 +24,17 @@ function stripFrontMatter(markdown?: string) {
     .replace(/^\s+/, '');
 }
 
+/**
+ * A `.lean()` document carries whatever a post was saved with, so the gallery is
+ * settled here: a legacy post with only a cover becomes a one-picture list, and a
+ * post written with only `images` gets its cover back for the cards, the feed and
+ * the social preview.
+ */
+function normalizeGallery(post: IBlog): IBlog {
+  const images = galleryUrls(post);
+  return { ...post, images, image: images[0] ?? '' };
+}
+
 /** Public blog list (content stripped, reading time derived). */
 export async function getBlogList(locale: AppLocale): Promise<IBlog[]> {
   if (!(await tryConnectDB())) return [];
@@ -33,10 +44,12 @@ export async function getBlogList(locale: AppLocale): Promise<IBlog[]> {
     .sort({ createdAt: -1 })
     .lean();
 
-  return serializeList<IBlog>(docs as Record<string, unknown>[]).map(post => {
-    const { content, ...rest } = post;
-    return { ...rest, tags: post.tags ?? [], featured: Boolean(post.featured), readingMinutes: readingTime(content) };
-  });
+  return serializeList<IBlog>(docs as Record<string, unknown>[])
+    .map(normalizeGallery)
+    .map(post => {
+      const { content, ...rest } = post;
+      return { ...rest, tags: post.tags ?? [], featured: Boolean(post.featured), readingMinutes: readingTime(content) };
+    });
 }
 
 /** Distinct tags across the published posts, newest-first document order. */
@@ -63,5 +76,5 @@ export async function getBlogBySlug(locale: AppLocale, slug: string): Promise<IB
 
   const doc = await blogModel.findOne({ lang: locale, slug, ...PUBLISHED }).lean();
   const post = serialize<IBlog>(doc as Record<string, unknown> | null);
-  return post ? { ...post, content: stripFrontMatter(post.content), tags: post.tags ?? [] } : null;
+  return post ? { ...normalizeGallery(post), content: stripFrontMatter(post.content), tags: post.tags ?? [] } : null;
 }

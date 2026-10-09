@@ -1,4 +1,5 @@
 import { IBlog } from '@/features/blog/types';
+import { registerModel } from '@/lib/mongoose-model';
 import mongoose from 'mongoose';
 
 const BlogSchema = new mongoose.Schema<IBlog>(
@@ -7,7 +8,10 @@ const BlogSchema = new mongoose.Schema<IBlog>(
     summary: { type: String },
     content: { type: String, default: '' },
     slug: { type: String, required: true, index: true },
+    /** Cover, always `images[0]`; the list, header and social cards read this one. */
     image: { type: String },
+    /** Ordered gallery rendered under the article; first entry leads. */
+    images: { type: [String], default: [] },
     tags: { type: [String], default: [] },
     // Drafts stay out of every public surface; legacy documents default to true.
     published: { type: Boolean, default: true },
@@ -18,4 +22,4 @@ const BlogSchema = new mongoose.Schema<IBlog>(
   { timestamps: true }
 );
 
-export const blogModel = mongoose.models.Blog || mongoose.model<IBlog>('Blog', BlogSchema);
+export const blogModel = registerModel<IBlog>('Blog', BlogSchema);

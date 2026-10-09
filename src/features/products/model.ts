@@ -1,5 +1,6 @@
 import { IProduct } from '@/features/products/types';
-import mongoose, { Schema } from 'mongoose';
+import { registerModel } from '@/lib/mongoose-model';
+import { Schema } from 'mongoose';
 
 export const productSchema = new Schema<IProduct>(
   {
@@ -7,7 +8,10 @@ export const productSchema = new Schema<IProduct>(
     slug: { type: String, index: true },
     description: { type: String },
     details: { type: String },
+    /** Cover, always `images[0]`; cards and social read this one. */
     image: { type: String },
+    /** Ordered gallery rendered on the product page; first entry leads. */
+    images: { type: [String], default: [] },
     category: { type: String },
     features: { type: [String], default: [] },
     price: { type: Number, default: 0, min: 0 },
@@ -22,4 +26,4 @@ export const productSchema = new Schema<IProduct>(
   { timestamps: true }
 );
 
-export const productModel = mongoose.models.product || mongoose.model<IProduct>('product', productSchema);
+export const productModel = registerModel<IProduct>('product', productSchema);

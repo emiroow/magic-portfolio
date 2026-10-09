@@ -1,4 +1,4 @@
-import { optionalString, optionalUrl, slugSchema, tagListSchema } from '@/lib/validations';
+import { gallerySchema, optionalString, optionalUrl, slugSchema, tagListSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export const projectLinkSchema = z.object({
@@ -19,7 +19,10 @@ export const projectSchema = z.object({
   details: optionalString(),
   technologies: tagListSchema(),
   links: z.array(projectLinkSchema),
+  /** Cover, written as `images[0]` by the dashboard; cards and social read this. */
   image: optionalString(),
+  // Optional: documents stored before this field simply keep their current value.
+  images: gallerySchema().optional(),
 });
 
 export type ProjectInput = z.infer<typeof projectSchema>;

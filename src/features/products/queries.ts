@@ -1,6 +1,7 @@
 import { tryConnectDB } from '@/config/dbConnection';
 import { productModel } from '@/features/products/model';
 import { byLocaleOrder, serialize, serializeList } from '@/lib/serialize';
+import { galleryUrls } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IProduct } from '@/features/products/types';
 import mongoose from 'mongoose';
@@ -8,11 +9,16 @@ import mongoose from 'mongoose';
 /**
  * `.lean()` hands back stored documents as they are, so a record written outside
  * the dashboard can be missing a field the schema defaults. The catalogue
- * renders `features.length` and the price directly, so both get filled in here.
+ * renders `features.length` and the price directly, so both get filled in here —
+ * and the cover is re-derived from the gallery, because a record saved with only
+ * `images` would otherwise read as pictureless on every card.
  */
 function normalizeProduct(product: IProduct): IProduct {
+  const images = galleryUrls(product);
   return {
     ...product,
+    images,
+    image: images[0] ?? '',
     features: product.features ?? [],
     price: Number.isFinite(product.price) ? product.price : 0,
     currency: product.currency ?? 'usd',

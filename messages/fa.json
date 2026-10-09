@@ -110,6 +110,14 @@
     "video": "ویدیو",
     "download": "دانلود"
   },
+  "gallery": {
+    "counter": "{current} از {total}",
+    "previous": "تصویر قبلی",
+    "next": "تصویر بعدی",
+    "expand": "نمایش تمام‌صفحهٔ تصویر {at}",
+    "list": "همهٔ تصویرها",
+    "pick": "نمایش تصویر {at}"
+  },
   "blogPage": {
     "title": "وبلاگ",
     "eyebrow": "نوشتارها",
@@ -474,6 +482,22 @@
       "remove": "حذف تصویر",
       "hint": "JPG، PNG یا WebP، حداکثر ۵ مگابایت"
     },
+    "gallery": {
+      "add": "افزودن تصویر",
+      "cover": "جلد",
+      "remove": "حذف تصویر",
+      "moveEarlier": "انتقال یک جایگاه پیش‌تر",
+      "moveLater": "انتقال یک جایگاه پس‌تر",
+      "count": "{current} از {total} تصویر",
+      "stored": "{count} تصویر",
+      "uploading": "در حال بارگذاری…",
+      "readyToCrop": "آمادهٔ برش",
+      "queued": "{count} تصویر در انتظار",
+      "limitReached": "هر رکورد دست‌کم {count} تصویر جا دارد",
+      "trimmed": "تنها {count} تصویر نخستِ آن انتخاب جا شد",
+      "uploadFailed": "آن بارگذاری انجام نشد",
+      "hint": "تصویر اول همان جلدی است که در کارت‌ها و پیش‌نمایش شبکه‌های اجتماعی دیده می‌شود. JPG، PNG یا WebP، هرکدام تا ۵ مگابایت."
+    },
     "markdown": {
       "placeholder": "با Markdown بنویسید"
     },
@@ -533,7 +557,7 @@
       "summaryLabel": "خلاصه",
       "summaryPlaceholder": "متن کوتاه برای فهرست پست‌ها",
       "summaryHint": "در فهرست وبلاگ و کارت پیش‌نمایش شبکه‌های اجتماعی نمایش داده می‌شود.",
-      "coverImage": "تصویر شاخص",
+      "imagesLabel": "تصویرها",
       "tagsLabel": "برچسب‌ها",
       "tagsPlaceholder": "برچسب را بنویسید و Enter بزنید",
       "tagsHint": "برای فیلتر فهرست و نمایش پست‌های مرتبط به کار می‌آید.",
@@ -644,7 +668,7 @@
       "projectLinks": "پیوندهای پروژه",
       "selectLinkType": "نوع پیوند را انتخاب کنید",
       "linkUrlPlaceholder": "نشانی را وارد کنید (https://...)",
-      "projectImage": "تصویر شاخص"
+      "projectImages": "تصویرهای پروژه"
     },
     "products": {
       "title": "محصولات",
@@ -677,7 +701,7 @@
       "features": "آنچه دریافت می‌کنید",
       "featuresHint": "تا ۱۲ مورد کوتاه؛ در کارت و در صفحه محصول نمایش داده می‌شود.",
       "featurePlaceholder": "یک مورد اضافه کنید (کد منبع، ۶ ماه پشتیبانی)",
-      "productImage": "تصویر شاخص",
+      "productImages": "تصویرهای محصول",
       "active": "منتشر",
       "activeHint": "محصول منتشرنشده در فهرست نمایش داده نمی‌شود.",
       "disabled": "پنهان",
@@ -918,6 +942,8 @@
     "destinationsRequired": "حداقل یک مقصد اضافه کنید.",
     "destinationActiveRequired": "حداقل یک مقصد را روشن کنید.",
     "destinationsTooMany": "برای یک روش، مقصد‌ها بیش از حد زیادند.",
+    "imagePathRequired": "یکی از تصویرها بارگذاری نشد.",
+    "imagesTooMany": "برای یک رکورد تصویر بیش از حد زیاد است.",
     "duplicateDestination": "دو مقصد یک نام را دارند.",
     "platformInvalid": "یک پلتفرم حمایت انتخاب کنید.",
     "gatewayInvalid": "آن سرویس درگاه نیست.",

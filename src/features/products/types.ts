@@ -10,7 +10,10 @@ export interface IProduct {
   description: string;
   /** Long-form Markdown body rendered on the product page. */
   details?: string;
+  /** Cover: always the first entry of `images`, kept for cards and social cards. */
   image?: string;
+  /** Ordered screenshots; the first one is the cover. */
+  images?: string[];
   /** Single grouping label used by the catalogue filter. */
   category?: string;
   /** "What you get" bullets listed on the card and the product page. */

@@ -52,6 +52,8 @@ const MESSAGE_KEYS: Record<string, string> = {
   'Add at least one destination': 'destinationsRequired',
   'Turn on at least one destination': 'destinationActiveRequired',
   'That is too many destinations for one method': 'destinationsTooMany',
+  'That is too many images': 'imagesTooMany',
+  'An image path is required': 'imagePathRequired',
   'Two destinations share one name': 'duplicateDestination',
   'Enter an amount above zero': 'amountPositive',
   'The minimum amount is above the maximum': 'amountRange',

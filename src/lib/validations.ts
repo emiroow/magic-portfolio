@@ -1,4 +1,4 @@
-import { PRODUCT_CURRENCIES, SUPPORT_CURRENCIES } from '@/constants/global';
+import { MAX_GALLERY_IMAGES, PRODUCT_CURRENCIES, SUPPORT_CURRENCIES } from '@/constants/global';
 import { z } from 'zod';
 
 /**
@@ -26,6 +26,16 @@ export const slugSchema = z
 
 /** Tags/technologies: trimmed, de-duplicated, bounded. */
 export const tagListSchema = () => z.array(z.string().trim().min(1).max(32)).max(12);
+
+/**
+ * Ordered image gallery, first entry being the cover.
+ *
+ * Stored as a list of paths rather than absolute URLs, because a dev upload is
+ * `/products/123.jpg` and a production one is a Blob host — neither is a URL that
+ * `z.string().url()` would accept. The count is capped where the dashboard counter
+ * and the lightbox steps read it, so a record cannot grow past what the UI shows.
+ */
+export const gallerySchema = () => z.array(z.string().trim().min(1, 'An image path is required')).max(MAX_GALLERY_IMAGES, 'That is too many images');
 
 /** Currency selector offered to a product price: the moneys a shop can quote in. */
 export const productCurrencySchema = z.enum(PRODUCT_CURRENCIES, { errorMap: () => ({ message: 'Choose a currency' }) });
