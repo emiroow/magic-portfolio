@@ -10,7 +10,8 @@ import { useTranslations } from 'next-intl';
 import Image from 'next/image';
 import { useId, useRef, useState } from 'react';
 
-const ACCEPTED = 'image/png,image/jpeg,image/webp';
+/** What the file inputs accept, and what the upload route insists on. */
+export const ACCEPTED_IMAGE_TYPES = 'image/png,image/jpeg,image/webp';
 
 interface ImageFieldProps {
   label: string;
@@ -133,7 +134,7 @@ export function ImageField({
       <input
         ref={fileRef}
         type="file"
-        accept={ACCEPTED}
+        accept={ACCEPTED_IMAGE_TYPES}
         className="hidden"
         onChange={event => {
           const file = event.target.files?.[0];

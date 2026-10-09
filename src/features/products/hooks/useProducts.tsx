@@ -3,6 +3,8 @@
 import { api } from '@/lib/client-api';
 import { productSchema } from '@/features/products/schema';
 import type { IProduct } from '@/features/products/types';
+import { galleryUrls } from '@/lib/utils';
+import { useGallery } from '@/hooks/useGallery';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
@@ -22,6 +24,7 @@ const EMPTY: ProductForm = {
   description: '',
   details: '',
   image: '',
+  images: [],
   features: [],
   price: 0,
   currency: 'usd',
@@ -31,7 +34,7 @@ const EMPTY: ProductForm = {
   featured: false,
 };
 
-/** Products list + CRUD, feature chips and cover upload for the dashboard. */
+/** Products list + CRUD, feature chips and the image gallery for the dashboard. */
 const useProducts = () => {
   const locale = useLocale();
   const { ok, fail } = useToastMessages();
@@ -51,6 +54,13 @@ const useProducts = () => {
     mode: 'onTouched',
   });
 
+  const gallery = useGallery({
+    type: 'product',
+    read: () => getValues('images') ?? [],
+    write: next => setValue('images', next, { shouldDirty: true }),
+    touch: () => trigger('images'),
+  });
+
   const {
     data: products,
     isPending,
@@ -64,14 +74,17 @@ const useProducts = () => {
 
   const save = useMutation({
     mutationFn: (data: ProductForm) => {
-      // Store clean URLs: strip the display-only ?cb= cache buster.
-      const clean = { ...data, image: data.image ? data.image.split('?')[0] : '' };
+      // The gallery owns the order; the cover is always its first entry.
+      const images = data.images ?? [];
+      const clean = { ...data, images, image: images[0] ?? '' };
       return clean._id ? api.put<IProduct>(`/api/${locale}/admin/product`, clean) : api.post<IProduct>(`/api/${locale}/admin/product`, clean);
     },
     onSuccess: () => {
       ok();
       reset();
       refetchProducts();
+      // Files the owner unlinked only go once the new list is on record.
+      gallery.purge();
     },
     onError: () => fail(),
   });
@@ -115,7 +128,9 @@ const useProducts = () => {
    */
   const featuredMutation = useMutation({
     mutationFn: (product: IProduct) => {
-      const { _id, title, slug, category, description, details, image, features, price, currency, available, href, active } = product;
+      const { _id, title, slug, category, description, details, features, price, currency, available, href, active } = product;
+      // The gallery is resent as read: a row toggle must not empty it.
+      const shots = galleryUrls(product);
       return api.put<IProduct>(`/api/${locale}/admin/product`, {
         _id,
         title,
@@ -123,7 +138,8 @@ const useProducts = () => {
         category: category ?? '',
         description,
         details: details ?? '',
-        image: image ? image.split('?')[0] : '',
+        image: shots[0] ?? '',
+        images: shots,
         features: features ?? [],
         price,
         currency,
@@ -136,28 +152,6 @@ const useProducts = () => {
     onSuccess: () => {
       ok();
       refetchProducts();
-    },
-    onError: () => fail(),
-  });
-
-  const uploadImage = useMutation({
-    mutationFn: (formData: FormData) => api.upload<{ fileUrl: string }>(`/api/${locale}/admin/upload?lang=${locale}&type=product`, formData),
-    onSuccess: ({ fileUrl }) => {
-      // Clean URL in the form; the crop dialog preview is what needs busting.
-      setValue('image', fileUrl.split('?')[0], { shouldDirty: true });
-      trigger('image');
-    },
-    onError: () => fail(),
-  });
-
-  const deleteImage = useMutation({
-    mutationFn: () => {
-      const fileName = getValues('image')?.split('/').pop()?.split('?')[0];
-      return api.del(`/api/${locale}/admin/upload?lang=${locale}&type=product&fileName=${encodeURIComponent(fileName ?? '')}`);
-    },
-    onSuccess: () => {
-      setValue('image', '', { shouldDirty: true });
-      trigger('image');
     },
     onError: () => fail(),
   });
@@ -188,6 +182,7 @@ const useProducts = () => {
     reset({
       ...EMPTY,
       ...product,
+      images: galleryUrls(product),
       features: product.features ?? [],
       price: Number.isFinite(product.price) ? product.price : 0,
       currency: product.currency ?? 'usd',
@@ -195,6 +190,8 @@ const useProducts = () => {
       featured: Boolean(product.featured),
       _id: product._id,
     });
+    // A fresh record starts from what is on the store, not from a cancelled edit.
+    gallery.discard();
   };
 
   return {
@@ -218,8 +215,13 @@ const useProducts = () => {
     togglingAvailableId: pendingRecordId(availableMutation),
     toggleFeatured: featuredMutation.mutate,
     togglingFeaturedId: pendingRecordId(featuredMutation),
-    uploadImage,
-    deleteImage,
+    /** Gives the gallery field its upload, its change tracking and its purge. */
+    gallery,
+    /** Clears a cancelled edit's pending file deletions along with the form. */
+    resetForm: () => {
+      reset();
+      gallery.discard();
+    },
     addFeature,
     removeFeature,
     startEdit,

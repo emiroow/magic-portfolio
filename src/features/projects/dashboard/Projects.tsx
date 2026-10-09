@@ -9,7 +9,7 @@ import {
   ErrorState,
   FormActions,
   FormPanel,
-  ImageField,
+  GalleryField,
   SectionShell,
 } from '@/features/dashboard/components';
 import ProjectRow from '@/features/projects/dashboard/ProjectRow';
@@ -24,6 +24,7 @@ import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useProjects from '@/features/projects/hooks/useProjects';
 import { HOME_PROJECT_SLOTS } from '@/features/projects/constants';
+import { MAX_GALLERY_IMAGES } from '@/constants/global';
 import { localizedCount, slugify } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IProject } from '@/features/projects/types';
@@ -49,7 +50,6 @@ const Projects = () => {
     handleSubmit,
     setValue,
     watch,
-    reset,
     errors,
     projects,
     isPending,
@@ -60,8 +60,8 @@ const Projects = () => {
     deletingId,
     toggleFeatured,
     togglingFeaturedId,
-    uploadImage,
-    deleteImage,
+    gallery,
+    resetForm,
     addTechnology,
     removeTechnology,
     addLink,
@@ -78,7 +78,7 @@ const Projects = () => {
   const title = watch('title');
   const details = watch('details');
   const editingId = watch('_id');
-  const image = watch('image');
+  const images = watch('images') ?? [];
   const technologies = watch('technologies') ?? [];
   const links = watch('links') ?? [];
   const published = watch('active');
@@ -111,12 +111,12 @@ const Projects = () => {
 
   const closeForm = () => {
     panel.close();
-    reset();
+    resetForm();
     setLink(EMPTY_LINK);
   };
 
   const beginCreate = () => {
-    reset();
+    resetForm();
     panel.open();
   };
 
@@ -147,23 +147,18 @@ const Projects = () => {
           onSubmit={handleSubmit(data => onSubmit({ ...data, slug: autoSlug, featured: data.active && Boolean(data.featured) }, panel.close))}
           className="space-y-5"
         >
-          <ImageField
-            label={t('projectImage')}
-            alt={title || t('projectImage')}
-            value={image}
-            error={errors.image?.message}
-            hint={td('image.hint')}
-            frameClassName="h-24 w-40 rounded-lg sm:h-28 sm:w-48"
+          <GalleryField
+            label={t('projectImages')}
+            alt={title || t('projectImages')}
+            value={images}
+            onChange={gallery.commit}
+            upload={gallery.upload}
+            error={errors.images?.message}
+            hint={td('gallery.hint')}
+            max={MAX_GALLERY_IMAGES}
+            frameClassName="h-20 w-36 rounded-lg"
             aspect={16 / 9}
             outputSize={1600}
-            uploading={uploadImage.isPending}
-            removing={deleteImage.isPending}
-            onRemove={() => deleteImage.mutate()}
-            onUpload={file => {
-              const formData = new FormData();
-              formData.append('image', file);
-              uploadImage.mutate(formData);
-            }}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

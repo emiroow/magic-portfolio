@@ -9,7 +9,7 @@ import {
   ErrorState,
   FormActions,
   FormPanel,
-  ImageField,
+  GalleryField,
   SectionShell,
 } from '@/features/dashboard/components';
 import BlogRow from '@/features/blog/dashboard/BlogRow';
@@ -22,6 +22,7 @@ import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useBlog from '@/features/blog/hooks/useBlog';
 import { HOME_BLOG_SLOTS } from '@/features/blog/constants';
+import { MAX_GALLERY_IMAGES } from '@/constants/global';
 import { localizedCount, slugify } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
@@ -47,7 +48,6 @@ const Blog = () => {
     handleSubmit,
     setValue,
     watch,
-    reset,
     errors,
     posts,
     isPending,
@@ -60,8 +60,8 @@ const Blog = () => {
     togglingPublishedId,
     toggleFeatured,
     togglingFeaturedId,
-    uploadCover,
-    deleteCover,
+    gallery,
+    resetForm,
     startEdit,
     addTag,
     removeTag,
@@ -77,7 +77,7 @@ const Blog = () => {
   const title = watch('title');
   const content = watch('content');
   const tags = watch('tags') ?? [];
-  const image = watch('image');
+  const images = watch('images') ?? [];
   const editingId = watch('_id');
   const published = watch('published');
   const featured = watch('featured');
@@ -89,11 +89,11 @@ const Blog = () => {
 
   const closeForm = () => {
     panel.close();
-    reset();
+    resetForm();
   };
 
   const beginCreate = () => {
-    reset();
+    resetForm();
     panel.open();
   };
 
@@ -160,23 +160,18 @@ const Blog = () => {
           )}
           className="space-y-5"
         >
-          <ImageField
-            label={t('coverImage')}
-            alt={title || t('coverImage')}
-            value={image}
-            error={errors.image?.message}
-            hint={td('image.hint')}
-            frameClassName="h-20 w-32 rounded-lg sm:h-24 sm:w-40"
+          <GalleryField
+            label={t('imagesLabel')}
+            alt={title || t('imagesLabel')}
+            value={images}
+            onChange={gallery.commit}
+            upload={gallery.upload}
+            error={errors.images?.message}
+            hint={td('gallery.hint')}
+            max={MAX_GALLERY_IMAGES}
+            frameClassName="h-20 w-36 rounded-lg"
             aspect={16 / 9}
             outputSize={1200}
-            uploading={uploadCover.isPending}
-            removing={deleteCover.isPending}
-            onRemove={() => deleteCover.mutate()}
-            onUpload={file => {
-              const formData = new FormData();
-              formData.append('image', file);
-              uploadCover.mutate(formData);
-            }}
           />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

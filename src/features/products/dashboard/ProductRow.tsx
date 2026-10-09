@@ -3,7 +3,7 @@
 import { EntityCard, EntityThumb, HomeSlotChip, RowAction, StatusChip, TagChip } from '@/features/dashboard/components';
 import { PriceTag } from '@/features/products/price-tag';
 import type { IProduct } from '@/features/products/types';
-import { documentKey } from '@/lib/utils';
+import { documentKey, galleryUrls } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import { ExternalLink, Eye, EyeOff, PackageCheck, PackageX, Pencil, Pin, Tag, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -50,6 +50,7 @@ const ProductRow = ({
   const published = product.active !== false;
   const featured = product.active && product.featured === true;
   const features = product.features ?? [];
+  const gallery = galleryUrls(product);
 
   // A dead control is worse than no control: say why it is unavailable.
   const homeBlock = !product.active ? t('featuredNeedsPublish') : slotsFull && !featured ? t('featuredFull') : undefined;
@@ -100,10 +101,11 @@ const ProductRow = ({
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row">
-        {product.image && (
+        {gallery.length > 0 && (
           <EntityThumb
-            src={product.image}
+            src={gallery[0]}
             alt={product.title}
+            count={gallery.length}
             className="aspect-[4/3] w-full sm:aspect-auto sm:h-20 sm:w-28"
             sizes="(max-width: 640px) 100vw, 112px"
           />

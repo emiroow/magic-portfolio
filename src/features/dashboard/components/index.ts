@@ -15,5 +15,6 @@ export { ResumeRow } from '@/features/dashboard/components/ResumeRow';
 export { Dot, TagChip, StatusChip, HomeSlotChip } from '@/features/dashboard/components/Chips';
 export { RowAction } from '@/features/dashboard/components/RowAction';
 export { ImageField } from '@/features/dashboard/components/ImageField';
+export { GalleryField } from '@/features/dashboard/components/GalleryField';
 export { ChipInput, ChipList } from '@/features/dashboard/components/ChipInput';
 export { AdminToolbar } from '@/features/dashboard/components/AdminToolbar';

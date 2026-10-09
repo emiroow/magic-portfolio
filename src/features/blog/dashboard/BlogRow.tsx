@@ -2,7 +2,7 @@
 
 import { Dot, EntityCard, EntityThumb, HomeSlotChip, RowAction, StatusChip, TagChip } from '@/features/dashboard/components';
 import type { IBlog } from '@/features/blog/types';
-import { formatYearMonthLocal, localizedCount, readingTime } from '@/lib/utils';
+import { formatYearMonthLocal, galleryUrls, localizedCount, readingTime } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import { ExternalLink, Eye, EyeOff, Pencil, Pin, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -48,6 +48,7 @@ const BlogRow = ({
   const draft = post.published === false;
   const featured = !draft && post.featured === true;
   const tags = post.tags ?? [];
+  const gallery = galleryUrls(post);
   // The admin endpoint returns full documents, so the estimate is derived here.
   const minutes = readingTime(post.content);
 
@@ -95,7 +96,9 @@ const BlogRow = ({
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row">
-        {post.image && <EntityThumb src={post.image} alt={post.title} className="aspect-video w-full sm:aspect-auto sm:h-20 sm:w-32" />}
+        {gallery.length > 0 && (
+          <EntityThumb src={gallery[0]} alt={post.title} count={gallery.length} className="aspect-video w-full sm:aspect-auto sm:h-20 sm:w-32" />
+        )}
 
         <div className="min-w-0 flex-1 space-y-3">
           {post.summary && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{post.summary}</p>}

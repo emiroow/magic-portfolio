@@ -3,7 +3,7 @@
 import { EntityCard, EntityThumb, HomeSlotChip, RowAction, StatusChip, TagChip } from '@/features/dashboard/components';
 import { iconDecider } from '@/components/icons';
 import type { IProject } from '@/features/projects/types';
-import { documentKey } from '@/lib/utils';
+import { documentKey, galleryUrls } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import { ExternalLink, Pencil, Pin, Trash2 } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -33,6 +33,7 @@ const ProjectRow = ({ project, onEdit, onDelete, deleting, homePosition, slotsFu
   const featured = project.active && project.featured === true;
   const technologies = project.technologies ?? [];
   const links = project.links ?? [];
+  const gallery = galleryUrls(project);
 
   // A stored type is a slug, so anything unexpected falls through readable.
   const linkLabel = (value: string) => (tLink.has(value) ? tLink(value) : value);
@@ -62,7 +63,9 @@ const ProjectRow = ({ project, onEdit, onDelete, deleting, homePosition, slotsFu
       }
     >
       <div className="flex flex-col gap-4 sm:flex-row">
-        {project.image && <EntityThumb src={project.image} alt={project.title} className="aspect-video w-full sm:aspect-auto sm:h-20 sm:w-32" />}
+        {gallery.length > 0 && (
+          <EntityThumb src={gallery[0]} alt={project.title} count={gallery.length} className="aspect-video w-full sm:aspect-auto sm:h-20 sm:w-32" />
+        )}
 
         <div className="min-w-0 flex-1 space-y-3">
           {project.description && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{project.description}</p>}

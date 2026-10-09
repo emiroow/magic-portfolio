@@ -3,6 +3,8 @@
 import { api } from '@/lib/client-api';
 import { projectSchema } from '@/features/projects/schema';
 import type { IProject } from '@/features/projects/types';
+import { galleryUrls } from '@/lib/utils';
+import { useGallery } from '@/hooks/useGallery';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
@@ -27,9 +29,10 @@ const EMPTY: ProjectForm = {
   technologies: [],
   links: [],
   image: '',
+  images: [],
 };
 
-/** Projects list + CRUD, technology/link chips and image upload. */
+/** Projects list + CRUD, technology/link chips and the image gallery. */
 const useProjects = () => {
   const locale = useLocale();
   const { ok, fail } = useToastMessages();
@@ -49,6 +52,13 @@ const useProjects = () => {
     mode: 'onTouched',
   });
 
+  const gallery = useGallery({
+    type: 'project',
+    read: () => getValues('images') ?? [],
+    write: next => setValue('images', next, { shouldDirty: true }),
+    touch: () => trigger('images'),
+  });
+
   const {
     data: projects,
     isPending,
@@ -62,14 +72,17 @@ const useProjects = () => {
 
   const save = useMutation({
     mutationFn: (data: ProjectForm) => {
-      // Store clean URLs: strip the display-only ?cb= cache buster.
-      const clean = { ...data, image: data.image ? data.image.split('?')[0] : '' };
+      // The gallery owns the order; the cover is always its first entry.
+      const images = data.images ?? [];
+      const clean = { ...data, images, image: images[0] ?? '' };
       return clean._id ? api.put<IProject>(`/api/${locale}/admin/project`, clean) : api.post<IProject>(`/api/${locale}/admin/project`, clean);
     },
     onSuccess: () => {
       ok();
       reset();
       refetchProjects();
+      // Files the owner unlinked only go once the new list is on record.
+      gallery.purge();
     },
     onError: () => fail(),
   });
@@ -89,7 +102,9 @@ const useProjects = () => {
    */
   const featuredMutation = useMutation({
     mutationFn: (project: IProject) => {
-      const { _id, title, slug, href, dates, active, description, details, technologies, links, image } = project;
+      const { _id, title, slug, href, dates, active, description, details, technologies, links } = project;
+      // The gallery is resent as read: a row toggle must not empty it.
+      const shots = galleryUrls(project);
       return api.put<IProject>(`/api/${locale}/admin/project`, {
         _id,
         title,
@@ -102,34 +117,13 @@ const useProjects = () => {
         details: details ?? '',
         technologies: technologies ?? [],
         links: links ?? [],
-        image: image ? image.split('?')[0] : '',
+        image: shots[0] ?? '',
+        images: shots,
       });
     },
     onSuccess: () => {
       ok();
       refetchProjects();
-    },
-    onError: () => fail(),
-  });
-
-  const uploadImage = useMutation({
-    mutationFn: (formData: FormData) => api.upload<{ fileUrl: string }>(`/api/${locale}/admin/upload?lang=${locale}&type=project`, formData),
-    onSuccess: ({ fileUrl }) => {
-      // Clean URL in the form; the crop dialog preview is what needs busting.
-      setValue('image', fileUrl.split('?')[0], { shouldDirty: true });
-      trigger('image');
-    },
-    onError: () => fail(),
-  });
-
-  const deleteImage = useMutation({
-    mutationFn: () => {
-      const fileName = getValues('image')?.split('/').pop()?.split('?')[0];
-      return api.del(`/api/${locale}/admin/upload?lang=${locale}&type=project&fileName=${encodeURIComponent(fileName ?? '')}`);
-    },
-    onSuccess: () => {
-      setValue('image', '', { shouldDirty: true });
-      trigger('image');
     },
     onError: () => fail(),
   });
@@ -172,7 +166,8 @@ const useProjects = () => {
 
   const startEdit = (project: IProject) => {
     // `.lean()` returns stored documents as-is, so an old record has no flag.
-    reset({ ...EMPTY, ...project, featured: Boolean(project.featured), _id: project._id });
+    reset({ ...EMPTY, ...project, images: galleryUrls(project), featured: Boolean(project.featured), _id: project._id });
+    gallery.discard();
   };
 
   return {
@@ -192,8 +187,13 @@ const useProjects = () => {
     deletingId: pendingRecordId(deleteMutation),
     toggleFeatured: featuredMutation.mutate,
     togglingFeaturedId: pendingRecordId(featuredMutation),
-    uploadImage,
-    deleteImage,
+    /** Gives the gallery field its upload, its change tracking and its purge. */
+    gallery,
+    /** Clears a cancelled edit's pending file deletions along with the form. */
+    resetForm: () => {
+      reset();
+      gallery.discard();
+    },
     addTechnology,
     removeTechnology,
     addLink,
