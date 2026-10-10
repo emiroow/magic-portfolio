@@ -94,7 +94,7 @@ export function ImageGallery({
             type="button"
             onClick={() => setExpanded(true)}
             aria-label={t('expand', { at: counter(index) })}
-            className="absolute inset-0 z-10 flex items-center justify-center"
+            className="absolute bottom-3 right-3 z-10 flex items-center justify-center"
           >
             {/* Promised on hover rather than painted over the picture, which is the
                 thing the reader came for. */}
