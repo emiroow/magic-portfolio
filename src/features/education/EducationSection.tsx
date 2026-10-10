@@ -21,7 +21,7 @@ export function Education({ index, label, title, description, meta, educations, 
       <SectionHeader index={index} label={label} title={title} description={description} meta={meta} id="education-heading" delay={delay} />
       <Stack>
         {educations.map((education, id) => (
-          <BlurFade key={education._id ?? `${education.school}-${id}`} delay={delay + 0.06 + id * 0.04} inView>
+          <BlurFade key={education._id ?? `${education.school}-${id}`} delay={delay + 0.06 + id * 0.05} inView>
             <ResumeCard
               href={education.href}
               logoUrl={education.logoUrl}

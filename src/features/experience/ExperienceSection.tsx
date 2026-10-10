@@ -18,21 +18,30 @@ interface ExperienceProps extends SectionHeadingProps {
 export function Experience({ index, label, title, description, meta, works, locale, presentLabel, delay = 0 }: ExperienceProps) {
   if (!works.length) return null;
 
+  /**
+   * `March 2019 – May 2021`, or `February 2024 – Present` while the role is open.
+   * The separator sits between the two segments rather than with the end date, so an
+   * open role reads as a range instead of `February 2024Present`.
+   */
+  const period = (work: IWork) => {
+    const from = formatYearMonthLocal(work.start, locale);
+    const to = formatYearMonthLocal(work.end, locale) || (work.start ? presentLabel : '');
+    return from && to ? `${from} – ${to}` : from || to;
+  };
+
   return (
     <section id="experience" aria-labelledby="experience-heading">
       <SectionHeader index={index} label={label} title={title} description={description} meta={meta} id="experience-heading" delay={delay} />
       <Stack>
         {works.map((work, id) => (
-          <BlurFade key={work._id ?? `${work.company}-${id}`} delay={delay + 0.06 + id * 0.04} inView>
+          <BlurFade key={work._id ?? `${work.company}-${id}`} delay={delay + 0.06 + id * 0.05} inView>
             <ResumeCard
               logoUrl={work.logoUrl}
               altText={work.company}
               title={work.company}
               subtitle={work.title}
               href={work.href}
-              period={`${formatYearMonthLocal(work.start, locale)}${work.start && work.end ? ' – ' : ''}${
-                work.end ? formatYearMonthLocal(work.end, locale) : work.start ? presentLabel : ''
-              }`}
+              period={period(work)}
               meta={work.location}
               description={work.description}
             />
