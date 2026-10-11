@@ -16,8 +16,12 @@ interface ResumeCardProps {
   href?: string;
   badges?: readonly string[];
   period?: string;
-  /** Extra trailing segment on the meta line (e.g. the work location). */
-  meta?: string;
+  /**
+   * Extra trailing segment on the meta line (e.g. the work location). A node
+   * rather than a string so a caller can wrap a Latin fragment — a credential
+   * identifier, a licence number — in the `<bdi>` run RTL copy needs.
+   */
+  meta?: React.ReactNode;
   description?: string;
 }
 
