@@ -9,6 +9,9 @@ import type { AppLocale, LanguageLevel } from '@/types';
  * it as a PDF with the site's own fonts already loaded. `build.ts` decides what the
  * résumé says; this file decides how it looks and that it lands on one page.
  *
+ * "Save as PDF" never opens the print dialog: the A4 sheet is captured on the client
+ * and downloaded as a real file, while "Print" keeps the browser's own pipeline.
+ *
  * The layout is the form recruiters expect — a header band (name, headline, iconed
  * contact run), then an asymmetric two-column sheet: the wide main column opens with
  * the summary and carries the career and languages, the narrow rail the skills,
@@ -24,6 +27,7 @@ import type { AppLocale, LanguageLevel } from '@/types';
 /** Section headings and chrome, bilingual: there is no i18n provider in a bare route. */
 const TEXT: Record<AppLocale, {
   docTitle: string;
+  file: string;
   close: string;
   closeHint: string;
   get: string;
@@ -46,14 +50,15 @@ const TEXT: Record<AppLocale, {
 }> = {
   en: {
     docTitle: 'Resume',
+    file: 'Resume',
     close: 'Close',
     closeHint: 'Close and return to the site',
     get: 'Get',
     savePdf: 'Save as PDF',
-    savePdfDesc: 'Opens the print dialog — choose “Save as PDF” as the destination.',
+    savePdfDesc: 'Download the A4 sheet as a PDF file.',
     print: 'Print',
     printDesc: 'Send the A4 sheet to a printer.',
-    hint: 'Choose “Save as PDF” in the print dialog.',
+    hint: 'Choose “Print”, then “Save as PDF” — or use “Get” for a direct download.',
     actions: 'Resume controls',
     toOther: 'Read this résumé in Persian',
     switchTheme: 'Switch theme',
@@ -68,14 +73,15 @@ const TEXT: Record<AppLocale, {
   },
   fa: {
     docTitle: 'رزومه',
+    file: 'رزومه',
     close: 'بستن',
     closeHint: 'بستن و بازگشت به سایت',
     get: 'دریافت',
     savePdf: 'ذخیرهٔ PDF',
-    savePdfDesc: 'پنجرهٔ چاپ باز می‌شود — مقصد را «Save as PDF» انتخاب کنید.',
+    savePdfDesc: 'دریافت برگهٔ A4 تک‌صفحه‌ای به‌صورت فایل PDF.',
     print: 'چاپ',
     printDesc: 'فرستادن برگهٔ A4 به چاپگر.',
-    hint: 'در پنجره چاپ، «Save as PDF» را انتخاب کنید.',
+    hint: '«چاپ» را بزنید و «Save as PDF» انتخاب کنید — یا برای دریافت مستقیم از «دریافت» استفاده کنید.',
     actions: 'ابزارهای رزومه',
     toOther: 'خواندن این رزومه به English',
     switchTheme: 'تغییر پوسته',
@@ -156,6 +162,19 @@ const FONTS = `
  * The sheet is a fixed A4 canvas (794 × 1122 CSS px = 210 × 297 mm at 96 dpi). The
  * two columns live inside it and the whole content is scaled to fit, so print is one page.
  */
+
+/**
+ * One palette rule, two customers. Inside `@media print` it forces the light sheet onto
+ * the paper; outside it, `html[data-pdf]` applies the same tokens on screen for the
+ * snapshot behind a direct PDF download — a résumé always goes out on white paper,
+ * whatever the viewer's theme.
+ */
+const pdfTokens = `
+    color-scheme: light;
+    --stage-bg:#ffffff; --page-bg:#ffffff; --ink:#0a0a0a; --accent:#2b6cb0; --muted:#666666; --line:#e5e5e5; --body:#171717;
+    --icon:#737373; --sh-rule:#9ca3af; --dot-off:#d4d4d4; --shadow:none;
+  `;
+
 const STYLE = `
   :root {
     color-scheme: light;
@@ -304,6 +323,7 @@ const STYLE = `
     font: inherit; font-size: 13px; text-align: start; color: var(--b2-fg);
   }
   .menu__item:hover { background: var(--b2-hover); }
+  .menu__item[data-busy] { cursor: progress; }
   .menu__item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
   .menu__item svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--icon); }
   .menu__txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
@@ -408,13 +428,11 @@ const STYLE = `
   }
 
   @page { size: A4; margin: 0; }
+  /* The snapshot path: the same light tokens, applied on screen via html[data-pdf]. */
+  html[data-pdf] {${pdfTokens}}
   @media print {
     /* Printing is always on the light palette — a résumé goes on white paper. */
-    :root, html[data-theme='dark'] {
-      color-scheme: light;
-      --stage-bg:#ffffff; --page-bg:#ffffff; --ink:#0a0a0a; --accent:#2b6cb0; --muted:#666666; --line:#e5e5e5; --body:#171717;
-      --icon:#737373; --sh-rule:#9ca3af; --dot-off:#d4d4d4; --shadow:none;
-    }
+    :root, html[data-theme='dark'] {${pdfTokens}}
     * { transition: none !important; }
     body { background: #fff; }
     .toolbar { display: none !important; }
@@ -434,11 +452,16 @@ const STYLE = `
  * keeps the two reading controls (locale, theme) together as one soft pill — the locale
  * switch shows both faces with the current one filled, so it never relies on a bare
  * abbreviation — then close and the Get menu.
+ *
+ * `name` is the résumé's own name, slugged into the download file name so the file
+ * arriving in the visitor's folder says whose it is.
  */
-function toolbar(locale: AppLocale): string {
+function toolbar(locale: AppLocale, name?: string): string {
   const t = TEXT[locale];
   const other = locale === 'fa' ? 'en' : 'fa';
   const dirOf = (code: AppLocale) => (code === 'fa' ? 'rtl' : 'ltr');
+  const base = (name || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
+  const file = `${base || t.file}.pdf`;
   const sun = '<svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
   const moon = '<svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>';
   return `
@@ -460,7 +483,7 @@ function toolbar(locale: AppLocale): string {
         <div class="menu" id="getmenu" data-open="false">
           <button type="button" class="btn btn--primary tip-sm" data-roving id="get" aria-haspopup="true" aria-expanded="false" aria-controls="getpanel" aria-label="${esc(t.get)}" data-tip="${esc(t.get)}">${ICON.download}<span class="hide-sm">${esc(t.get)}</span>${ICON.chev}</button>
           <div class="menu__panel" id="getpanel" role="menu" aria-label="${esc(t.get)}" hidden>
-            <button type="button" class="menu__item" role="menuitem" id="dl-pdf">${ICON.filedown}<span class="menu__txt"><span class="menu__label">${esc(t.savePdf)}</span><span class="menu__desc">${esc(t.savePdfDesc)}</span></span></button>
+            <button type="button" class="menu__item" role="menuitem" id="dl-pdf" data-file="${esc(file)}">${ICON.filedown}<span class="menu__txt"><span class="menu__label">${esc(t.savePdf)}</span><span class="menu__desc">${esc(t.savePdfDesc)}</span></span></button>
             <button type="button" class="menu__item" role="menuitem" id="dl-print">${ICON.printer}<span class="menu__txt"><span class="menu__label">${esc(t.print)}</span><span class="menu__desc">${esc(t.printDesc)}</span></span></button>
           </div>
         </div>
@@ -473,6 +496,14 @@ function toolbar(locale: AppLocale): string {
  *
  * Emitted after the sheet markup in `page()`: the wiring reads its elements the moment
  * it runs, so running before the sheet existed is what once left them null.
+ *
+ * Two ways out of the browser: "Print" keeps the native dialog, "Save as PDF" captures
+ * the fitted A4 sheet on a lossless canvas (html2canvas) and wraps it into a vector A4
+ * page (jsPDF) that downloads straight to the visitor's files — no print preview, no
+ * destination to pick. Both libraries load on first use from a pinned CDN and the fit
+ * engine runs first, so the file is exactly the one-page sheet defined above; if the
+ * capture cannot be made the item falls back to the print dialog rather than failing
+ * silently.
  */
 function toolbarScript(): string {
   return `
@@ -483,6 +514,10 @@ function toolbarScript(): string {
         var stage = document.getElementById('stage');
         var root = document.documentElement;
         var PAGE_W = 794, PAGE_H = 1122;
+        // Pinned UMD builds; loaded on demand, cached, and reused for jsPDF's own
+        // html2canvas dependency so nothing is fetched twice.
+        var LIB_H2C = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        var LIB_JSPDF = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
         var narrow = window.matchMedia('(max-width: 819px)');
 
         // Shrink the A4 content (never enlarge) until it fits one page, then scale the
@@ -521,6 +556,71 @@ function toolbarScript(): string {
         }
 
         function doPrint() { window.print(); }
+
+        function loadScript(src) {
+          return new Promise(function (resolve, reject) {
+            var existing = document.querySelector('script[src="' + src + '"]');
+            if (existing) { existing.addEventListener('load', resolve); existing.addEventListener('error', reject); return; }
+            var tag = document.createElement('script');
+            tag.src = src; tag.async = true;
+            tag.onload = resolve; tag.onerror = function () { reject(new Error('blocked: ' + src)); };
+            document.head.appendChild(tag);
+          });
+        }
+
+        // Snapshot in the print palette: the same light tokens @media print uses,
+        // applied on screen while the sheet is captured.
+        function capturePdf() {
+          return Promise.all([loadScript(LIB_H2C), loadScript(LIB_JSPDF)]).then(function () {
+            var h2c = window.html2canvas;
+            var JSPDF = window.jspdf && window.jspdf.jsPDF;
+            if (!page || !h2c || !JSPDF) throw new Error('no pdf engine');
+            preparePrint();
+            root.setAttribute('data-pdf', '1');
+            var start = (document.fonts && document.fonts.ready) || Promise.resolve();
+            return start.then(function () { return h2c(page, { scale: 3, backgroundColor: '#ffffff', logging: false, width: PAGE_W, height: PAGE_H }); });
+          }).finally(function () {
+            root.removeAttribute('data-pdf');
+          });
+        }
+
+        function makePdf(canvas) {
+          var JSPDF = window.jspdf.jsPDF;
+          var pdf = new JSPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+          return pdf.output('blob');
+        }
+
+        function saveBlob(blob, name) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a');
+          a.href = url; a.download = name;
+          document.body.appendChild(a);
+          a.click();
+          a.remove();
+          setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+        }
+
+        // One generation per view: the sheet only changes with the data, so later
+        // clicks download instantly from the cached file.
+        var pdfBlob = null;
+        var pdfBusy = false;
+        function savePdf(item) {
+          if (pdfBusy) return;
+          pdfBusy = true;
+          item.setAttribute('data-busy', '1');
+          var run = pdfBlob
+            ? Promise.resolve(pdfBlob)
+            : capturePdf().then(function (canvas) { pdfBlob = makePdf(canvas); return pdfBlob; });
+          run.then(function (blob) {
+            saveBlob(blob, item.getAttribute('data-file') || 'resume.pdf');
+          }).catch(function () {
+            doPrint(); // last resort — never leave the visitor with nothing
+          }).then(function () {
+            pdfBusy = false;
+            item.removeAttribute('data-busy');
+          });
+        }
 
         // Close leaves the résumé: it shuts the popup tab when the résumé lives in one,
         // and otherwise falls back to the site's home — the tab the visitor came from when
@@ -595,7 +695,7 @@ function toolbarScript(): string {
           var item = document.getElementById(id);
           if (item) item.addEventListener('click', function () { setOpen(false); run(); });
         }
-        onItem('dl-pdf', function () { preparePrint(); doPrint(); });
+        onItem('dl-pdf', function () { savePdf(document.getElementById('dl-pdf')); });
         onItem('dl-print', function () { preparePrint(); doPrint(); });
         window.addEventListener('resize', layout);
         window.addEventListener('load', layout);
@@ -659,7 +759,7 @@ function headHtml(locale: AppLocale, h: Head): string {
 }
 
 /** Wrap the body in a full document: theme, direction, lang, SEO head and the sheet. */
-function page(locale: AppLocale, head: Head, bodyInner: string): string {
+function page(locale: AppLocale, head: Head, bodyInner: string, name?: string): string {
   const dir = locale === 'fa' ? 'rtl' : 'ltr';
   return `<!doctype html>
 <html lang="${locale}" dir="${dir}" data-theme="light">
@@ -669,7 +769,7 @@ function page(locale: AppLocale, head: Head, bodyInner: string): string {
     <script>${THEME_INIT}</script>
   </head>
   <body>
-    ${toolbar(locale)}
+    ${toolbar(locale, name)}
     <div class="stage" id="stage">
       <div class="page" id="page">
         <div class="content" id="content">
@@ -817,7 +917,7 @@ ${flow}`;
   });
   const head: Head = { title, description, canonical, ogImage, robots: 'index, follow, max-image-preview:large', jsonLd };
 
-  return page(model.locale, head, body);
+  return page(model.locale, head, body, model.name);
 }
 
 /** A quiet stand-in when there is no profile to build a résumé from. */
