@@ -1,4 +1,4 @@
-import { optionalEmail, optionalImagePath, optionalString } from '@/lib/validations';
+import { languageListSchema, optionalDocumentPath, optionalEmail, optionalImagePath, optionalString } from '@/lib/validations';
 import { z } from 'zod';
 
 export const profileSchema = z.object({
@@ -10,6 +10,8 @@ export const profileSchema = z.object({
   avatarUrl: optionalImagePath(),
   tel: optionalString(),
   email: optionalEmail(),
+  resumeUrl: optionalDocumentPath(),
+  languages: languageListSchema(),
 });
 
 export type ProfileInput = z.infer<typeof profileSchema>;

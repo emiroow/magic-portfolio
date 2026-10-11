@@ -20,5 +20,5 @@ function cleanUrl(url?: string) {
 /** Defensive cleanup for stored profile documents. */
 export function normalizeProfile(profile: IProfile | null): IProfile | null {
   if (!profile) return null;
-  return { ...profile, avatarUrl: cleanUrl(profile.avatarUrl) };
+  return { ...profile, avatarUrl: cleanUrl(profile.avatarUrl), resumeUrl: cleanUrl(profile.resumeUrl) };
 }

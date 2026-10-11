@@ -35,6 +35,11 @@ export const frontend: Persona = {
         avatarUrl: portrait('sara-mirzaei'),
         tel: '+98 912 555 0148',
         email: 'hello@saramirzaei.dev',
+        languages: [
+          { name: 'Persian', level: 'native' },
+          { name: 'English', level: 'fluent' },
+          { name: 'German', level: 'beginner' },
+        ],
       },
     ],
     fa: [
@@ -60,6 +65,11 @@ export const frontend: Persona = {
         avatarUrl: portrait('sara-mirzaei'),
         tel: '۰۹۱۲ ۵۵۵ ۰۱۴۸',
         email: 'hello@saramirzaei.dev',
+        languages: [
+          { name: 'فارسی', level: 'native' },
+          { name: 'انگلیسی', level: 'fluent' },
+          { name: 'آلمانی', level: 'beginner' },
+        ],
       },
     ],
   },

@@ -36,6 +36,11 @@ export const fullstack: Persona = {
         avatarUrl: portrait('alex-carter'),
         tel: '+49 30 5555 0182',
         email: 'hello@alexcarter.dev',
+        languages: [
+          { name: 'English', level: 'native' },
+          { name: 'German', level: 'fluent' },
+          { name: 'Spanish', level: 'beginner' },
+        ],
       },
     ],
     fa: [
@@ -61,6 +66,11 @@ export const fullstack: Persona = {
         avatarUrl: portrait('alex-carter'),
         tel: '۰۳۰ ۵۵۵۵ ۰۱۸۲',
         email: 'hello@alexcarter.dev',
+        languages: [
+          { name: 'انگلیسی', level: 'native' },
+          { name: 'آلمانی', level: 'fluent' },
+          { name: 'اسپانیایی', level: 'beginner' },
+        ],
       },
     ],
   },

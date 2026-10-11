@@ -4,6 +4,13 @@
 export type AppLocale = 'fa' | 'en';
 
 /**
+ * Spoken-language proficiency, ordered from least to most fluent. It mirrors
+ * `LANGUAGE_LEVELS` in `src/constants/global.ts`; the position in that list is the
+ * number of filled dots the résumé draws, so the scale and its visual never drift.
+ */
+export type LanguageLevel = 'beginner' | 'intermediate' | 'advanced' | 'fluent' | 'native';
+
+/**
  * Currencies a price can be expressed in. Shared by the products catalogue and the
  * support methods, so it stays a cross-domain primitive. The codes mirror
  * `PRODUCT_CURRENCIES` in `src/constants/global.ts`, which is the runtime list the

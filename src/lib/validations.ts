@@ -1,4 +1,4 @@
-import { MAX_GALLERY_IMAGES, PRODUCT_CURRENCIES, SUPPORT_CURRENCIES } from '@/constants/global';
+import { LANGUAGE_LEVELS, MAX_GALLERY_IMAGES, MAX_LANGUAGES, PRODUCT_CURRENCIES, SUPPORT_CURRENCIES } from '@/constants/global';
 import { z } from 'zod';
 
 /**
@@ -33,6 +33,32 @@ export const optionalImagePath = () =>
     .string()
     .trim()
     .refine(value => value === '' || value.startsWith('/') || /^https?:\/\//i.test(value), 'Enter a valid image path or URL')
+    .optional();
+
+/**
+ * A stored file reference that is not an image — the résumé PDF or DOCX a dashboard
+ * owner uploads. It carries the same shapes as `optionalImagePath` (a site-relative
+ * `/public` path in development, an absolute Blob URL in production, or nothing), but
+ * is named apart so the message a rejected value carries talks about a file rather
+ * than a picture.
+ */
+export const optionalDocumentPath = () =>
+  z
+    .string()
+    .trim()
+    .refine(value => value === '' || value.startsWith('/') || /^https?:\/\//i.test(value), 'Enter a valid file path or URL')
+    .optional();
+
+/**
+ * The profile's bounded list of spoken languages, each a name plus a proficiency from
+ * `LANGUAGE_LEVELS`. The count is capped so the résumé keeps to one page, and a name is
+ * required so a half-filled row can never reach storage — the editor drops blank rows
+ * before it submits, so this is the server's honest last word.
+ */
+export const languageListSchema = () =>
+  z
+    .array(z.object({ name: z.string().trim().min(1, 'A language name is required'), level: z.enum(LANGUAGE_LEVELS) }))
+    .max(MAX_LANGUAGES, 'That is too many languages')
     .optional();
 
 /** URL segment: Latin/Persian letters, digits and single dashes. */

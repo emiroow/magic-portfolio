@@ -36,6 +36,11 @@ export const designer: Persona = {
         avatarUrl: portrait('mina-rahimi'),
         tel: '+98 912 777 0239',
         email: 'studio@minarahimi.design',
+        languages: [
+          { name: 'Persian', level: 'native' },
+          { name: 'English', level: 'fluent' },
+          { name: 'Arabic', level: 'intermediate' },
+        ],
       },
     ],
     fa: [
@@ -62,6 +67,11 @@ export const designer: Persona = {
         avatarUrl: portrait('mina-rahimi'),
         tel: '۰۹۱۲ ۷۷۷ ۰۲۳۹',
         email: 'studio@minarahimi.design',
+        languages: [
+          { name: 'فارسی', level: 'native' },
+          { name: 'انگلیسی', level: 'fluent' },
+          { name: 'عربی', level: 'intermediate' },
+        ],
       },
     ],
   },

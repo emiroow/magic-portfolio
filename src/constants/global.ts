@@ -1,6 +1,6 @@
 import { FolderGit2, HandHeart, Home, NotebookText, ShoppingBag } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
-import type { CryptoAsset, PriceUnit, ProductCurrency } from '@/types';
+import type { CryptoAsset, LanguageLevel, PriceUnit, ProductCurrency } from '@/types';
 
 /**
  * A single dock entry. `href` is locale-relative (the localized `Link` wrapper
@@ -36,6 +36,28 @@ export const MenuRoutes: readonly NavbarRoute[] = [
  * counter and the number of lightbox steps a reader is expected to click through.
  */
 export const MAX_GALLERY_IMAGES = 8;
+
+/**
+ * A résumé upload is a document, not a picture: it is stored byte-for-byte and never
+ * run through the image pipeline. These bound what the dashboard offers and what the
+ * upload route accepts, so a huge or wrong-kind file is refused before it reaches
+ * storage rather than after.
+ */
+export const RESUME_MAX_SIZE = 10 * 1024 * 1024; // 10 MB
+export const RESUME_MIME_TYPES = [
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+] as const;
+
+/**
+ * The proficiency a listed language can carry, least to most fluent. The tuple is
+ * annotated with `LanguageLevel` from `src/types` the same way the currency lists are,
+ * so a level can only be added in one place and the résumé's five-dot scale follows
+ * automatically. `MAX_LANGUAGES` bounds the profile list so the sheet stays one page.
+ */
+export const LANGUAGE_LEVELS = ['beginner', 'intermediate', 'advanced', 'fluent', 'native'] as [LanguageLevel, ...LanguageLevel[]];
+export const MAX_LANGUAGES = 6;
 
 /**
  * Currencies the dashboard offers for a product price. The tuple is annotated

@@ -14,7 +14,8 @@
   "sections": {
     "hero": {
       "greeting": "Hi, I’m",
-      "emailCta": "Get in touch"
+      "emailCta": "Get in touch",
+      "resumeCta": "Resume"
     },
     "about": {
       "label": "Profile",
@@ -522,7 +523,29 @@
       "aboutPlaceholder": "About you (a brief bio)",
       "jobTitle": "Job Title",
       "jobTitlePlaceholder": "Your role (e.g., Frontend Developer)",
-      "aboutHint": "Shown in the about section of the home page."
+      "aboutHint": "Shown in the about section of the home page.",
+      "languages": "Languages",
+      "languagesHint": "List the languages you work in. The résumé shows each with its name and a five-dot proficiency scale.",
+      "addLanguage": "Add language",
+      "languageNamePlaceholder": "Language name (e.g., English)",
+      "languageLevel": "Proficiency",
+      "removeLanguage": "Remove language",
+      "noLanguages": "No languages added yet.",
+      "languageLevels": {
+        "beginner": "Beginner",
+        "intermediate": "Intermediate",
+        "advanced": "Advanced",
+        "fluent": "Fluent",
+        "native": "Native"
+      },
+      "resume": "Resume",
+      "resumeHint": "Upload a PDF or DOCX to serve your own file instead. With no file, the resume is built automatically from your profile, experience, projects, skills, languages and education.",
+      "resumeUpload": "Upload file",
+      "resumeReplace": "Replace file",
+      "resumeRemove": "Remove file",
+      "resumePreview": "Preview",
+      "resumeModeUploaded": "Serving your uploaded file",
+      "resumeModeAuto": "Generated from your profile"
     },
     "workExperience": {
       "experience": "Work experience",

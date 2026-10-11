@@ -35,6 +35,11 @@ export const backend: Persona = {
         avatarUrl: portrait('kian-rahmani'),
         tel: '+98 916 222 0341',
         email: 'kian@rahmani.dev',
+        languages: [
+          { name: 'Persian', level: 'native' },
+          { name: 'English', level: 'advanced' },
+          { name: 'French', level: 'beginner' },
+        ],
       },
     ],
     fa: [
@@ -61,6 +66,11 @@ export const backend: Persona = {
         avatarUrl: portrait('kian-rahmani'),
         tel: '۰۹۱۶ ۲۲۲ ۰۳۴۱',
         email: 'kian@rahmani.dev',
+        languages: [
+          { name: 'فارسی', level: 'native' },
+          { name: 'انگلیسی', level: 'advanced' },
+          { name: 'فرانسوی', level: 'beginner' },
+        ],
       },
     ],
   },
