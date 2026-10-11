@@ -1,4 +1,6 @@
 import { LANGUAGE_LEVELS } from '@/constants/global';
+import { MAX_RESUME_CERTIFICATES } from '@/features/certificate/constants';
+import { certificatePeriod } from '@/features/certificate/format';
 import type { PortfolioData } from '@/features/portfolio/queries';
 import { formatSocialHandle, formatYearMonthLocal, linkHost, toDialNumber } from '@/lib/utils';
 import type { AppLocale, LanguageLevel } from '@/types';
@@ -9,8 +11,10 @@ import type { IWork } from '@/features/experience/types';
  * The résumé as data, not as a page.
  *
  * `buildResume` reads the same loaded portfolio the home page renders — profile,
- * career, projects, toolkit, education — and shapes it into the sections a printed
- * résumé carries. It knows nothing about HTML or fonts; `document.ts` owns the look.
+ * career, projects, toolkit, education, credentials — and shapes it into the sections
+ * a printed résumé carries. It knows nothing about HTML or fonts; `document.ts` owns
+ * the look.
+ *
  * Keeping the two apart is what lets the visitor's download, the dashboard preview and
  * the print sheet all come from one honest source.
  *
@@ -52,6 +56,13 @@ export interface ResumeEducation {
   period?: string;
 }
 
+/** A credential earned, with the span it is valid for. */
+export interface ResumeCertificate {
+  title: string;
+  issuer?: string;
+  period?: string;
+}
+
 /** A spoken language and its proficiency, shown on the résumé as a level word. */
 export interface ResumeLanguage {
   name: string;
@@ -69,11 +80,15 @@ export interface ResumeModel {
   projects: ResumeProject[];
   skills: string[];
   education: ResumeEducation[];
+  certificates: ResumeCertificate[];
   languages: ResumeLanguage[];
 }
 
 /** Present-tense word for an open-ended role, per locale. */
 const PRESENT: Record<AppLocale, string> = { en: 'Present', fa: 'تاکنون' };
+
+/** A credential that does not lapse, per locale. Kept short: the rail is narrow. */
+const NO_EXPIRY: Record<AppLocale, string> = { en: 'No expiry', fa: 'بدون انقضا' };
 
 /** Fold a `start`/`end` pair into a locale-formatted period, honouring "present". */
 function period(start: string | undefined, end: string | undefined, locale: AppLocale): string | undefined {
@@ -137,6 +152,24 @@ function educationOf(educations: PortfolioData['educations'], locale: AppLocale)
   }));
 }
 
+/**
+ * The credentials the sheet carries: the ones the owner marked for the résumé lead,
+ * and the newest of the rest fill whatever room is left. `sort` is stable, so inside
+ * each group the database order — most recently issued first — is kept, and an owner
+ * who marks more than the sheet holds still gets their own picks printed.
+ */
+function certificatesOf(certificates: PortfolioData['certificates'], locale: AppLocale): ResumeCertificate[] {
+  return certificates
+    .filter(certificate => certificate.title?.trim())
+    .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
+    .slice(0, MAX_RESUME_CERTIFICATES)
+    .map(certificate => ({
+      title: certificate.title?.trim() || '',
+      issuer: certificate.issuer?.trim() || undefined,
+      period: certificatePeriod(certificate, locale, NO_EXPIRY[locale]) || undefined,
+    }));
+}
+
 /** A spoken language row, dropping unnamed entries and validating the level. */
 function languagesOf(profile: NonNullable<PortfolioData['profile']>): ResumeLanguage[] {
   return (profile.languages ?? [])
@@ -155,8 +188,9 @@ function summaryOf(profile: NonNullable<PortfolioData['profile']>): string | und
 
 /**
  * Shape the loaded data into a résumé, or `null` when there is no profile to head it.
- * Sections are bounded (roles, projects, study, skills) and long lines clipped so the
- * flowing two-column sheet settles onto a single page; the print view scales any residual.
+ * Sections are bounded (roles, projects, study, credentials, skills) and long lines
+ * clipped so the flowing two-column sheet settles onto a single page; the print view
+ * scales any residual.
  */
 export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel | null {
   const { profile, socials, skills, projects } = data;
@@ -191,6 +225,7 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
     })),
     skills: skills.map(skill => skill.name).filter(Boolean).slice(0, 18),
     education: educationOf(data.educations, locale),
+    certificates: certificatesOf(data.certificates, locale),
     languages: languagesOf(profile),
   };
 }

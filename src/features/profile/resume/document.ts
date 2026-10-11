@@ -15,9 +15,9 @@ import type { AppLocale, LanguageLevel } from '@/types';
  * The layout is the form recruiters expect — a header band (name, headline, iconed
  * contact run), then an asymmetric two-column sheet: the wide main column opens with
  * the summary and carries the career and languages, the narrow rail the skills,
- * projects and study. The palette mirrors the app's own neutral light/dark tokens (so
- * it reads as the same product) with a single restrained accent for the headline,
- * company and links.
+ * projects, study and credentials. The palette mirrors the app's own neutral light/dark
+ * tokens (so it reads as the same product) with a single restrained accent for the
+ * headline, company and links.
  *
  * One page is a hard requirement: the sheet is a fixed A4 box and a small script scales
  * the content down (never up) until it fits, so the print/PDF is always exactly one page
@@ -46,6 +46,7 @@ const TEXT: Record<AppLocale, {
   projects: string;
   skills: string;
   education: string;
+  certificates: string;
   languages: string;
 }> = {
   en: {
@@ -69,6 +70,7 @@ const TEXT: Record<AppLocale, {
     projects: 'Projects',
     skills: 'Skills',
     education: 'Education',
+    certificates: 'Certificates',
     languages: 'Languages',
   },
   fa: {
@@ -92,6 +94,7 @@ const TEXT: Record<AppLocale, {
     projects: 'پروژه‌ها',
     skills: 'مهارت‌ها',
     education: 'تحصیلات',
+    certificates: 'گواهی‌نامه‌ها',
     languages: 'زبان‌ها',
   },
 };
@@ -376,7 +379,7 @@ const STYLE = `
   .xp__list li { position: relative; padding-inline-start: 12px; font-size: 12px; line-height: 1.45; color: var(--body); margin: 3px 0; }
   .xp__list li::before { content: ''; position: absolute; inset-inline-start: 1px; top: .55em; width: 3px; height: 3px; border-radius: 50%; background: var(--icon); }
 
-  /* Capability sections: skills, languages, education, projects */
+  /* Capability sections: skills, languages, education, certificates, projects */
   .sk { margin: 0; font-size: 12px; line-height: 1.75; color: var(--body); }
   .langs { list-style: none; margin: 0; padding: 0; }
   .lang { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 3px 0; font-size: 12px; }
@@ -393,6 +396,13 @@ const STYLE = `
   .ed__meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; display: flex; flex-wrap: wrap; gap: 2px 12px; }
   .ed__m { display: inline-flex; align-items: center; gap: 4px; }
   .ed__m svg { width: 12px; height: 12px; color: var(--icon); }
+  .ct { margin-bottom: 8px; }
+  .ct:last-child { margin-bottom: 0; }
+  .ct__title { font-size: 12px; font-weight: 700; color: var(--ink); }
+  .ct__issuer { font-size: 11.5px; color: var(--accent); font-weight: 600; margin-top: 1px; }
+  .ct__meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .ct__m { display: inline-flex; align-items: center; gap: 4px; }
+  .ct__m svg { width: 11px; height: 11px; color: var(--icon); }
   .pj { margin-bottom: 10px; }
   .pj:last-child { margin-bottom: 0; }
   .pj__title { font-size: 12.5px; font-weight: 700; color: var(--ink); }
@@ -448,7 +458,7 @@ const STYLE = `
     .flow { grid-template-columns: 1.58fr 1fr !important; }
     .flow--single { grid-template-columns: 1fr !important; }
     a { color: inherit !important; text-decoration: none !important; }
-    .xp__org, .ed__school, .head__title, .pj__link a { color: var(--accent) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .xp__org, .ed__school, .ct__issuer, .head__title, .pj__link a { color: var(--accent) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
     .lang__dots i { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   }
 `;
@@ -855,6 +865,19 @@ function educationHtml(model: ResumeModel): string {
     .join('\n');
 }
 
+/** One credential per row: the name, the body that issued it and the span it is valid for. */
+function certificatesHtml(model: ResumeModel): string {
+  return model.certificates
+    .map(
+      certificate => `            <div class="ct">
+              <div class="ct__title">${esc(certificate.title)}</div>
+              ${certificate.issuer ? `<div class="ct__issuer">${esc(certificate.issuer)}</div>` : ''}
+              ${certificate.period ? `<div class="ct__meta"><span class="ct__m">${ICON.calendar}${esc(certificate.period)}</span></div>` : ''}
+            </div>`
+    )
+    .join('\n');
+}
+
 /** One language per row: name on the leading edge, the level word and its dot meter on the other. */
 function languagesHtml(model: ResumeModel): string {
   return model.languages
@@ -903,6 +926,7 @@ ${languagesHtml(model)}
     section(t.skills, model.skills.length ? `            <p class="sk">${esc(model.skills.join(', '))}</p>` : ''),
     section(t.projects, projectsHtml(model)),
     section(t.education, educationHtml(model)),
+    section(t.certificates, certificatesHtml(model)),
   ].filter(Boolean);
 
   const all = [...mainCol, ...sideCol];
