@@ -21,6 +21,8 @@ const EMPTY: ProfileForm = {
   summary: '',
   description: '',
   avatarUrl: '',
+  resumeUrl: '',
+  languages: [],
 };
 
 /** Profile form state, loading and mutations (single doc per locale). */
@@ -33,6 +35,7 @@ const useProfile = () => {
     register,
     setValue,
     reset,
+    watch,
     formState: { errors },
   } = useForm<ProfileForm>({
     resolver: zodResolver(profileSchema),
@@ -59,9 +62,13 @@ const useProfile = () => {
 
   const { mutate: putProfile, isPending: saving } = useMutation({
     mutationFn: (data: ProfileForm) => {
-      // Store clean URLs only: strip the display-only ?cb= cache buster
-      // so it never accumulates in the database.
-      const clean = { ...data, avatarUrl: data.avatarUrl ? data.avatarUrl.split('?')[0] : '' };
+      // Store clean URLs only (drop the display-only ?cb=), and drop half-typed
+      // language rows so a blank name never trips the server's required-name rule.
+      const clean = {
+        ...data,
+        avatarUrl: data.avatarUrl ? data.avatarUrl.split('?')[0] : '',
+        languages: (data.languages ?? []).filter(language => language.name?.trim()),
+      };
       return api.put<IProfile>(`/api/${locale}/admin/profile`, clean);
     },
     onSuccess: () => {
@@ -80,11 +87,25 @@ const useProfile = () => {
     onError: () => fail(),
   });
 
+  // A résumé upload is stored but not auto-persisted (unlike the avatar): the URL lands
+  // in the form and only reaches the database on Save, so we deliberately do not refetch
+  // here — a refetch would reset the form and drop the fresh URL.
+  const uploadResume = useMutation({
+    mutationFn: (formData: FormData) => api.upload<{ fileUrl: string }>(`/api/${locale}/admin/upload?lang=${locale}&type=resume`, formData),
+    onSuccess: ({ fileUrl }) => {
+      setValue('resumeUrl', fileUrl.split('?')[0], { shouldDirty: true });
+    },
+    onError: () => fail(),
+  });
+
+  const removeResume = () => setValue('resumeUrl', '', { shouldDirty: true });
+
   return {
     handleSubmit,
     register,
     setValue,
     reset,
+    watch,
     formState: { errors },
     onsubmit: (data: ProfileForm) => putProfile(data),
     saving,
@@ -93,6 +114,8 @@ const useProfile = () => {
     error: queryError,
     profile,
     uploadAvatar,
+    uploadResume,
+    removeResume,
     refetchGetProfile,
   };
 };

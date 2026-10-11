@@ -1,6 +1,8 @@
 'use client';
 
 import { ErrorState, FormSkeleton, ImageField, SectionShell } from '@/features/dashboard/components';
+import { LanguageField } from '@/features/profile/dashboard/LanguageField';
+import { ResumeField } from '@/features/profile/dashboard/ResumeField';
 import { Field } from '@/components/ui/field';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +26,8 @@ const Profile = () => {
   const {
     register,
     handleSubmit,
+    setValue,
+    watch,
     formState: { errors },
     profile,
     isPending,
@@ -32,8 +36,13 @@ const Profile = () => {
     saving,
     onsubmit,
     uploadAvatar,
+    uploadResume,
+    removeResume,
     refetchGetProfile,
   } = useProfile();
+
+  const resumeUrl = watch('resumeUrl');
+  const languages = watch('languages') ?? [];
 
   return (
     <SectionShell title={t('title')}>
@@ -84,6 +93,20 @@ const Profile = () => {
           <Field label={t('about')} id="profile-about" error={errors.description?.message} hint={t('aboutHint')}>
             <Textarea id="profile-about" rows={4} {...register('description')} placeholder={t('aboutPlaceholder')} />
           </Field>
+
+          <LanguageField value={languages} onChange={next => setValue('languages', next, { shouldDirty: true })} />
+
+          <ResumeField
+            locale={(profile?.lang ?? 'en') as 'fa' | 'en'}
+            uploadedUrl={resumeUrl}
+            uploading={uploadResume.isPending}
+            onUpload={file => {
+              const formData = new FormData();
+              formData.append('file', file);
+              uploadResume.mutate(formData);
+            }}
+            onRemove={removeResume}
+          />
 
           <Button type="submit" disabled={saving} className="rounded-full">
             {saving && <Loading size="sm" className="me-2" />}
