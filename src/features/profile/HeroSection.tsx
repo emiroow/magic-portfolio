@@ -1,11 +1,13 @@
 import BlurFade from '@/components/magicui/blur-fade';
 import { eyebrowClass } from '@/components/section-header';
 import { Button } from '@/components/ui/button';
+import { ResumeButton } from '@/features/profile/resume/button';
 import { isOptimizableImage } from '@/lib/utils';
 import { HandHeart, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { IProfile } from '@/features/profile/types';
+import type { AppLocale } from '@/types';
 
 interface HeroProps {
   profile: IProfile;
@@ -17,6 +19,11 @@ interface HeroProps {
   supportLabel?: string;
   /** Localized `/support` page the support button leads to. */
   supportHref?: string;
+  /**
+   * The "Résumé" shortcut. Always offered when present: with an uploaded file it saves
+   * that file, without one it opens the résumé generated from the profile.
+   */
+  resume?: { locale: AppLocale; uploadedUrl?: string; label: string };
   /** Base delay for the entrance stagger. */
   delay?: number;
 }
@@ -30,7 +37,7 @@ interface HeroProps {
  * The two shortcuts under the summary are the only actions above the fold: one
  * to `/support`, one to the mail client.
  */
-export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref, delay = 0 }: HeroProps) {
+export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref, resume, delay = 0 }: HeroProps) {
   const name = profile.fullName?.trim() || profile.name?.trim() || '';
   const monogram = (name || '?').charAt(0);
   const avatar = profile.avatarUrl;
@@ -66,10 +73,10 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
             </BlurFade>
           )}
 
-          {(mailto || support) && (
+          {(mailto || support || resume) && (
             <BlurFade delay={delay + 0.24}>
-              {/* Two shortcuts, one row: the support one leads and is filled, the
-                  written one follows as an outline. */}
+              {/* Shortcuts, one row: the support one leads and is filled, the written
+                  and résumé ones follow as outlines. */}
               <div className="mt-7 flex flex-wrap gap-2.5">
                 {support && (
                   <Button asChild size="sm" className="rounded-full px-5">
@@ -86,6 +93,14 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
                       {emailLabel}
                     </a>
                   </Button>
+                )}
+                {resume && (
+                  <ResumeButton
+                    locale={resume.locale}
+                    label={resume.label}
+                    uploadedUrl={resume.uploadedUrl}
+                    className="rounded-full px-5"
+                  />
                 )}
               </div>
             </BlurFade>
