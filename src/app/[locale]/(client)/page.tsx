@@ -2,6 +2,7 @@
 import Navbar from '@/components/navbar';
 import { About } from '@/features/profile/AboutSection';
 import { Blog } from '@/features/blog/BlogSection';
+import { Certificates } from '@/features/certificate/CertificatesSection';
 import { Contact } from '@/features/profile/ContactSection';
 import { Education } from '@/features/education/EducationSection';
 import { Experience } from '@/features/experience/ExperienceSection';
@@ -93,7 +94,7 @@ export default async function Page({ params }: Props) {
     hasDonations(lang),
   ]);
 
-  const { profile, projects, works, educations, skills, socials } = data;
+  const { profile, projects, works, educations, certificates, skills, socials } = data;
 
   // First-run experience: no database (or no content) yet.
   if (!profile) {
@@ -119,6 +120,7 @@ export default async function Page({ params }: Props) {
     about: Boolean(profile.description?.trim()),
     experience: works.length > 0,
     education: educations.length > 0,
+    certificates: certificates.length > 0,
     skills: skills.length > 0,
     projects: projects.some(project => project.active),
     products: products.length > 0,
@@ -190,6 +192,18 @@ export default async function Page({ params }: Props) {
         locale={lang}
         delay={0.2}
       />
+      <Certificates
+        index={ordinal('certificates')}
+        label={tSections('certificates.label')}
+        title={tSections('certificates.title')}
+        description={tSections('certificates.description')}
+        meta={tSections('certificates.count', { count: localizedCount(certificates.length, lang) })}
+        certificates={certificates}
+        locale={lang}
+        noExpirationLabel={tSections('certificates.noExpiration')}
+        credentialLabel={tSections('certificates.credential')}
+        delay={0.25}
+      />
       <Skills
         index={ordinal('skills')}
         label={tSections('skills.label')}
@@ -197,7 +211,7 @@ export default async function Page({ params }: Props) {
         description={tSections('skills.description')}
         meta={tSections('skills.count', { count: localizedCount(skills.length, lang) })}
         skills={skills}
-        delay={0.25}
+        delay={0.3}
       />
       <Projects
         index={ordinal('projects')}
@@ -209,7 +223,7 @@ export default async function Page({ params }: Props) {
         locale={locale}
         liveLabel={tSections('projects.visit')}
         viewAllLabel={tSections('projects.viewAll')}
-        delay={0.3}
+        delay={0.35}
       />
       <Products
         index={ordinal('products')}
@@ -221,7 +235,7 @@ export default async function Page({ params }: Props) {
         locale={locale}
         unavailableLabel={t('productsPage.unavailable')}
         viewAllLabel={tSections('products.viewAll')}
-        delay={0.35}
+        delay={0.4}
       />
       <Blog
         index={ordinal('blog')}
@@ -233,7 +247,7 @@ export default async function Page({ params }: Props) {
         locale={locale}
         lang={lang}
         viewAllLabel={tSections('blog.viewAll')}
-        delay={0.4}
+        delay={0.45}
       />
       <Contact
         index={ordinal('contact')}
@@ -242,7 +256,7 @@ export default async function Page({ params }: Props) {
         description={tSections('contact.description')}
         profile={profile}
         socials={socials}
-        delay={0.5}
+        delay={0.55}
       />
 
       <Navbar socials={socials} />
