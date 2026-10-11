@@ -17,8 +17,8 @@ interface SectionShellProps {
 
 /**
  * The frame every dashboard section wears: heading row, trailing action, hairline,
- * content. One rhythm for all nine sections is what makes the switcher feel like
- * one surface rather than nine pages that happen to share a URL.
+ * content. One rhythm for every section is what makes the switcher feel like one
+ * surface rather than a set of pages that happen to share a URL.
  */
 export function SectionShell({ title, description, action, anchorRef, className, children }: SectionShellProps) {
   return (

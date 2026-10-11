@@ -2,8 +2,8 @@
  * The dashboard's own component set.
  *
  * Everything here exists because at least two sections needed the same thing and had
- * each grown their own copy. One import line per section keeps the nine archives
- * reading as one product instead of nine.
+ * each grown their own copy. One import line per section keeps the archives reading as
+ * one product instead of one per file.
  */
 export { SectionShell } from '@/features/dashboard/components/SectionShell';
 export { FormPanel, FormActions } from '@/features/dashboard/components/FormPanel';

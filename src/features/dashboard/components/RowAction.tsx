@@ -34,7 +34,7 @@ interface RowActionProps {
  *
  * Every cluster in the dashboard is built from this, so an owner learns the grammar
  * once: the same 36px round target, the same hover, the same pencil for edit and the
- * same bin for delete in all nine sections. `blockedReason` is what keeps a disabled
+ * same bin for delete in every section. `blockedReason` is what keeps a disabled
  * control honest — it says why in the tooltip instead of leaving the owner to guess.
  */
 export function RowAction({

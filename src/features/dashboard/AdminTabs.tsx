@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
 import Blog from '@/features/blog/dashboard/Blog';
+import Certificates from '@/features/certificate/dashboard/Certificates';
 import EducationExperience from '@/features/education/dashboard/Education';
 import Profile from '@/features/profile/dashboard/Profile';
 import Products from '@/features/products/dashboard/Products';
@@ -24,6 +25,7 @@ const TABS = [
   { tab: 'profile', trans: 'Profile', component: Profile },
   { tab: 'work', trans: 'Work', component: WorkExperience },
   { tab: 'education', trans: 'Education', component: EducationExperience },
+  { tab: 'certificates', trans: 'Certificates', component: Certificates },
   { tab: 'skills', trans: 'Skills', component: Skills },
   { tab: 'projects', trans: 'Projects', component: Projects },
   { tab: 'products', trans: 'Products', component: Products },
@@ -45,9 +47,10 @@ const serverSlug = () => TABS[0].tab;
  * The active section is read out of `?tab=` rather than out of local state, so a link
  * to one section opens that section and a refresh keeps the owner where they were.
  * Writes go through `history.replaceState` instead of the router: changing a section is
- * not a navigation, and nine pushed entries would make leaving the dashboard take nine
- * presses of Back. A server render has no URL to read, so it stands up the first
- * section and the client reconciles against the real one on hydration.
+ * not a navigation, and a pushed entry per section would make leaving the dashboard
+ * take one press of Back for every tab the owner looked at. A server render has no URL
+ * to read, so it stands up the first section and the client reconciles against the real
+ * one on hydration.
  */
 const AdminTabs = () => {
   const t = useTranslations('dashboard.menu');

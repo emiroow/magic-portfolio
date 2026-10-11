@@ -8,8 +8,8 @@ import { useCallback, useState } from 'react';
  *
  * The dialog lives with the list rather than inside each row, so a hundred records
  * mount one dialog instead of a hundred. `dialogProps` is spread straight onto
- * `ConfirmDialog`, which is what keeps the five sections that already hoisted this
- * and the four that did not from drifting apart again.
+ * `ConfirmDialog`, which is what keeps every section that hoists this from drifting
+ * apart again.
  */
 export function useConfirmDelete(onDelete: (id: string) => void) {
   const [target, setTarget] = useState<{ id: string; name?: string } | null>(null);
