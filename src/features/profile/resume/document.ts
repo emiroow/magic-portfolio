@@ -78,7 +78,7 @@ const TEXT: Record<AppLocale, {
     closeHint: 'بستن و بازگشت به سایت',
     get: 'دریافت',
     savePdf: 'ذخیرهٔ PDF',
-    savePdfDesc: 'دریافت برگهٔ A4 تک‌صفحه‌ای به‌صورت فایل PDF.',
+    savePdfDesc: 'دریافت برگهٔ به‌صورت فایل PDF.',
     print: 'چاپ',
     printDesc: 'فرستادن برگهٔ A4 به چاپگر.',
     hint: '«چاپ» را بزنید و «Save as PDF» انتخاب کنید — یا برای دریافت مستقیم از «دریافت» استفاده کنید.',
@@ -164,10 +164,10 @@ const FONTS = `
  */
 
 /**
- * One palette rule, two customers. Inside `@media print` it forces the light sheet onto
- * the paper; outside it, `html[data-pdf]` applies the same tokens on screen for the
- * snapshot behind a direct PDF download — a résumé always goes out on white paper,
- * whatever the viewer's theme.
+ * The light "white paper" palette, used only by `@media print`: a printed résumé always
+ * goes out on white paper, whatever the viewer's theme. The on-screen snapshot behind a
+ * direct PDF download deliberately does not borrow it — that file mirrors the theme the
+ * visitor is actually reading in (see `html[data-pdf]` and `capturePdf`).
  */
 const pdfTokens = `
     color-scheme: light;
@@ -428,8 +428,14 @@ const STYLE = `
   }
 
   @page { size: A4; margin: 0; }
-  /* The snapshot path: the same light tokens, applied on screen via html[data-pdf]. */
-  html[data-pdf] {${pdfTokens}}
+  /* Snapshot path (screen): html[data-pdf] re-asserts the fixed A4 two-column sheet, so a
+     phone download is the very same desktop page. It must out-specify the narrow-screen
+     rules above — hence the attribute+class selectors with !important. Colours are left
+     untouched on purpose: the downloaded file follows the viewer's current theme. */
+  html[data-pdf] .stage { padding: 0 !important; display: block !important; height: auto !important; overflow: visible !important; }
+  html[data-pdf] .page { width: 794px !important; height: 1122px !important; max-width: none !important; margin: 0 !important; padding: 42px 46px !important; box-shadow: none !important; overflow: hidden !important; transform: none !important; }
+  html[data-pdf] .flow { grid-template-columns: 1.58fr 1fr !important; gap: 0 30px !important; }
+  html[data-pdf] .flow--single { grid-template-columns: 1fr !important; }
   @media print {
     /* Printing is always on the light palette — a résumé goes on white paper. */
     :root, html[data-theme='dark'] {${pdfTokens}}
@@ -568,19 +574,37 @@ function toolbarScript(): string {
           });
         }
 
-        // Snapshot in the print palette: the same light tokens @media print uses,
-        // applied on screen while the sheet is captured.
+        // Snapshot the sheet exactly as the desktop A4 page — never the narrow reading
+        // layout — and in whatever theme the visitor is currently viewing. html[data-pdf]
+        // restores the fixed two-column box; the content is then scaled to one page with an
+        // inline !important transform so it beats the narrow-screen 'transform: none'.
         function capturePdf() {
           return Promise.all([loadScript(LIB_H2C), loadScript(LIB_JSPDF)]).then(function () {
             var h2c = window.html2canvas;
             var JSPDF = window.jspdf && window.jspdf.jsPDF;
             if (!page || !h2c || !JSPDF) throw new Error('no pdf engine');
-            preparePrint();
             root.setAttribute('data-pdf', '1');
+            page.style.setProperty('transform', 'none', 'important');
+            if (stage) stage.style.height = '';
+            if (content) {
+              content.style.setProperty('transform', 'none', 'important');
+              var cs = getComputedStyle(page);
+              var innerH = PAGE_H - (parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom));
+              var naturalH = content.scrollHeight;
+              var s = naturalH > innerH ? innerH / naturalH : 1;
+              if (s < 1) content.style.setProperty('transform', 'scale(' + s + ')', 'important');
+              else content.style.removeProperty('transform');
+            }
+            // Follow the sheet's own background so the canvas never fringes white in dark.
+            var bg = getComputedStyle(page).backgroundColor || '#ffffff';
             var start = (document.fonts && document.fonts.ready) || Promise.resolve();
-            return start.then(function () { return h2c(page, { scale: 3, backgroundColor: '#ffffff', logging: false, width: PAGE_W, height: PAGE_H }); });
+            return start.then(function () { return h2c(page, { scale: 3, backgroundColor: bg, logging: false, width: PAGE_W, height: PAGE_H }); });
           }).finally(function () {
             root.removeAttribute('data-pdf');
+            if (content) content.style.removeProperty('transform');
+            if (page) page.style.removeProperty('transform');
+            if (stage) stage.style.height = '';
+            layout();
           });
         }
 
@@ -641,6 +665,7 @@ function toolbarScript(): string {
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', next === 'dark' ? '#0a0a0a' : '#ffffff');
           try { localStorage.setItem('theme', next); localStorage.removeItem('resume-theme'); } catch (e) {}
+          pdfBlob = null; // a themed download must be re-captured in the new theme
         });
 
         // role="toolbar" promises arrow-key movement between its controls, so exactly one
