@@ -2,6 +2,7 @@ import { apiError, apiJson, requireAdmin } from '@/lib/api';
 import { connectDB } from '@/config/dbConnection';
 import { profileModel } from '@/features/profile/model';
 import { specForUploadType, type ImageSpec } from '@/constants/imageSpecs';
+import { RESUME_MAX_SIZE, RESUME_MIME_TYPES } from '@/constants/global';
 import { langSchema } from '@/lib/validations';
 import { del, put } from '@vercel/blob';
 import { constants } from 'fs';
@@ -55,14 +56,72 @@ function folderForType(type: string | null): string {
       return 'experience';
     case 'blog':
       return 'blog';
+    case 'resume':
+      return 'resumes';
     default:
       return 'others';
+  }
+}
+
+/** Extension kept for an uploaded résumé, derived from its real name or MIME. */
+function resumeExtension(file: File): string {
+  const fromName = path.extname(file.name).toLowerCase().replace(/^\./, '');
+  if (['pdf', 'doc', 'docx'].includes(fromName)) return fromName;
+  switch (file.type) {
+    case 'application/pdf':
+      return 'pdf';
+    case 'application/msword':
+      return 'doc';
+    case 'application/vnd.openxmlformats-officedocument.wordprocessingml.document':
+      return 'docx';
+    default:
+      return 'bin';
   }
 }
 
 /** Extract and validate the `lang` query parameter. */
 function parseLang(value: string | null) {
   return langSchema.safeParse(value);
+}
+
+/**
+ * Persist one upload and return its URL: under `/public` in development so hot reload
+ * serves it, in Vercel Blob in production. A `fixed` upload keeps its exact name and
+ * replaces its previous copy (any extension) so a re-uploaded avatar or résumé
+ * never leaves a stale sibling the profile could still point at; a random-suffix one is
+ * a fresh, immutable file.
+ */
+async function storeUpload(folder: string, fileName: string, payload: Buffer, opts: { fixed: boolean }): Promise<string> {
+  if (isDev) {
+    const uploadDir = path.join(process.cwd(), 'public', folder);
+
+    try {
+      await access(uploadDir, constants.F_OK);
+    } catch {
+      await mkdir(uploadDir, { recursive: true });
+    }
+
+    if (opts.fixed) {
+      const base = fileName.replace(/\.[^.]+$/, '');
+      for (const ext of ['png', 'jpg', 'jpeg', 'webp', 'pdf', 'doc', 'docx']) {
+        try {
+          await unlink(path.join(uploadDir, `${base}.${ext}`));
+        } catch {
+          /* file did not exist */
+        }
+      }
+    }
+
+    await writeFile(path.join(uploadDir, fileName), payload);
+    return `/${folder}/${fileName}`;
+  }
+
+  const blob = await put(`${folder}/${fileName}`, payload, {
+    access: 'public',
+    addRandomSuffix: !opts.fixed,
+    allowOverwrite: true,
+  });
+  return blob.url;
 }
 
 export async function POST(req: NextRequest) {
@@ -77,11 +136,33 @@ export async function POST(req: NextRequest) {
 
   try {
     const formData = await req.formData();
-    const file = formData.get('image');
+    // Images arrive under `image`; a résumé is posted under `file`. Accepting
+    // either keeps the route the single storage gateway without a second endpoint.
+    const file = formData.get('image') ?? formData.get('file');
 
     if (!(file instanceof File)) {
       return apiError('No file uploaded');
     }
+
+    await connectDB();
+
+    // A résumé is a document, not a picture: it is stored byte-for-byte, never decoded
+    // or resized, under a per-locale fixed name so a re-upload replaces the old file
+    // and the two locales never overwrite each other.
+    if (type === 'resume') {
+      if (!RESUME_MIME_TYPES.includes(file.type as (typeof RESUME_MIME_TYPES)[number])) {
+        return apiError('Only PDF and DOCX files are allowed');
+      }
+      if (file.size > RESUME_MAX_SIZE) {
+        return apiError('File exceeds the 10 MB size limit');
+      }
+
+      const docPayload = Buffer.from(await file.arrayBuffer());
+      const docName = `resume-${langResult.data}.${resumeExtension(file)}`;
+      const docUrl = await storeUpload(folder, docName, docPayload, { fixed: true });
+      return apiJson({ data: { fileUrl: docUrl } });
+    }
+
     if (!ALLOWED_TYPES.includes(file.type)) {
       return apiError(`Only ${ALLOWED_TYPES.join(', ')} files are allowed`);
     }
@@ -105,42 +186,7 @@ export async function POST(req: NextRequest) {
     const ext = spec ? 'jpg' : file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
     const fileName = type === 'avatar' ? `avatarImage.${ext}` : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
-    await connectDB();
-
-    let fileUrl: string;
-
-    if (isDev) {
-      // Local development: persist under /public so hot reload serves it.
-      const uploadDir = path.join(process.cwd(), 'public', folder);
-
-      try {
-        await access(uploadDir, constants.F_OK);
-      } catch {
-        await mkdir(uploadDir, { recursive: true });
-      }
-
-      // Avatars keep a fixed name; remove stale variants first.
-      if (type === 'avatar') {
-        for (const stale of ['avatarImage.png', 'avatarImage.jpg', 'avatarImage.jpeg', 'avatarImage.webp']) {
-          try {
-            await unlink(path.join(uploadDir, stale));
-          } catch {
-            /* file did not exist */
-          }
-        }
-      }
-
-      await writeFile(path.join(uploadDir, fileName), payload);
-      fileUrl = `/${folder}/${fileName}`;
-    } else {
-      // Production: Vercel Blob storage.
-      const blob = await put(`${folder}/${fileName}`, payload, {
-        access: 'public',
-        addRandomSuffix: type !== 'avatar',
-        allowOverwrite: true,
-      });
-      fileUrl = blob.url;
-    }
+    const fileUrl = await storeUpload(folder, fileName, payload, { fixed: type === 'avatar' });
 
     // Avatar uploads also update the stored profile automatically.
     if (type === 'avatar') {

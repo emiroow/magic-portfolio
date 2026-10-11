@@ -13,6 +13,8 @@ public/education/*
 !public/education/.gitkeep
 public/blog/*
 !public/blog/.gitkeep
+public/resumes/*
+!public/resumes/.gitkeep
 
 # dependencies
 /node_modules
