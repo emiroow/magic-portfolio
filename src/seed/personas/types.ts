@@ -1,5 +1,6 @@
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
+import type { ICertificate } from '@/features/certificate/types';
 import type { IEducation } from '@/features/education/types';
 import type { IProduct } from '@/features/products/types';
 import type { IProfile } from '@/features/profile/types';
@@ -59,6 +60,12 @@ export interface Persona {
   projects: Localized<PersonaProject>;
   /** Optional: a persona without products simply seeds an empty catalogue. */
   products?: Localized<PersonaProduct>;
+  /**
+   * Optional: credentials are role-specific but not identity-specific, so a persona
+   * that does not author its own falls back to the set written for its career in
+   * `src/seed/certificate.seed.ts`.
+   */
+  certificates?: Localized<Content<ICertificate>>;
   posts: Localized<PersonaPost>;
 }
 

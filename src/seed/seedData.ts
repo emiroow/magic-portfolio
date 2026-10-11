@@ -1,5 +1,6 @@
 import { connectDB } from '@/config/dbConnection';
 import { blogModel } from '@/features/blog/model';
+import { certificateModel } from '@/features/certificate/model';
 import { donationModel } from '@/features/support/donation.model';
 import { educationModel } from '@/features/education/model';
 import { productModel } from '@/features/products/model';
@@ -13,6 +14,7 @@ import mongoose from 'mongoose';
 import { describePersonas, getPersona } from '@/seed/personas/index';
 import type { Persona } from '@/seed/personas/types';
 import { seedBlogData } from '@/seed/blog.seed';
+import { seedCertificateData } from '@/seed/certificate.seed';
 import { seedDonationData } from '@/seed/donation.seed';
 import { seedEducationData } from '@/seed/education.seed';
 import { seedUserData } from '@/seed/profile.seed';
@@ -39,6 +41,7 @@ const seedSupportData: Step[1] = async persona => {
 const STEPS: readonly Step[] = [
   ['profile', seedUserData],
   ['education', seedEducationData],
+  ['certificates', seedCertificateData],
   ['work', seedWorkData],
   ['projects', seedProjectData],
   ['products', seedProductData],
@@ -68,6 +71,7 @@ export const seedData = async (persona: Persona = getPersona()) => {
 
   const counts = await Promise.all([
     educationModel.countDocuments(),
+    certificateModel.countDocuments(),
     projectModel.countDocuments(),
     productModel.countDocuments(),
     socialModel.countDocuments(),
