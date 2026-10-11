@@ -11,6 +11,8 @@ public/experience/*
 !public/experience/.gitkeep
 public/education/*
 !public/education/.gitkeep
+public/certificates/*
+!public/certificates/.gitkeep
 public/blog/*
 !public/blog/.gitkeep
 public/resumes/*

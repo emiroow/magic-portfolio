@@ -54,6 +54,8 @@ function folderForType(type: string | null): string {
       return 'education';
     case 'experience':
       return 'experience';
+    case 'certificate':
+      return 'certificates';
     case 'blog':
       return 'blog';
     case 'resume':
