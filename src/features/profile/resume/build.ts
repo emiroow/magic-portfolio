@@ -109,7 +109,7 @@ function bulletsOf(description: string | undefined): string[] {
     .filter(Boolean);
 }
 
-/** Trim on a word boundary so an over-long line never breaks the one-page layout. */
+/** Trim on a word boundary so one over-long line never dominates a narrow column. */
 function clip(text: string | undefined, max: number): string | undefined {
   const value = text?.trim();
   if (!value) return undefined;
@@ -189,8 +189,8 @@ function summaryOf(profile: NonNullable<PortfolioData['profile']>): string | und
 /**
  * Shape the loaded data into a résumé, or `null` when there is no profile to head it.
  * Sections are bounded (roles, projects, study, credentials, skills) and long lines
- * clipped so the flowing two-column sheet settles onto a single page; the print view
- * scales any residual.
+ * clipped to keep the document tight; when the flow still outgrows a sheet, the layout
+ * turns to a further column or page rather than squeezing the type.
  */
 export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel | null {
   const { profile, socials, skills, projects } = data;

@@ -7,21 +7,21 @@ import type { AppLocale, LanguageLevel } from '@/types';
  *
  * Served straight from the resume route, outside the app shell, so a visitor can save
  * it as a PDF with the site's own fonts already loaded. `build.ts` decides what the
- * résumé says; this file decides how it looks and that it lands on one page.
+ * résumé says; this file decides how it looks and where it breaks to the next sheet.
  *
- * "Save as PDF" never opens the print dialog: the A4 sheet is captured on the client
+ * "Save as PDF" never opens the print dialog: the A4 sheets are captured on the client
  * and downloaded as a real file, while "Print" keeps the browser's own pipeline.
  *
  * The layout is the form recruiters expect — a header band (name, headline, iconed
- * contact run), then an asymmetric two-column sheet: the wide main column opens with
- * the summary and carries the career and languages, the narrow rail the skills,
- * projects, study and credentials. The palette mirrors the app's own neutral light/dark
- * tokens (so it reads as the same product) with a single restrained accent for the
- * headline, company and links.
+ * contact run), then two equal columns that read as one continuous flow: the sections
+ * fill the first column to its foot, carry on at the head of the second, and a fresh
+ * A4 sheet starts only once both columns of the current one are spent. The palette
+ * mirrors the app's own neutral light/dark tokens (so it reads as the same product)
+ * with a single restrained accent for the headline, company and links.
  *
- * One page is a hard requirement: the sheet is a fixed A4 box and a small script scales
- * the content down (never up) until it fits, so the print/PDF is always exactly one page
- * however much the profile carries.
+ * Nothing is squeezed to fake a shorter document: a small script measures every block
+ * at print geometry and breaks the flow exactly where a sheet ends, so print and PDF
+ * carry as many pages as the profile genuinely fills and no line is ever clipped.
  */
 
 /** Section headings and chrome, bilingual: there is no i18n provider in a bare route. */
@@ -38,6 +38,7 @@ const TEXT: Record<AppLocale, {
   hint: string;
   actions: string;
   toOther: string;
+  pageWord: string;
   switchTheme: string;
   empty: string;
   emptyHint: string;
@@ -62,6 +63,7 @@ const TEXT: Record<AppLocale, {
     hint: 'Choose “Print”, then “Save as PDF” — or use “Get” for a direct download.',
     actions: 'Resume controls',
     toOther: 'Read this résumé in Persian',
+    pageWord: 'Page',
     switchTheme: 'Switch theme',
     empty: 'No resume is available yet.',
     emptyHint: 'The profile this resume is built from has not been published.',
@@ -86,6 +88,7 @@ const TEXT: Record<AppLocale, {
     hint: '«چاپ» را بزنید و «Save as PDF» انتخاب کنید — یا برای دریافت مستقیم از «دریافت» استفاده کنید.',
     actions: 'ابزارهای رزومه',
     toOther: 'خواندن این رزومه به English',
+    pageWord: 'صفحه',
     switchTheme: 'تغییر پوسته',
     empty: 'هنوز رزومه‌ای در دسترس نیست.',
     emptyHint: 'پروفایلی که این رزومه از آن ساخته می‌شود منتشر نشده است.',
@@ -162,8 +165,9 @@ const FONTS = `
 `;
 
 /**
- * The sheet is a fixed A4 canvas (794 × 1122 CSS px = 210 × 297 mm at 96 dpi). The
- * two columns live inside it and the whole content is scaled to fit, so print is one page.
+ * Every sheet is a fixed A4 canvas (794 × 1122 CSS px = 210 × 297 mm at 96 dpi). The
+ * two columns live inside it and the flow script measures at this exact geometry, so
+ * a block that fits on screen is a block that fits on paper.
  */
 
 /**
@@ -334,13 +338,14 @@ const STYLE = `
   .menu__desc { font-size: 11.5px; line-height: 1.45; color: var(--muted); }
 
   .stage { display: flex; justify-content: center; padding: 28px 0 64px; overflow: hidden; }
+  /* The sheets stack one under the other, the way a printed document previews; the whole
+     stack scales to the viewport, never the content inside a sheet. */
+  .pages { display: flex; flex-direction: column; align-items: center; gap: 28px; transform-origin: top center; }
   .page {
     width: 794px; height: 1122px; flex: none;
     padding: 42px 46px; background: var(--page-bg); overflow: hidden;
     box-shadow: var(--shadow);
-    transform-origin: top center;
   }
-  .content { transform-origin: top center; }
 
   /* Header band: name, headline and one iconed contact run — no rule under it. */
   .head__name { margin: 0; font-size: 32px; font-weight: 700; color: var(--ink); line-height: 1.08; }
@@ -354,12 +359,16 @@ const STYLE = `
   .summary { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--body); text-align: justify; }
   html[dir='rtl'] .summary { text-align: right; }
 
-  /* Asymmetric two-column sheet, the shape a recruiter expects: the wide main column
-     carries summary, career and languages; the narrow rail carries the supporting
-     facts. One column only when a side has nothing to say. */
-  .flow { display: grid; grid-template-columns: 1.58fr 1fr; gap: 0 30px; margin-top: 20px; align-items: start; }
+  /* Two equal columns the sections flow through in strict order: the first is filled to
+     its foot, the rest carries on in the second, and only then does a fresh sheet start.
+     The static main/rail markup is also the honest no-script rendering of the document. */
+  .flow { display: grid; grid-template-columns: 1fr 1fr; gap: 0 30px; margin-top: 20px; align-items: start; }
   .flow--single { grid-template-columns: 1fr; }
   .flow__col { min-width: 0; }
+
+  /* A further sheet never reads as anonymous: whose it is and which page it is. */
+  .cont { padding-bottom: 5px; border-bottom: 1px solid var(--sh-rule); font-size: 11px; font-weight: 600; color: var(--muted); }
+  html[dir='rtl'] .cont { font-size: 12px; }
 
   .sh { margin: 0 0 9px; padding-bottom: 5px; border-bottom: 1px solid var(--sh-rule); font-size: 11px; font-weight: 700; color: var(--muted); }
   html[dir='ltr'] .sh { text-transform: uppercase; letter-spacing: .08em; }
@@ -422,8 +431,10 @@ const STYLE = `
   }
   @media screen and (max-width: 819px) {
     .stage { padding: 0; display: block; }
-    .page { width: auto; height: auto; max-width: 640px; margin: 0 auto; padding: 28px 22px; box-shadow: none; overflow: visible; transform: none !important; }
-    .content { transform: none !important; }
+    .pages { display: block; gap: 0; transform: none !important; }
+    .page { width: auto; height: auto; max-width: 640px; margin: 0 auto; padding: 28px 22px; box-shadow: none; overflow: visible; }
+    .page + .page { padding-top: 0; }
+    .cont { display: none; }
     .flow { grid-template-columns: 1fr; gap: 0; }
   }
   @media screen and (max-width: 560px) {
@@ -438,13 +449,18 @@ const STYLE = `
   }
 
   @page { size: A4; margin: 0; }
-  /* Snapshot path (screen): html[data-pdf] re-asserts the fixed A4 two-column sheet, so a
-     phone download is the very same desktop page. It must out-specify the narrow-screen
-     rules above — hence the attribute+class selectors with !important. Colours are left
-     untouched on purpose: the downloaded file follows the viewer's current theme. */
+  /* Print geometry on screen: html[data-pdf] re-asserts the fixed A4 sheets — used both by
+     the download snapshot (so a phone download is the very same desktop document) and by
+     the paginator (so blocks are measured at the exact width they print at). It must
+     out-specify the narrow-screen rules above — hence the attribute+class selectors with
+     !important. Colours are left untouched on purpose: the downloaded file follows the
+     viewer's current theme. */
   html[data-pdf] .stage { padding: 0 !important; display: block !important; height: auto !important; overflow: visible !important; }
-  html[data-pdf] .page { width: 794px !important; height: 1122px !important; max-width: none !important; margin: 0 !important; padding: 42px 46px !important; box-shadow: none !important; overflow: hidden !important; transform: none !important; }
-  html[data-pdf] .flow { grid-template-columns: 1.58fr 1fr !important; gap: 0 30px !important; }
+  html[data-pdf] .pages { display: block !important; gap: 0 !important; transform: none !important; }
+  html[data-pdf] .page { width: 794px !important; height: 1122px !important; max-width: none !important; margin: 0 !important; padding: 42px 46px !important; box-shadow: none !important; overflow: hidden !important; }
+  html[data-pdf] .page + .page { padding-top: 42px !important; }
+  html[data-pdf] .cont { display: block !important; }
+  html[data-pdf] .flow { grid-template-columns: 1fr 1fr !important; gap: 0 30px !important; }
   html[data-pdf] .flow--single { grid-template-columns: 1fr !important; }
   @media print {
     /* Printing is always on the light palette — a résumé goes on white paper. */
@@ -454,8 +470,10 @@ const STYLE = `
     .toolbar { display: none !important; }
     [data-tip]::after { display: none !important; }
     .stage { padding: 0 !important; height: auto !important; display: block !important; overflow: visible !important; }
-    .page { width: 794px !important; height: 1122px !important; max-width: none !important; margin: 0 !important; padding: 42px 46px !important; box-shadow: none !important; overflow: hidden !important; transform: none !important; }
-    .flow { grid-template-columns: 1.58fr 1fr !important; }
+    .pages { display: block !important; gap: 0 !important; transform: none !important; }
+    .page { width: 794px !important; height: 1122px !important; max-width: none !important; margin: 0 !important; padding: 42px 46px !important; box-shadow: none !important; overflow: hidden !important; break-after: page; page-break-after: always; }
+    .page:last-child { break-after: auto; page-break-after: auto; }
+    .flow { grid-template-columns: 1fr 1fr !important; }
     .flow--single { grid-template-columns: 1fr !important; }
     a { color: inherit !important; text-decoration: none !important; }
     .xp__org, .ed__school, .ct__issuer, .head__title, .pj__link a { color: var(--accent) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -508,25 +526,28 @@ function toolbar(locale: AppLocale, name?: string): string {
 }
 
 /**
- * Toolbar behaviour plus the engine that scales the sheet onto a single page.
+ * Toolbar behaviour plus the engine that flows the document across sheets.
  *
  * Emitted after the sheet markup in `page()`: the wiring reads its elements the moment
  * it runs, so running before the sheet existed is what once left them null.
  *
+ * The paginator treats every section as one block of a single ordered flow: it fills a
+ * column to its foot, continues in the next, and turns to a fresh A4 sheet only when
+ * both columns are spent — measuring every block at print geometry, so nothing is
+ * shrunk and nothing is clipped.
+ *
  * Two ways out of the browser: "Print" keeps the native dialog, "Save as PDF" captures
- * the fitted A4 sheet on a lossless canvas (html2canvas) and wraps it into a vector A4
- * page (jsPDF) that downloads straight to the visitor's files — no print preview, no
- * destination to pick. Both libraries load on first use from a pinned CDN and the fit
- * engine runs first, so the file is exactly the one-page sheet defined above; if the
- * capture cannot be made the item falls back to the print dialog rather than failing
- * silently.
+ * each sheet on a lossless canvas (html2canvas) and wraps them into a multi-page vector
+ * A4 document (jsPDF) that downloads straight to the visitor's files — no print
+ * preview, no destination to pick. Both libraries load on first use from a pinned CDN;
+ * if the capture cannot be made the item falls back to the print dialog rather than
+ * failing silently.
  */
 function toolbarScript(): string {
   return `
     <script>
       (function () {
-        var page = document.getElementById('page');
-        var content = document.getElementById('content');
+        var pages = document.getElementById('pages');
         var stage = document.getElementById('stage');
         var root = document.documentElement;
         var PAGE_W = 794, PAGE_H = 1122;
@@ -536,39 +557,110 @@ function toolbarScript(): string {
         var LIB_JSPDF = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
         var narrow = window.matchMedia('(max-width: 819px)');
 
-        // Shrink the A4 content (never enlarge) until it fits one page, then scale the
-        // whole sheet down to the viewport width for the on-screen preview.
-        function fitA4() {
-          if (!page || !content) return;
-          content.style.transform = 'none';
-          var cs = getComputedStyle(page);
-          var innerH = PAGE_H - (parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom));
-          var naturalH = content.scrollHeight;
-          var s = naturalH > innerH ? innerH / naturalH : 1;
-          content.style.transform = s < 1 ? 'scale(' + s + ')' : 'none';
-          var ps = Math.min(1, (window.innerWidth - 32) / PAGE_W);
-          page.style.transform = ps < 1 ? 'scale(' + ps + ')' : 'none';
-          if (stage) stage.style.height = PAGE_H * ps + 'px';
-        }
-
-        // On narrow screens the sheet is a plain single column (CSS handles it), so any
-        // transform is cleared; otherwise it is the scaled A4 page.
-        function layout() {
-          if (!page || !content) return;
-          if (narrow.matches) {
-            content.style.transform = '';
-            page.style.transform = '';
-            if (stage) stage.style.height = '';
-          } else {
-            fitA4();
+        // Pagination. The sections are one ordered flow: the first column of a sheet is
+        // filled to its foot, the rest carries on in the second, and a fresh sheet starts
+        // only when both are spent. Nothing is shrunk and nothing is clipped. Blocks are
+        // measured at print geometry — html[data-pdf] pins every sheet to 794 × 1122 —
+        // so a page packed on a phone screen breaks in exactly the place it prints.
+        function paginate() {
+          if (!pages) return;
+          var first = pages.querySelector('.page');
+          var head = first && first.querySelector('header');
+          if (!first || !head) return;
+          // The blocks in reading order, however an earlier pass distributed them.
+          var blocks = [];
+          Array.prototype.forEach.call(pages.querySelectorAll('.flow__col'), function (col) {
+            blocks = blocks.concat(Array.prototype.slice.call(col.children));
+          });
+          if (!blocks.length) return;
+          root.setAttribute('data-pdf', '1');
+          try {
+            var cs = getComputedStyle(first);
+            var innerH = PAGE_H - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+            var statFlow = first.querySelector('.flow');
+            var topGap = statFlow ? parseFloat(getComputedStyle(statFlow).marginTop) || 0 : 0;
+            var locale = pages.getAttribute('data-locale') || 'en';
+            pages.innerHTML = '';
+            var col = null, second = null, onSecond = false, limit = 0, sheets = 0;
+            var startSheet = function (chrome) {
+              var sheetEl = document.createElement('div');
+              sheetEl.className = 'page';
+              sheetEl.appendChild(chrome);
+              var flow = document.createElement('div');
+              flow.className = 'flow';
+              col = document.createElement('div'); col.className = 'flow__col';
+              second = document.createElement('div'); second.className = 'flow__col';
+              flow.appendChild(col); flow.appendChild(second);
+              sheetEl.appendChild(flow);
+              pages.appendChild(sheetEl);
+              onSecond = false;
+              // Everything under the column tops — the header band or the running line —
+              // and the flow's own top gap is spent height.
+              limit = innerH - chrome.offsetHeight - topGap;
+            };
+            var nextColumn = function () {
+              if (onSecond) {
+                sheets += 1;
+                var cont = document.createElement('div');
+                cont.className = 'cont';
+                var label = [
+                  pages.getAttribute('data-name') || '',
+                  pages.getAttribute('data-doc') || '',
+                  (pages.getAttribute('data-page-word') || 'Page') + ' ' + sheets.toLocaleString(locale),
+                ].filter(Boolean).join(' · ');
+                cont.textContent = label;
+                startSheet(cont);
+              } else {
+                col = second;
+                onSecond = true;
+              }
+            };
+            var columnIsFresh = function () { return col.children.length === 0; };
+            var place = function (node) {
+              col.appendChild(node);
+              // scrollHeight rounds to whole pixels; the +1 keeps that rounding from
+              // bouncing a block which exactly fills the column into the next one.
+              if (col.scrollHeight > limit + 1) { col.removeChild(node); return false; }
+              return true;
+            };
+            sheets = 1;
+            startSheet(head);
+            blocks.forEach(function (block) {
+              if (place(block)) return;
+              if (!columnIsFresh()) { nextColumn(); if (place(block)) return; }
+              var kids = Array.prototype.slice.call(block.children);
+              if (!kids.length) { col.appendChild(block); return; }
+              // A block taller than a whole column keeps flowing child by child:
+              // its items break across columns instead of vanishing off the sheet.
+              kids.forEach(function (kid) {
+                if (place(kid)) return;
+                if (!columnIsFresh()) { nextColumn(); if (place(kid)) return; }
+                col.appendChild(kid);
+              });
+            });
+          } finally {
+            root.removeAttribute('data-pdf');
           }
         }
 
-        // Printing always uses the A4 two-column sheet, so force the fit first even if
-        // the screen was showing the single-column reading layout.
+        // The stack of sheets is scaled to the viewport width for the on-screen preview;
+        // on narrow screens CSS lays it out as one continuous reading column instead.
+        function fitView() {
+          if (!pages || !stage) return;
+          if (narrow.matches) { pages.style.transform = ''; stage.style.height = ''; return; }
+          pages.style.transform = 'none';
+          var scs = getComputedStyle(stage);
+          var pad = parseFloat(scs.paddingTop) + parseFloat(scs.paddingBottom);
+          var ps = Math.min(1, (window.innerWidth - 32) / PAGE_W);
+          pages.style.transform = ps < 1 ? 'scale(' + ps + ')' : 'none';
+          stage.style.height = pages.offsetHeight * ps + pad + 'px';
+        }
+
+        // Printing always uses the A4 two-column sheets, so the flow is re-distributed at
+        // print geometry even if the screen was showing the narrow reading layout.
         function preparePrint() {
-          if (page) page.style.transform = 'none';
-          fitA4();
+          paginate();
+          fitView();
         }
 
         function doPrint() { window.print(); }
@@ -584,44 +676,46 @@ function toolbarScript(): string {
           });
         }
 
-        // Snapshot the sheet exactly as the desktop A4 page — never the narrow reading
+        // Snapshot every sheet exactly as the desktop A4 page — never the narrow reading
         // layout — and in whatever theme the visitor is currently viewing. html[data-pdf]
-        // restores the fixed two-column box; the content is then scaled to one page with an
-        // inline !important transform so it beats the narrow-screen 'transform: none'.
+        // restores the fixed boxes and the paginator has already broken the flow at them,
+        // so each captured sheet becomes exactly one page of the file.
         function capturePdf() {
           return Promise.all([loadScript(LIB_H2C), loadScript(LIB_JSPDF)]).then(function () {
             var h2c = window.html2canvas;
             var JSPDF = window.jspdf && window.jspdf.jsPDF;
-            if (!page || !h2c || !JSPDF) throw new Error('no pdf engine');
+            if (!pages || !h2c || !JSPDF) throw new Error('no pdf engine');
+            paginate();
             root.setAttribute('data-pdf', '1');
-            page.style.setProperty('transform', 'none', 'important');
+            pages.style.setProperty('transform', 'none', 'important');
             if (stage) stage.style.height = '';
-            if (content) {
-              content.style.setProperty('transform', 'none', 'important');
-              var cs = getComputedStyle(page);
-              var innerH = PAGE_H - (parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom));
-              var naturalH = content.scrollHeight;
-              var s = naturalH > innerH ? innerH / naturalH : 1;
-              if (s < 1) content.style.setProperty('transform', 'scale(' + s + ')', 'important');
-              else content.style.removeProperty('transform');
-            }
+            var sheets = Array.prototype.slice.call(pages.querySelectorAll('.page'));
             // Follow the sheet's own background so the canvas never fringes white in dark.
-            var bg = getComputedStyle(page).backgroundColor || '#ffffff';
+            var bg = getComputedStyle(sheets[0]).backgroundColor || '#ffffff';
             var start = (document.fonts && document.fonts.ready) || Promise.resolve();
-            return start.then(function () { return h2c(page, { scale: 3, backgroundColor: bg, logging: false, width: PAGE_W, height: PAGE_H }); });
-          }).finally(function () {
-            root.removeAttribute('data-pdf');
-            if (content) content.style.removeProperty('transform');
-            if (page) page.style.removeProperty('transform');
-            if (stage) stage.style.height = '';
-            layout();
+            var run = start.then(function () {
+              return sheets.reduce(function (chain, sheetEl) {
+                return chain.then(function (acc) {
+                  return h2c(sheetEl, { scale: 3, backgroundColor: bg, logging: false, width: PAGE_W, height: PAGE_H })
+                    .then(function (canvas) { acc.push(canvas); return acc; });
+                });
+              }, Promise.resolve([]));
+            }).then(function (canvases) { return makePdf(canvases); });
+            return run.finally(function () {
+              root.removeAttribute('data-pdf');
+              pages.style.removeProperty('transform');
+              fitView();
+            });
           });
         }
 
-        function makePdf(canvas) {
+        function makePdf(canvases) {
           var JSPDF = window.jspdf.jsPDF;
           var pdf = new JSPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
-          pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+          canvases.forEach(function (canvas, index) {
+            if (index) pdf.addPage('a4', 'portrait');
+            pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0, 210, 297, undefined, 'FAST');
+          });
           return pdf.output('blob');
         }
 
@@ -645,7 +739,7 @@ function toolbarScript(): string {
           item.setAttribute('data-busy', '1');
           var run = pdfBlob
             ? Promise.resolve(pdfBlob)
-            : capturePdf().then(function (canvas) { pdfBlob = makePdf(canvas); return pdfBlob; });
+            : capturePdf().then(function (blob) { pdfBlob = blob; return pdfBlob; });
           run.then(function (blob) {
             saveBlob(blob, item.getAttribute('data-file') || 'resume.pdf');
           }).catch(function () {
@@ -732,12 +826,16 @@ function toolbarScript(): string {
         }
         onItem('dl-pdf', function () { savePdf(document.getElementById('dl-pdf')); });
         onItem('dl-print', function () { preparePrint(); doPrint(); });
-        window.addEventListener('resize', layout);
-        window.addEventListener('load', layout);
+        // Break the flow now, then break it again once the real faces are in: fallback
+        // metrics and Estedad differ by enough to move a column foot.
+        paginate();
+        fitView();
+        window.addEventListener('resize', fitView);
+        window.addEventListener('load', fitView);
         window.addEventListener('beforeprint', preparePrint);
-        if (narrow.addEventListener) narrow.addEventListener('change', layout);
-        else if (narrow.addListener) narrow.addListener(layout);
-        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(layout); }
+        if (narrow.addEventListener) narrow.addEventListener('change', fitView);
+        else if (narrow.addListener) narrow.addListener(fitView);
+        if (document.fonts && document.fonts.ready) { document.fonts.ready.then(function () { paginate(); fitView(); }); }
       })();
     </script>`;
 }
@@ -796,6 +894,7 @@ function headHtml(locale: AppLocale, h: Head): string {
 /** Wrap the body in a full document: theme, direction, lang, SEO head and the sheet. */
 function page(locale: AppLocale, head: Head, bodyInner: string, name?: string): string {
   const dir = locale === 'fa' ? 'rtl' : 'ltr';
+  const t = TEXT[locale];
   return `<!doctype html>
 <html lang="${locale}" dir="${dir}" data-theme="light">
   <head>
@@ -806,8 +905,8 @@ function page(locale: AppLocale, head: Head, bodyInner: string, name?: string): 
   <body>
     ${toolbar(locale, name)}
     <div class="stage" id="stage">
-      <div class="page" id="page">
-        <div class="content" id="content">
+      <div class="pages" id="pages" data-locale="${locale}" data-name="${esc(name || '')}" data-doc="${esc(t.docTitle)}" data-page-word="${esc(t.pageWord)}">
+        <div class="page">
 ${bodyInner}
         </div>
       </div>
@@ -907,13 +1006,16 @@ function projectsHtml(model: ResumeModel): string {
     .join('\n');
 }
 
-/** Render a composed résumé as a complete, printable, single-page HTML document. */
+/** Render a composed résumé as a complete, printable, paginated HTML document. */
 export function renderResumeHtml(model: ResumeModel): string {
   const t = TEXT[model.locale];
 
-  // The sheet mirrors the classic résumé shape: the wide column opens with the summary
-  // and carries the career and languages; the narrow rail holds the supporting facts.
-  // A side with nothing to say collapses the sheet to a single readable column.
+  // One ordered flow, résumé-classic: the summary opens, the career and languages
+  // follow, then the supporting facts. The markup writes it as the honest no-script
+  // sheet — career down the leading column, supporting facts down the other — and the
+  // viewer script re-breaks that very order across columns and sheets, filling both
+  // columns before any page turns. A side with nothing to say is the single-column
+  // document the static markup already is.
   const mainCol = [
     section(t.summary, model.summary ? `            <p class="summary">${esc(model.summary)}</p>` : ''),
     section(t.experience, experienceHtml(model)),
