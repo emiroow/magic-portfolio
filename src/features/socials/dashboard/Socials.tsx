@@ -116,7 +116,10 @@ const Socials = () => {
 
           <Field label={t('icon')} id="social-icon" error={errors.icon?.message}>
             <div className="flex items-center gap-3">
-              <Select id="social-icon" {...register('icon')} className="sm:max-w-56">
+              {/* Controlled by the form value rather than left to the DOM: the panel mounts after
+                  `reset()` has written the record, and an unattached uncontrolled select would
+                  open on its placeholder — the owner's saved icon seeming lost. */}
+              <Select id="social-icon" {...register('icon')} value={selectedIcon ?? ''} className="sm:max-w-56">
                 <option value="">{t('selectIcon')}</option>
                 {SOCIAL_ICONS.map(icon => (
                   <option key={icon} value={icon}>

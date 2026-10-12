@@ -252,6 +252,20 @@
   }
 
   /*
+   * A `<select>` pads and centers its own display value; the shared `flex` box
+   * above turns that value into a bare flex item, which in Chromium clips Persian
+   * descenders against the bottom edge and pins a Latin one to the border. Block
+   * display hands the closed face back to the control, and the line box is set to
+   * the control's content height (h-9 less the two hairline borders) so the value
+   * stays centered at either type size, in either direction.
+   */
+  select.control {
+    @apply py-0;
+    display: block;
+    line-height: 2.125rem;
+  }
+
+  /*
    * An open option list paints with the element's own colours in some engines, so
    * the pair is stated rather than inherited: a transparent field would leave the
    * Persian label floating on whatever sits behind the popup.
