@@ -86,7 +86,7 @@ export function CheckboxField({ label, id, hint, className, ...props }: Checkbox
     <div className={cn('flex flex-col gap-1.5', className)}>
       <div
         className={cn(
-          'flex min-h-10 items-center gap-2.5 rounded-lg border border-input bg-background px-3 py-2 shadow-sm transition-colors',
+          'flex min-h-9 items-center gap-2.5 rounded-lg border border-input bg-background px-3 py-2 shadow-sm transition-colors',
           'focus-within:ring-2 focus-within:ring-ring/40',
           props.disabled && 'cursor-not-allowed opacity-60'
         )}
