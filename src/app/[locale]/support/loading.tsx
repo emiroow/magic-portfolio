@@ -54,7 +54,7 @@ export default async function SupportLoading() {
               <Skeleton className="h-5 w-24 rounded-full" />
             </div>
           </div>
-          <Skeleton className="h-10 w-full rounded-full sm:w-44 lg:w-full" />
+          <Skeleton className="h-9 w-full rounded-full sm:w-44 lg:w-full" />
         </div>
 
         <div className="space-y-7 lg:col-start-1 lg:row-start-1 lg:row-span-2">

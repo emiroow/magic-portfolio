@@ -17,7 +17,7 @@ export default async function BlogLoading() {
 
       {/* Toolbar: search field + tag chips */}
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Skeleton className="h-10 w-full rounded-lg sm:max-w-xs" />
+        <Skeleton className="h-9 w-full rounded-lg sm:max-w-xs" />
         <div className="flex gap-1.5">
           {Array.from({ length: 4 }).map((_, index) => (
             <Skeleton key={index} className="h-7 w-20 rounded-full" />

@@ -170,7 +170,7 @@ export default async function BlogPostPage({ params }: Props) {
             )}
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl md:text-4xl">{post.title}</h1>
+          <h1 className="mt-2.5 text-xl font-bold leading-tight ltr:tracking-tight sm:text-2xl md:text-3xl">{post.title}</h1>
 
           {post.summary && (
             <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground rtl:leading-[1.9] sm:text-base">{post.summary}</p>

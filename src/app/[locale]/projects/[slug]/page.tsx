@@ -158,7 +158,7 @@ export default async function ProjectPage({ params }: Props) {
             )}
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl md:text-4xl">{project.title}</h1>
+          <h1 className="mt-2.5 text-xl font-bold leading-tight ltr:tracking-tight sm:text-2xl md:text-3xl">{project.title}</h1>
 
           {project.description && (
             <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground rtl:leading-[1.9] sm:text-base">

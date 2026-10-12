@@ -7,18 +7,18 @@ export default async function HomeLoading() {
   const t = await getTranslations({ locale });
 
   return (
-    <main className="flex min-h-[100dvh] flex-col gap-14 sm:gap-20" aria-busy="true" aria-label={t('loading')}>
+    <main className="flex min-h-[100dvh] flex-col gap-12 sm:gap-16" aria-busy="true" aria-label={t('loading')}>
       {/* Hero */}
-      <div className="flex flex-col-reverse items-start gap-8 sm:flex-row sm:items-center sm:justify-between sm:gap-10">
-        <div className="w-full flex-1 space-y-4">
+      <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
+        <div className="w-full flex-1 space-y-3.5">
           <Skeleton className="h-3 w-16" />
-          <Skeleton className="h-9 w-2/3 sm:h-11" />
+          <Skeleton className="h-8 w-2/3 sm:h-9" />
           <Skeleton className="h-4 w-40" />
           <Skeleton className="h-4 w-full max-w-xl" />
           <Skeleton className="h-4 w-4/5 max-w-md" />
           <Skeleton className="h-8 w-36 rounded-full" />
         </div>
-        <Skeleton className="size-24 shrink-0 rounded-full sm:size-28" />
+        <Skeleton className="size-20 shrink-0 rounded-full sm:size-24" />
       </div>
 
       {/* Header + divided rows (experience / education) */}

@@ -165,7 +165,7 @@ export default async function ProductPage({ params }: Props) {
             </span>
           </div>
 
-          <h1 className="mt-3 text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl md:text-4xl">{product.title}</h1>
+          <h1 className="mt-2.5 text-xl font-bold leading-tight ltr:tracking-tight sm:text-2xl md:text-3xl">{product.title}</h1>
 
           {product.description && (
             <p className="mt-4 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground rtl:leading-[1.9] sm:text-base">
@@ -182,7 +182,7 @@ export default async function ProductPage({ params }: Props) {
             <div className="overflow-hidden rounded-2xl border bg-card shadow-sm">
               <div className="p-5">
                 <p className={eyebrowClass}>{t('price')}</p>
-                <PriceTag amount={product.price} currency={product.currency} className="mt-2 text-3xl font-bold leading-none" />
+                <PriceTag amount={product.price} currency={product.currency} className="mt-2 text-2xl font-bold leading-none" />
               </div>
 
               <div className="space-y-4 border-t bg-muted/30 p-5">

@@ -88,23 +88,23 @@ export function SectionHeader({
         </div>
       )}
 
-      <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-2', hasEyebrow && 'mt-3')}>
-        <Tag id={id} className={cn('text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl', titleClassName)}>
+      <div className={cn('flex flex-wrap items-end justify-between gap-x-6 gap-y-2', hasEyebrow && 'mt-2.5')}>
+        <Tag id={id} className={cn('text-xl font-bold leading-tight ltr:tracking-tight sm:text-2xl', titleClassName)}>
           {title}
         </Tag>
         {action}
       </div>
 
-      {description && <p className="mt-3 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>}
+      {description && <p className="mt-2.5 max-w-2xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{description}</p>}
 
-      <div aria-hidden className="rule-fade mt-6" />
+      <div aria-hidden className="rule-fade mt-5" />
     </>
   );
 
   return (
     <BlurFade delay={delay}>
       {spineMark ? (
-        <header className={cn('mb-7 flex items-stretch gap-4 sm:gap-5', className)}>
+        <header className={cn('mb-6 flex items-stretch gap-3 sm:gap-4', className)}>
           {/* Rail: the glyph opens the block and the hairline carries it down,
               fading before the content ends. Vertical, so RTL needs no mirror. */}
           <div aria-hidden className="flex w-7 shrink-0 flex-col items-center gap-3 sm:w-8">
@@ -114,7 +114,7 @@ export function SectionHeader({
           <div className="min-w-0 flex-1">{fields}</div>
         </header>
       ) : (
-        <header className={cn('mb-7', className)}>{fields}</header>
+        <header className={cn('mb-6', className)}>{fields}</header>
       )}
     </BlurFade>
   );

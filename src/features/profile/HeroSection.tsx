@@ -46,21 +46,21 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
 
   return (
     <section id="hero" aria-labelledby="hero-heading">
-      <div className="flex flex-col-reverse items-start gap-8 sm:flex-row sm:items-center sm:justify-between sm:gap-10">
+      <div className="flex flex-col-reverse items-start gap-6 sm:flex-row sm:items-center sm:justify-between sm:gap-8">
         <div className="min-w-0 flex-1">
           <BlurFade delay={delay}>
             <p className={eyebrowClass}>{greeting}</p>
           </BlurFade>
 
           <BlurFade delay={delay + 0.06}>
-            <h1 id="hero-heading" className="mt-3 text-3xl font-bold leading-[1.15] ltr:tracking-tight sm:text-4xl xl:text-5xl">
+            <h1 id="hero-heading" className="mt-2.5 text-2xl font-bold leading-[1.15] ltr:tracking-tight sm:text-3xl xl:text-4xl">
               {name}
             </h1>
           </BlurFade>
 
           {profile.jobTitle && (
             <BlurFade delay={delay + 0.12}>
-              <p className="mt-4 flex items-center gap-3 text-sm font-medium sm:text-base">
+              <p className="mt-3 flex items-center gap-3 text-sm font-medium sm:text-base">
                 <span aria-hidden className="h-px w-8 shrink-0 bg-foreground/30" />
                 {profile.jobTitle}
               </p>
@@ -69,7 +69,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
 
           {profile.summary && (
             <BlurFade delay={delay + 0.18}>
-              <p className="mt-4 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{profile.summary}</p>
+              <p className="mt-3 max-w-xl text-pretty text-sm leading-relaxed text-muted-foreground sm:text-base">{profile.summary}</p>
             </BlurFade>
           )}
 
@@ -77,7 +77,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
             <BlurFade delay={delay + 0.24}>
               {/* Shortcuts, one row: the support one leads and is filled, the written
                   and résumé ones follow as outlines. */}
-              <div className="mt-7 flex flex-wrap gap-2.5">
+              <div className="mt-6 flex flex-wrap gap-2.5">
                 {support && (
                   <Button asChild size="sm" className="rounded-full px-5">
                     <Link href={support.href}>
@@ -108,7 +108,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
         </div>
 
         <BlurFade delay={delay + 0.1} className="shrink-0">
-          <div className="group relative size-24 overflow-hidden rounded-full border shadow-sm sm:size-28 lg:size-32">
+          <div className="group relative size-20 overflow-hidden rounded-full border shadow-sm sm:size-24 lg:size-28">
             {avatar ? (
               isOptimizableImage(avatar) ? (
                 <Image
@@ -117,7 +117,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
                   width={256}
                   height={256}
                   priority
-                  sizes="(max-width: 640px) 96px, (max-width: 1024px) 112px, 128px"
+                  sizes="(max-width: 640px) 80px, (max-width: 1024px) 96px, 112px"
                   className="size-full object-cover grayscale transition-[filter] duration-500 group-hover:grayscale-0"
                 />
               ) : (
@@ -132,7 +132,7 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
                 />
               )
             ) : (
-              <span className="flex size-full items-center justify-center bg-muted text-2xl font-bold text-muted-foreground">{monogram}</span>
+              <span className="flex size-full items-center justify-center bg-muted text-xl font-bold text-muted-foreground">{monogram}</span>
             )}
           </div>
         </BlurFade>

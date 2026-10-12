@@ -23,12 +23,12 @@ export default async function NotFoundPage() {
   const t = await getTranslations({ locale, namespace: 'NotFoundPage' });
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-16 text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center px-5 py-14 text-center">
       <BlurFade>
         <p className={eyebrowClass}>{t('eyebrow')}</p>
       </BlurFade>
       <BlurFade delay={0.08}>
-        <h1 className="mt-3 text-3xl font-bold leading-tight ltr:tracking-tight sm:text-4xl">{t('title')}</h1>
+        <h1 className="mt-2.5 text-2xl font-bold leading-tight ltr:tracking-tight sm:text-3xl">{t('title')}</h1>
       </BlurFade>
       <BlurFade delay={0.16}>
         <p className="mx-auto mt-4 max-w-md text-sm leading-relaxed text-muted-foreground sm:text-base">{t('description')}</p>
