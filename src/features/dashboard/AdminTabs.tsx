@@ -139,7 +139,7 @@ const AdminTabs = () => {
               // stretching a short last line across the tray. The fixed height is what stops
               // a wrapped row from sitting differently from the one above it.
               'inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium transition-colors',
-              'sm:h-7 sm:px-3 sm:text-xs',
+              'sm:h-7 sm:px-3 sm:text-[13.5px]',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               index === activeTab ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             )}
