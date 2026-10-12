@@ -1,7 +1,7 @@
 'use client';
 
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { estedad, roboto } from '@/lib/fonts';
+import { estedad, fontVariables, roboto } from '@/lib/fonts';
 import { queryClient } from '@/lib/queryClient';
 import RouteProgress from '@/providers/routeProgress';
 import { MotionConfig } from 'framer-motion';
@@ -12,8 +12,11 @@ import { ThemeProvider, useTheme } from 'next-themes';
 import { useEffect } from 'react';
 import { Toaster } from 'sonner';
 
-/** Fonts a locale can be rendered with, in the face the site reads with. */
-const LOCALE_FONTS = { fa: estedad, en: roboto } as const;
+/** The face each locale reads with, keyed by locale. */
+const LOCALE_FACES = { fa: estedad.className, en: roboto.className } as const;
+
+/** `next/font` hands back space-separated hashed class names, and `classList` refuses an empty or spaced token. */
+const classTokens = (value: string) => value.split(' ').filter(Boolean);
 
 /** The single client provider tree (progress, session, theme, react-query, tooltips, toasts). */
 export default function AppProviders({ children, locale, messages }: { children: React.ReactNode; locale: string; messages: Messages }) {
@@ -58,6 +61,10 @@ function ThemedToaster() {
  * toasts and dropdowns are portaled into `<body>`, i.e. outside every styled
  * wrapper, so a wrapper-level font leaves them reading with whichever locale
  * first rendered — Persian inside a Latin-only face.
+ *
+ * Only the reading face is swapped. The variable classes go on once and stay, so
+ * the face of the language that is *not* active remains reachable for the one
+ * control that spells itself in that language (see `locale-toggle`).
  */
 function HtmlTypography() {
   const locale = useLocale();
@@ -68,10 +75,10 @@ function HtmlTypography() {
     html.lang = locale;
     html.dir = active === 'fa' ? 'rtl' : 'ltr';
 
-    // `next/font` hands back space-separated hashed class names, and
-    // `classList.toggle` refuses a token with a space in it.
-    (Object.keys(LOCALE_FONTS) as (keyof typeof LOCALE_FONTS)[]).forEach(key => {
-      LOCALE_FONTS[key].className.split(' ').forEach(name => html.classList.toggle(name, key === active));
+    // Only the reading face swaps; the variable classes are never removed.
+    classTokens(fontVariables).forEach(name => html.classList.add(name));
+    (Object.keys(LOCALE_FACES) as (keyof typeof LOCALE_FACES)[]).forEach(key => {
+      classTokens(LOCALE_FACES[key]).forEach(name => html.classList.toggle(name, key === active));
     });
   }, [locale, active]);
 

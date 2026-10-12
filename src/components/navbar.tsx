@@ -17,8 +17,8 @@ interface NavbarProps {
   socials?: ISocial[];
 }
 
-/** Socials beyond this count only appear from `sm` up, so the bar never clips. */
-const MOBILE_SOCIALS = 2;
+/** Socials shown on a narrow screen; the rest only appear from `sm` up, so the bar never clips. */
+const MOBILE_SOCIALS = 3;
 const MAX_SOCIALS = 5;
 
 /**

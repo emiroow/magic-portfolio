@@ -17,3 +17,13 @@ export const roboto = localFont({
   display: 'swap',
   fallback: ['system-ui', 'sans-serif'],
 });
+
+/**
+ * The two `next/font` variable classes, applied together on `<html>` and never
+ * swapped: they only publish `--font-estedad` / `--font-roboto`, so both faces
+ * stay addressable in every locale while exactly one of them is the reading face.
+ * A control that names the *other* language — the navbar's `فا` / `EN` switch —
+ * needs the other face to be reachable, or its Persian letters drop onto a
+ * Latin-only fallback and render crushed.
+ */
+export const fontVariables = `${estedad.variable} ${roboto.variable}`;

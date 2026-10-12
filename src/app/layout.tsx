@@ -1,5 +1,5 @@
 import { getProfile } from '@/features/profile/queries';
-import { estedad, roboto } from '@/lib/fonts';
+import { estedad, fontVariables, roboto } from '@/lib/fonts';
 import { brandedTitle, site, SITE_DESCRIPTION } from '@/lib/seo';
 import '@/app/globals.css';
 import { Analytics } from '@vercel/analytics/next';
@@ -42,15 +42,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   // Use the active locale to set correct html lang, direction and font.
   const locale = await getLocale();
   const dir = locale === 'fa' ? 'rtl' : 'ltr';
+  const face = locale === 'fa' ? estedad : roboto;
 
   return (
-    <html
-      lang={locale}
-      dir={dir}
-      data-scroll-behavior="smooth"
-      className={locale === 'fa' ? estedad.className : roboto.className}
-      suppressHydrationWarning
-    >
+    <html lang={locale} dir={dir} data-scroll-behavior="smooth" className={`${face.className} ${fontVariables}`} suppressHydrationWarning>
       <body className="relative bg-background text-foreground antialiased">
         {/* Static hairline grid backdrop; content is layered above it. */}
         <div aria-hidden className="surface-grid pointer-events-none absolute inset-x-0 top-0 -z-10 h-64" />

@@ -57,6 +57,16 @@ const config = {
         md: 'calc(var(--radius) - 2px)',
         sm: 'calc(var(--radius) - 4px)',
       },
+      /*
+       * The two self-hosted faces, published as CSS variables on `<html>` by
+       * `next/font` (see `src/lib/fonts.ts`). Both are always defined, so a
+       * control can be typed in the face of the language it is written in
+       * rather than the one the page is reading with.
+       */
+      fontFamily: {
+        fa: ['var(--font-estedad)'],
+        en: ['var(--font-roboto)'],
+      },
     },
   },
   plugins: [tailwindcssAnimate, typography],
