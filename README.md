@@ -157,7 +157,7 @@ Behaviour worth knowing:
 
 - **Nothing is trusted from the browser.** The wizard sends a candidate amount and a destination key; the server re-reads the method, resolves the key against the stored destinations, and refuses anything outside its own `minAmount`/`maxAmount`. A hand-edited request can neither change the sum nor pick an address the owner did not store.
 - **Method, destination and amount are one decision.** The “your own amount” panel appears wherever a method accepts a custom amount, and everything is chosen in the window it opens: a number is only meaningful in the currency of the destination that carries it, and a destination may price itself in another unit than its method (`variant.currency`), or serve another market (`variant.region`).
-- **A new platform is one line of code.** `SUPPORT_PROVIDERS` in `src/constants/global.ts` plus its label in both catalogues; until then `custom` takes any URL and is named by the destination's own label.
+- **A new platform is one line of code.** `SUPPORT_PROVIDERS` in `src/features/support/constants.ts` plus its label in both catalogues; until then `custom` takes any URL and is named by the destination's own label.
 - **Recurring gifts are out of scope.** Every checkout is a single act of support; a platform that handles subscriptions on its own page is reached through the `platform` method instead.
 - **Verification, not arrival.** A gateway redirect proves nothing; a gift is only marked `completed` after the verify/capture call succeeds. The callback is idempotent — a refreshed or replayed return trip cannot double-count a gift.
 - **The supporters wall.** Each checkout records the supporter's name (or anonymous), message and their choice about being shown, plus the method and the destination it was paid into. Only `completed` records with the wall flag on appear publicly, and an anonymous name is dropped in the data layer so it never reaches the browser. Card-to-card and crypto gifts stay `pending` until the owner confirms them from the dashboard, where the reference is shown next to the amount.
@@ -182,41 +182,44 @@ src/
 │   │   ├── support/         # Support page (one card per method + supporters wall)
 │   │   └── dashboard/       # Admin dashboard (session protected)
 │   ├── api/
-│   │   ├── [lang]/          # Public JSON API (portfolio data, blog)
+│   │   ├── [lang]/          # Public JSON API (portfolio data, blog, résumé)
 │   │   ├── [lang]/support/  # Public checkout, confirmation and gateway callback
 │   │   ├── [lang]/admin/    # Guarded CRUD APIs (Zod validated) + uploads
 │   │   ├── auth/            # NextAuth
 │   │   └── og/              # Generated Open Graph image
-│   └── layout.tsx           # Fonts, global metadata, analytics
-├── components/
-│   ├── dashboard/           # Admin sections (one file per resource)
-│   ├── sections/            # Public home-page sections
-│   ├── blog/ & projects/    # Listing views
-│   ├── products/            # Catalogue grid, product card, price tag
-│   ├── magicui/             # Blur-fade reveal
-│   ├── support/             # Method cards, checkout wizard, wall, QR helpers
-│   └── ui/                  # shadcn/ui primitives + shared listing parts
-├── config/                  # NextAuth options + cached DB connection
-├── constants/               # Route table used by the dock and the footer
-├── hooks/                   # react-hook-form + react-query hooks
-├── lib/                     # Data layer, Zod schemas, API helpers, payments, QR, rate-limit, utils
-├── models/                  # Mongoose schemas
+│   ├── sitemap.ts · robots.ts · manifest.ts   # Discovery
+│   └── layout.tsx           # Fonts, root metadata, analytics
+├── features/                # One folder per domain — the heart of the app
+│   ├── <domain>/            # model.ts (Mongoose) · queries.ts (server reads) · schema.ts
+│   │                        # (Zod) · types.ts · <Domain>Section.tsx (public) · dashboard/
+│   │                        # (admin panel) · hooks/ (react-query)
+│   ├── portfolio/           # getPortfolioData — the cross-domain home-page read
+│   ├── support/             # + payments.ts, qr.ts and the checkout-wizard steps
+│   ├── dashboard/           # Shared admin chrome: AdminTabs, AdminDock, components/
+│   └── auth/                # NextAuth options + the sign-in hook
+├── components/              # Cross-feature UI: ui/ (shadcn), magicui/, shared parts
+├── config/                  # Cached DB connection
+├── constants/               # DockRoutes / MenuRoutes, image specs, upload limits
+├── hooks/                   # Shared react-hook-form + react-query hooks
+├── lib/                     # crud factory, api helpers, seo, serialize, rate-limit, utils
+├── providers/               # intl, session, theme, react-query, route progress, toasts
 ├── seed/                    # Demo content seeds (npm run seed)
 │   └── personas/            # One fictional identity per persona, both locales
 ├── types/                   # Shared domain types
-└── i18n/                    # next-intl routing & request config
+├── i18n/                    # next-intl routing & request config
+└── proxy.ts                 # Locale middleware (Next 16 `proxy` convention)
 ```
 
 ## Architecture notes
 
-- **Server reads, client writes.** Pages query Mongoose directly through `src/lib/data.ts` — no HTTP self-fetching. The public JSON API under `/api/{lang}` stays available for other clients, and the dashboard talks to `/api/{lang}/admin/*`.
+- **Server reads, client writes.** Pages query Mongoose directly through each feature's `queries.ts` — the home page's cross-domain read is `getPortfolioData` in `src/features/portfolio/queries.ts` — with no HTTP self-fetching. The public JSON API under `/api/{lang}` stays available for other clients, and the dashboard talks to `/api/{lang}/admin/*`.
 - **One CRUD factory.** `src/lib/crud.ts` builds every admin endpoint: session guard, Zod validation, slug handling, `revalidatePath` after a write, and a uniform error shape.
 - **Localized content, not translated content.** Every document carries a `lang` field, so English and Persian hold independent records — different wording, different dates, different project sets.
 - **Uploads.** Development writes to `public/{type}/{lang}`; production uses Vercel Blob. Images are cropped in the browser before upload, and a cache-busting query keeps the preview fresh without polluting the stored URL.
 - **Editing flow.** Each dashboard section owns one slide-in panel: opening it scrolls the section back into view (the panel always sits above the list), a save that lands closes it, `Escape` dismisses it, and a rejected save leaves it open so nothing typed is lost.
 - **Home page selection.** `active` publishes a project to the site; `featured` curates the home section, which has three slots. Curated picks lead the row and any leftover slot is filled by the newest published project, so the section never renders half empty — and with nothing curated at all, the three newest published projects show. Manage it from the project row's pin button (it saves instantly and numbers the picks `صفحه اصلی · ۱`), or from the edit panel; either way the counter says how many slots are left, and a control that cannot be used says why — an unpublished project must be published first, and a fourth pick is refused while three are already pinned.
-- **Data model.** `profile`, `work`, `education`, `certificate`, `skill`, `social`, `project`, `product`, `blog`, `donation` and `supporter` in `src/models`, mirrored by types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; products carry a price, a currency, a category, feature bullets and an availability flag; certificates carry an issuer, a credential id, an issue and expiration month and a flag that puts them on the generated résumé; blog posts support tags, covers and a published/draft flag; a donation document is one payment method — its amount policy plus the list of destinations it can be paid into — and supporters record the gift, the method and destination it used, its state and what may be shown publicly.
-- **Payments stay server-side.** `src/lib/payments.ts` holds the gateway adapters (ZarinPal v4, IDPay REST, Stripe Checkout, PayPal Orders v2) as plain `fetch` calls behind a timeout, and every amount is derived from the stored method. `src/lib/qr.ts` renders QR codes as PNG data URLs and `src/lib/rate-limit.ts` keeps the public write endpoints from being hammered.
+- **Data model.** `profile`, `work`, `education`, `certificate`, `skill`, `social`, `project`, `product`, `blog`, `donation` and `supporter`, each a `model.ts` under its `src/features/*` folder, mirrored by `types.ts` beside it and by shared types in `src/types`. Projects support a slug, a long-form Markdown body, technology tags, home-page selection and a list of labelled resource links; products carry a price, a currency, a category, feature bullets and an availability flag; certificates carry an issuer, a credential id, an issue and expiration month and a flag that puts them on the generated résumé; blog posts support tags, covers and a published/draft flag; a donation document is one payment method — its amount policy plus the list of destinations it can be paid into — and supporters record the gift, the method and destination it used, its state and what may be shown publicly.
+- **Payments stay server-side.** `src/features/support/payments.ts` holds the gateway adapters (ZarinPal v4, IDPay REST, Stripe Checkout, PayPal Orders v2) as plain `fetch` calls behind a timeout, and every amount is derived from the stored method. `src/features/support/qr.ts` renders QR codes as PNG data URLs and `src/lib/rate-limit.ts` keeps the public write endpoints from being hammered.
 - **Prices stay readable in both languages.** A product price is stored as a number plus a currency code, formatted with `Intl.NumberFormat` — Persian digits and separators on `/fa`, Latin on `/en` — and rendered inside a `<bdi dir="ltr">` run so grouping can never reverse inside an RTL sentence. `0` is shown as the localized “Free”, and the catalogue only offers a price ordering while every product sits on one scale (a single currency, or the rial/toman pair).
 
 ## Design system
@@ -241,8 +244,8 @@ src/
 
 - **Colors** — edit the CSS variables in `src/app/globals.css` (single source of truth for the monochrome theme).
 - **Content** — everything is data-driven from MongoDB via the dashboard; re-run `npm run seed:force` to reset demo content, or pick another identity with `--persona=<id>` (see [Demo content](#demo-content)).
-- **Navigation** — the floating dock, its tooltips and the dashboard footer all read from `NavbarRoutes` in `src/constants/global.ts`; one entry change updates all three.
-- **Add a section** — create a model and types in `src/models` and `src/types`, expose it with `createAdminCrud` under `src/app/api/[lang]/admin/...`, add a data reader in `src/lib/data.ts`, then a section component under `src/components/sections`.
+- **Navigation** — the floating dock, its tooltips and the dashboard footer all read from `DockRoutes` and `MenuRoutes` in `src/constants/global.ts`; one entry change updates all three.
+- **Add a section** — create a `src/features/<domain>` folder with `model.ts`, `types.ts` and `schema.ts`, expose it with `createAdminCrud` under `src/app/api/[lang]/admin/...`, add a data reader in its `queries.ts`, then a public `<Domain>Section.tsx` and a `dashboard/` panel.
 - **Languages** — translations live in `messages/en.json` and `messages/fa.json`; locales are configured in `src/i18n/routing.ts`.
 
 ## Deploy on Vercel
