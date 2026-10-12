@@ -49,7 +49,8 @@ export async function getPortfolioData(locale: AppLocale): Promise<PortfolioData
     workModel.find({ lang: locale }).sort({ start: -1 }).lean(),
     educationModel.find({ lang: locale }).sort({ start: -1 }).lean(),
     getCertificates(locale),
-    skillModel.find({ lang: locale }).sort({ name: 1 }).lean(),
+    // Owner-set priority first, then the alphabet; the dashboard's arrows write the same rank.
+    skillModel.find({ lang: locale }).sort({ order: 1, name: 1 }).lean(),
     socialModel.find({ lang: locale }).lean(),
   ]);
 
