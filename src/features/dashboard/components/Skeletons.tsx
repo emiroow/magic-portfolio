@@ -68,21 +68,6 @@ export function CardListSkeleton({ rows = 3, mark = false, media = true, body = 
   );
 }
 
-/** Stands in for a loose chip list, e.g. skills. */
-export function ChipListSkeleton({ count = 8 }: { count?: number }) {
-  const t = useTranslations('dashboard');
-  // Widths cycle so the placeholder does not read as a row of clones.
-  const widths = ['w-20', 'w-28', 'w-16', 'w-24', 'w-32'];
-
-  return (
-    <div className="flex flex-wrap gap-2" aria-busy="true" aria-label={t('loading')}>
-      {Array.from({ length: count }).map((_, index) => (
-        <Skeleton key={index} className={`h-8 ${widths[index % widths.length]} rounded-full`} />
-      ))}
-    </div>
-  );
-}
-
 /** Stands in for a bare form: an optional round mark, a column of controls, a body. */
 export function FormSkeleton({ fields = 6, mark = false }: { fields?: number; mark?: boolean }) {
   const t = useTranslations('dashboard');

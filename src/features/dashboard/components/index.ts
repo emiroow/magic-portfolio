@@ -9,7 +9,7 @@ export { SectionShell } from '@/features/dashboard/components/SectionShell';
 export { FormPanel, FormActions } from '@/features/dashboard/components/FormPanel';
 export { EmptyState } from '@/features/dashboard/components/EmptyState';
 export { ErrorState } from '@/features/dashboard/components/ErrorState';
-export { CardListSkeleton, ChipListSkeleton, FormSkeleton } from '@/features/dashboard/components/Skeletons';
+export { CardListSkeleton, FormSkeleton } from '@/features/dashboard/components/Skeletons';
 export { EntityCard, EntityList, EntityThumb } from '@/features/dashboard/components/EntityCard';
 export { ResumeRow } from '@/features/dashboard/components/ResumeRow';
 export { Dot, TagChip, StatusChip, HomeSlotChip } from '@/features/dashboard/components/Chips';
