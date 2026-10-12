@@ -3,7 +3,7 @@
 import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useCallback, useRef, useSyncExternalStore } from 'react';
 import Blog from '@/features/blog/dashboard/Blog';
 import Certificates from '@/features/certificate/dashboard/Certificates';
 import EducationExperience from '@/features/education/dashboard/Education';
@@ -41,8 +41,9 @@ const readSlug = () => new URLSearchParams(window.location.search).get('tab') ??
 const serverSlug = () => TABS[0].tab;
 
 /**
- * Dashboard section switcher: a segmented pill control with full tablist semantics
- * (roving tabindex, arrow/Home/End keys, RTL-aware direction).
+ * Dashboard section switcher: a compact segmented control that folds onto extra lines
+ * once the sections outgrow one row, with full tablist semantics (roving tabindex,
+ * arrow/Home/End keys, RTL-aware direction).
  *
  * The active section is read out of `?tab=` rather than out of local state, so a link
  * to one section opens that section and a refresh keeps the owner where they were.
@@ -72,12 +73,6 @@ const AdminTabs = () => {
   // first section, which is what a bare `/dashboard` link means anyway.
   const activeTab = found === -1 ? 0 : found;
   const Active = TABS[activeTab].component;
-
-  // The strip scrolls sideways on narrow screens, so a tab picked from the far end has
-  // to be brought back into view. `nearest` keeps the rest of the page still.
-  useEffect(() => {
-    tabRefs.current[activeTab]?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
-  }, [activeTab]);
 
   const registerTab = useCallback(
     (index: number) => (node: HTMLButtonElement | null) => {
@@ -114,16 +109,18 @@ const AdminTabs = () => {
 
   return (
     <div>
+      {/*
+        Ten sections no longer fit one line on a phone, so the strip folds instead of
+        hiding the tail of the list behind a sideways scroll: every section stays within
+        reach at any width, at any zoom and in either script. The radius is the one a
+        wrapping surface needs, and a single desktop row still reads as a capsule.
+      */}
       <div
         role="tablist"
         aria-label={td('tabsAria')}
         aria-orientation="horizontal"
         onKeyDown={onKeyDown}
-        className={cn(
-          'flex w-full gap-1 overflow-x-auto rounded-full border bg-muted/40 p-1 sm:w-max sm:max-w-full',
-          // The strip is a control, not a document: its own scrollbar only adds noise.
-          '[-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden'
-        )}
+        className="flex w-full flex-wrap gap-1 rounded-2xl border bg-muted/40 p-1 sm:w-max sm:max-w-full"
       >
         {TABS.map((tab, index) => (
           <button
@@ -137,7 +134,12 @@ const AdminTabs = () => {
             tabIndex={index === activeTab ? 0 : -1}
             onClick={() => selectTab(index)}
             className={cn(
-              'whitespace-nowrap rounded-full px-3.5 py-1.5 text-xs font-medium transition-colors sm:text-sm',
+              // Each tab is exactly as wide as its own label: a folded strip then keeps the
+              // same reading rhythm as the chip rows elsewhere in the dashboard, instead of
+              // stretching a short last line across the tray. The fixed height is what stops
+              // a wrapped row from sitting differently from the one above it.
+              'inline-flex h-8 items-center justify-center whitespace-nowrap rounded-full px-2.5 text-[11px] font-medium transition-colors',
+              'sm:h-7 sm:px-3 sm:text-xs',
               'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               index === activeTab ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
             )}

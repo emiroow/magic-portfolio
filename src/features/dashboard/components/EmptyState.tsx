@@ -17,7 +17,7 @@ interface EmptyStateProps {
 /** Dashed placeholder shown when a section holds nothing, or nothing matches. */
 export function EmptyState({ icon: Icon, text, actionText, onAction, footer }: EmptyStateProps) {
   return (
-    <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-14 text-center">
+    <div className="flex flex-col items-center gap-4 rounded-xl border border-dashed px-6 py-10 text-center">
       {Icon && (
         <span aria-hidden className="flex size-11 items-center justify-center rounded-full border text-muted-foreground">
           <Icon className="size-4" />

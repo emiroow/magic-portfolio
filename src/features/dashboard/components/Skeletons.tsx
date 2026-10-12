@@ -99,7 +99,7 @@ export function FormSkeleton({ fields = 6, mark = false }: { fields?: number; ma
         {Array.from({ length: fields }).map((_, index) => (
           <div key={index} className="space-y-2">
             <Skeleton className="h-3 w-20" />
-            <Skeleton className="h-10 w-full rounded-lg" />
+            <Skeleton className="h-9 w-full rounded-lg" />
           </div>
         ))}
       </div>

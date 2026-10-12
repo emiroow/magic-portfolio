@@ -1,8 +1,8 @@
 import { Skeleton } from '@/components/ui/skeleton';
 import { getLocale, getTranslations } from 'next-intl/server';
 
-/** The nine sections, in the order the switcher lists them. */
-const TAB_WIDTHS = ['w-16', 'w-24', 'w-20', 'w-14', 'w-20', 'w-20', 'w-16', 'w-14', 'w-20'];
+/** The ten sections, in the order the switcher lists them. */
+const TAB_WIDTHS = ['w-16', 'w-24', 'w-20', 'w-28', 'w-20', 'w-20', 'w-20', 'w-28', 'w-16', 'w-16'];
 
 /**
  * Dashboard skeleton: page header, the section switcher and the first section.
@@ -17,19 +17,19 @@ export default async function DashboardLoading() {
 
   return (
     <main className="w-full" aria-busy="true" aria-label={t('loading')}>
-      <div className="mb-7 space-y-3">
+      <div className="mb-6 space-y-3">
         <Skeleton className="h-3 w-16" />
-        <Skeleton className="h-8 w-40" />
+        <Skeleton className="h-7 w-40" />
         <Skeleton className="h-px w-full" />
       </div>
 
-      <div className="flex w-full gap-1 overflow-hidden rounded-full border bg-muted/40 p-1 sm:w-max sm:max-w-full">
+      <div className="flex w-full flex-wrap gap-1 rounded-2xl border bg-muted/40 p-1 sm:w-max sm:max-w-full">
         {TAB_WIDTHS.map((width, index) => (
-          <Skeleton key={index} className={`h-7 shrink-0 ${width} rounded-full`} />
+          <Skeleton key={index} className={`h-8 shrink-0 rounded-full sm:h-7 ${width}`} />
         ))}
       </div>
 
-      <div className="mt-8 space-y-6">
+      <div className="mt-6 space-y-6">
         <div className="flex items-center justify-between gap-3">
           <Skeleton className="h-6 w-32" />
           <Skeleton className="size-9 rounded-full" />

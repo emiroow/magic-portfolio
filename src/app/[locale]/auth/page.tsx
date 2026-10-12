@@ -18,7 +18,7 @@ const AuthPage = () => {
 
   return (
     <main className="w-full max-w-sm">
-      <div className="mb-7 text-center">
+      <div className="mb-6 text-center">
         <span aria-hidden className="mx-auto flex size-11 items-center justify-center rounded-full border">
           <Lock className="size-4 text-muted-foreground" />
         </span>
@@ -26,7 +26,7 @@ const AuthPage = () => {
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{t('subtitle')}</p>
       </div>
 
-      <Card className="p-5 sm:p-6">
+      <Card className="p-5">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
           {errors.root?.message && (
             <div
@@ -38,7 +38,7 @@ const AuthPage = () => {
             </div>
           )}
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label htmlFor="email">{t('email')}</Label>
             <Input
               id="email"
@@ -53,7 +53,7 @@ const AuthPage = () => {
             {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
           </div>
 
-          <div className="space-y-1.5">
+          <div className="space-y-2">
             <Label htmlFor="password">{t('password')}</Label>
             <div className="relative">
               <Input

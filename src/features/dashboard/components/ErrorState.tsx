@@ -14,7 +14,7 @@ export function ErrorState({ message, onRetry }: ErrorStateProps) {
   const t = useTranslations('dashboard');
 
   return (
-    <div role="alert" className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-destructive/40 px-6 py-14 text-center">
+    <div role="alert" className="flex flex-col items-center gap-4 rounded-xl border border-dashed border-destructive/40 px-6 py-10 text-center">
       <span aria-hidden className="flex size-11 items-center justify-center rounded-full border border-destructive/40">
         <AlertTriangle className="size-4 text-destructive" />
       </span>
