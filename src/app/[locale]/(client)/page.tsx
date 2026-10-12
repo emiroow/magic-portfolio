@@ -134,7 +134,7 @@ export default async function Page({ params }: Props) {
   };
 
   return (
-    <main className="flex min-h-[100dvh] flex-col gap-12 sm:gap-16">
+    <main className="flex min-h-[100dvh] flex-col gap-14 sm:gap-20">
       {/* Structured data: person + breadcrumbs for rich results */}
       <JsonLd
         item={{
