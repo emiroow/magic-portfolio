@@ -12,6 +12,7 @@ import { useTranslations } from 'next-intl';
 import { FC } from 'react';
 import { ModeToggle } from '@/components/mode-toggle';
 import ThemeToggle from '@/components/locale-toggle';
+import { useSectionAvailability } from '@/providers/sectionAvailability';
 
 interface NavbarProps {
   socials?: ISocial[];
@@ -23,13 +24,19 @@ const MAX_SOCIALS = 5;
 
 /**
  * Floating navigation bar: Home, a compact menu that groups the content
- * archives (products, projects, blog), social profiles, language switch and
+ * archives (products, projects, blog, support), social profiles, language switch and
  * theme switch. The bar itself stays static — no magnification or springs; only
  * the active route, hover states and the group menu's open/close ever move.
+ *
+ * An archive with nothing in it is left out of the group, and the group's trigger goes
+ * with it once nothing is left to group: a dock entry that leads to an empty list asks a
+ * reader to click a dead end. The answer comes from the locale layout, so every page of
+ * the site hides the same sections in the same way.
  */
 const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
   const t = useTranslations('navbar');
   const pathname = usePathname();
+  const availability = useSectionAvailability();
   const links = socials.filter(social => Boolean(social.url)).slice(0, MAX_SOCIALS);
 
   const socialLabel = (icon: string, name: string) => {
@@ -43,8 +50,10 @@ const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
 
   const divider = <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border sm:mx-1" />;
 
-  // The grouped archives share one trigger; it lights up when any is active.
-  const menuActive = MenuRoutes.some(route => pathname.startsWith(route.href));
+  // The grouped archives share one trigger; it lights up when any is active. Only the
+  // archives that hold content are listed, so the trigger follows the same list.
+  const menuRoutes = MenuRoutes.filter(route => availability?.[route.href] ?? true);
+  const menuActive = menuRoutes.some(route => pathname.startsWith(route.href));
 
   return (
     <nav
@@ -70,7 +79,7 @@ const Navbar: FC<NavbarProps> = ({ socials = [] }) => {
           );
         })}
 
-        <NavbarMenu routes={MenuRoutes} active={menuActive} />
+        {menuRoutes.length > 0 && <NavbarMenu routes={menuRoutes} active={menuActive} />}
 
         {links.length > 0 && divider}
 

@@ -31,6 +31,8 @@ const AdminDock = () => {
   const divider = <span aria-hidden className="mx-0.5 h-5 w-px shrink-0 bg-border sm:mx-1" />;
 
   // The grouped archives share one trigger; it lights up when any is active.
+  // Every archive stays listed here, empty or not: the public dock hides one until it has
+  // content, but the owner has to be able to reach it to put that content in.
   const menuActive = MenuRoutes.some(route => pathname.startsWith(route.href));
 
   const onSignOut = async () => {
