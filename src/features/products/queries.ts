@@ -51,6 +51,17 @@ export async function getProductByKey(locale: AppLocale, key: string): Promise<I
   return product ? normalizeProduct(product) : null;
 }
 
+/**
+ * Whether the locale has a published product at all. The dock asks before it lists the
+ * catalogue, so it reads the same filter the grid does and stops at the first document.
+ */
+export async function hasProducts(locale: AppLocale): Promise<boolean> {
+  if (!(await tryConnectDB())) return false;
+
+  const doc = await productModel.findOne({ lang: locale, active: true }).select('_id').lean();
+  return Boolean(doc);
+}
+
 /** Distinct categories across the published products, for the catalogue filter. */
 export async function getProductCategories(locale: AppLocale): Promise<string[]> {
   if (!(await tryConnectDB())) return [];

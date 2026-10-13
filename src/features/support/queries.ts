@@ -214,12 +214,14 @@ export async function getDonations(locale: AppLocale): Promise<IDonation[]> {
   return items.sort((a, b) => rank.indexOf(a.region) - rank.indexOf(b.region) || a.order - b.order);
 }
 
-/** Whether the locale has anything to support at all; the hero button asks this. */
+/**
+ * Whether the locale has anything to support at all; the hero button and the dock ask
+ * this. It follows the page's own rule rather than a cheaper one — a method counts only
+ * while it can offer a destination — so neither ever points at a support page that has
+ * nothing on it.
+ */
 export async function hasDonations(locale: AppLocale): Promise<boolean> {
-  if (!(await tryConnectDB())) return false;
-
-  const doc = await donationModel.findOne({ lang: locale, active: true }).select('_id').lean();
-  return Boolean(doc);
+  return (await getDonations(locale)).length > 0;
 }
 
 /**

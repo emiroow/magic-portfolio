@@ -42,6 +42,17 @@ export async function getProjectByKey(locale: AppLocale, key: string): Promise<I
   return project ? normalizeProject(project) : null;
 }
 
+/**
+ * Whether the locale has an active project at all. The dock asks before it lists the
+ * archive, so it reads the same filter the grid does and stops at the first document.
+ */
+export async function hasProjects(locale: AppLocale): Promise<boolean> {
+  if (!(await tryConnectDB())) return false;
+
+  const doc = await projectModel.findOne({ lang: locale, active: true }).select('_id').lean();
+  return Boolean(doc);
+}
+
 /** Distinct technologies across the active projects, for the archive filter. */
 export async function getProjectTechnologies(locale: AppLocale): Promise<string[]> {
   if (!(await tryConnectDB())) return [];

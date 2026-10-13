@@ -22,13 +22,26 @@ export const DockRoutes: readonly NavbarRoute[] = [{ href: '/', icon: Home, labe
 /**
  * The grouped routes that live inside the dock's dropdown menu. Each has its
  * own archive page, so they share one compact trigger instead of three buttons.
+ *
+ * The literal hrefs are kept (`as const`) because they double as the identity an
+ * archive is looked up by in `SectionAvailability` below.
  */
-export const MenuRoutes: readonly NavbarRoute[] = [
+export const MenuRoutes = [
   { href: '/products', icon: ShoppingBag, label: 'products' },
   { href: '/projects', icon: FolderGit2, label: 'projects' },
   { href: '/blog', icon: NotebookText, label: 'blog' },
   { href: '/support', icon: HandHeart, label: 'support' },
-];
+] as const satisfies readonly NavbarRoute[];
+
+/** Every archive the dock can list, as the union its hrefs form. */
+export type ArchiveHref = (typeof MenuRoutes)[number]['href'];
+
+/**
+ * Whether each archive has anything to show for one locale. An empty section is not a
+ * destination, so the dock drops it — and the read behind this lives with the pages that
+ * answer the same question (see `getSectionAvailability`).
+ */
+export type SectionAvailability = Record<ArchiveHref, boolean>;
 
 /**
  * How many images one record may carry in its gallery. Products, projects and

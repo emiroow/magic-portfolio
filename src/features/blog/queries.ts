@@ -52,6 +52,17 @@ export async function getBlogList(locale: AppLocale): Promise<IBlog[]> {
     });
 }
 
+/**
+ * Whether the locale has a published post at all. The dock asks before it lists the
+ * archive, so it reads the same filter the list does and stops at the first document.
+ */
+export async function hasPosts(locale: AppLocale): Promise<boolean> {
+  if (!(await tryConnectDB())) return false;
+
+  const doc = await blogModel.findOne({ lang: locale, ...PUBLISHED }).select('_id').lean();
+  return Boolean(doc);
+}
+
 /** Distinct tags across the published posts, newest-first document order. */
 export async function getBlogTags(locale: AppLocale): Promise<string[]> {
   if (!(await tryConnectDB())) return [];
