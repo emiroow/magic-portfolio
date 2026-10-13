@@ -142,7 +142,7 @@ Notes on what gets written:
 
 ## Support and payments
 
-`/{locale}/support` is a standalone page, reachable from the hero button, the dock menu and the sitemap — the home page carries no support section, only that button. Its subject is support in general: a coffee is one way of showing it, never the name of the section.
+`/{locale}/support` is a standalone page, reachable from the hero button, the dock menu and the sitemap — the home page carries no support section, only that button. Those two entries wait for content: with no method that can actually receive a gift, the button and the dock item stay hidden. Its subject is support in general: a coffee is one way of showing it, never the name of the section.
 
 The owner creates **payment methods** in the dashboard, and there is exactly one method per kind, never three prices for the same act of giving. A method carries an amount policy and the **destinations** money can actually land in, which the supporter picks between inside the checkout wizard.
 
@@ -244,7 +244,7 @@ src/
 
 - **Colors** — edit the CSS variables in `src/app/globals.css` (single source of truth for the monochrome theme).
 - **Content** — everything is data-driven from MongoDB via the dashboard; re-run `npm run seed:force` to reset demo content, or pick another identity with `--persona=<id>` (see [Demo content](#demo-content)).
-- **Navigation** — the floating dock, its tooltips and the dashboard footer all read from `DockRoutes` and `MenuRoutes` in `src/constants/global.ts`; one entry change updates all three.
+- **Navigation** — the floating dock, its tooltips and the dashboard footer all read from `DockRoutes` and `MenuRoutes` in `src/constants/global.ts`; one entry change updates all three. An archive with nothing to show is left out of the public dock, and the menu's own trigger goes with it once nothing is left to group — the dashboard keeps every entry, because that is where the missing content gets added.
 - **Add a section** — create a `src/features/<domain>` folder with `model.ts`, `types.ts` and `schema.ts`, expose it with `createAdminCrud` under `src/app/api/[lang]/admin/...`, add a data reader in its `queries.ts`, then a public `<Domain>Section.tsx` and a `dashboard/` panel.
 - **Languages** — translations live in `messages/en.json` and `messages/fa.json`; locales are configured in `src/i18n/routing.ts`.
 
