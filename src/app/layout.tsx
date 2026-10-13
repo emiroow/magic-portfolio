@@ -51,9 +51,10 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <div aria-hidden className="surface-grid pointer-events-none absolute inset-x-0 top-0 -z-10 h-64" />
         {children}
         <GoogleAnalytics />
-        {/* Vercel only serves the insights script in production; elsewhere it
-            would just fail a request on every navigation. */}
-        {process.env.NODE_ENV === 'production' && <Analytics />}
+        {/* Only Vercel serves the insights script, and only in a production build;
+            elsewhere the include just fails a request on every navigation. `VERCEL_ENV`
+            is the build host speaking — the same gate `robots` already reads. */}
+        {process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV && <Analytics />}
       </body>
     </html>
   );
