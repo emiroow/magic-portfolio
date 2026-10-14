@@ -695,6 +695,13 @@
       "namePlaceholder": "نام مهارت (مثلاً: Next.js)",
       "icon": "نماد",
       "selectIcon": "انتخاب نماد",
+      "optional": "اختیاری",
+      "picker": {
+        "searchPlaceholder": "جستجوی فناوری‌ها…",
+        "noResults": "نمادی یافت نشد.",
+        "clear": "حذف نماد",
+        "current": "فعلی"
+      },
       "save": "ذخیره",
       "moveUp": "انتقال به بالا",
       "moveDown": "انتقال به پایین",
@@ -710,7 +717,8 @@
         "quality": "کیفیت و فرآیند",
         "mobile": "موبایل",
         "design": "طراحی و پژوهش",
-        "intelligence": "هوش مصنوعی"
+        "intelligence": "هوش مصنوعی",
+        "services": "احراز، پرداخت و سرویس‌ها"
       },
       "icons": {
         "accessibility": "دسترس‌پذیری",

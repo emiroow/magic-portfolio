@@ -31,6 +31,7 @@ const useSkills = () => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<SkillForm>({
     resolver: zodResolver(formSchema),
@@ -114,6 +115,7 @@ const useSkills = () => {
     handleSubmit,
     reset: () => reset(EMPTY),
     watch,
+    setValue,
     errors,
     skills,
     isPending,

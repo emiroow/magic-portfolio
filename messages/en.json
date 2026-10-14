@@ -695,6 +695,13 @@
       "namePlaceholder": "Skill name (e.g., Next.js)",
       "icon": "Icon",
       "selectIcon": "Select an icon",
+      "optional": "Optional",
+      "picker": {
+        "searchPlaceholder": "Search technologies…",
+        "noResults": "No matching icon.",
+        "clear": "Remove icon",
+        "current": "Current"
+      },
       "save": "Save",
       "moveUp": "Move up",
       "moveDown": "Move down",
@@ -710,7 +717,8 @@
         "quality": "Quality & process",
         "mobile": "Mobile",
         "design": "Design & research",
-        "intelligence": "AI & intelligence"
+        "intelligence": "AI & intelligence",
+        "services": "Auth, payments & services"
       },
       "icons": {
         "accessibility": "Accessibility",

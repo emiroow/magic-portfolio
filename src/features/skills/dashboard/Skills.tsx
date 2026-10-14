@@ -11,16 +11,15 @@ import {
   RowAction,
   SectionShell,
 } from '@/features/dashboard/components';
-import { iconDecider } from '@/components/icons';
+import { SkillGlyph } from '@/components/brand-icons';
 import { Field } from '@/components/ui/field';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
 import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useSkills from '@/features/skills/hooks/useSkills';
-import { SKILL_ICON_GROUPS, SKILL_ICONS } from '@/features/skills/constants';
+import { SkillIconPicker } from '@/features/skills/dashboard/SkillIconPicker';
 import type { ISkill } from '@/features/skills/types';
 import { ChevronDown, ChevronUp, Pencil, Plus, Sparkles, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -39,6 +38,7 @@ const Skills = () => {
     handleSubmit,
     reset,
     watch,
+    setValue,
     errors,
     skills,
     isPending,
@@ -60,9 +60,6 @@ const Skills = () => {
 
   const editingId = watch('_id');
   const selectedIcon = watch('icon');
-
-  // An icon slug the catalogue has no label for stays readable as stored.
-  const iconLabel = (value: string) => (t.has(`icons.${value}`) ? t(`icons.${value}`) : value);
 
   const closeForm = () => {
     panel.close();
@@ -98,37 +95,15 @@ const Skills = () => {
               <Input id="skill-name" {...register('name')} placeholder={t('namePlaceholder')} autoComplete="off" />
             </Field>
 
-            <Field label={t('icon')} id="skill-icon" error={errors.icon?.message}>
-              <div className="flex items-center gap-3">
-                {/* Controlled by the form value rather than left to the DOM: the panel mounts after
-                    `reset()` has written the record, and an unattached uncontrolled select would
-                    open on its placeholder — the owner's saved icon seeming lost. */}
-                <Select id="skill-icon" {...register('icon')} value={selectedIcon ?? ''} className="sm:max-w-56">
-                  <option value="">{t('selectIcon')}</option>
-                  {/* Sectioned, because a flat list of this size cannot be scanned: the native
-                      popup renders these as headings and still jumps by typed text within one. */}
-                  {SKILL_ICON_GROUPS.map(section => (
-                    <optgroup key={section.group} label={t(`iconGroups.${section.group}`)}>
-                      {section.icons.map(icon => (
-                        <option key={icon} value={icon}>
-                          {iconLabel(icon)}
-                        </option>
-                      ))}
-                    </optgroup>
-                  ))}
-                  {/* A stored slug the picker does not list — a seeded or hand-written
-                      record — still gets an option, so the select reads its value, not blank. */}
-                  {selectedIcon && !SKILL_ICONS.includes(selectedIcon as (typeof SKILL_ICONS)[number]) && (
-                    <option value={selectedIcon}>{iconLabel(selectedIcon)}</option>
-                  )}
-                </Select>
-                {/* Seeing the glyph is the only way to know the slug picked the right one. */}
-                {selectedIcon && (
-                  <span aria-hidden className="flex size-10 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
-                    {iconDecider(selectedIcon, 'size-4')}
-                  </span>
-                )}
-              </div>
+            <Field label={t('icon')} id="skill-icon" error={errors.icon?.message} optionalLabel={t('optional')}>
+              {/* The catalogue is far too large for a native select to scan, so this is a
+                  searchable combobox that filters by name, alias and abbreviation. It reads
+                  and writes the form's `icon` field — the picker holds no separate state. */}
+              <SkillIconPicker
+                id="skill-icon"
+                value={selectedIcon ?? ''}
+                onChange={next => setValue('icon', next, { shouldValidate: true, shouldDirty: true })}
+              />
             </Field>
           </div>
 
@@ -154,7 +129,7 @@ const Skills = () => {
               leading={
                 skill.icon ? (
                   <span aria-hidden className="flex size-9 shrink-0 items-center justify-center rounded-lg border bg-muted/40">
-                    {iconDecider(skill.icon, 'size-4')}
+                    <SkillGlyph id={skill.icon} className="size-4" />
                   </span>
                 ) : undefined
               }
