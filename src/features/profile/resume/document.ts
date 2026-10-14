@@ -25,31 +25,34 @@ import type { AppLocale, LanguageLevel } from '@/types';
  */
 
 /** Section headings and chrome, bilingual: there is no i18n provider in a bare route. */
-const TEXT: Record<AppLocale, {
-  docTitle: string;
-  file: string;
-  close: string;
-  closeHint: string;
-  get: string;
-  savePdf: string;
-  savePdfDesc: string;
-  print: string;
-  printDesc: string;
-  hint: string;
-  actions: string;
-  toOther: string;
-  pageWord: string;
-  switchTheme: string;
-  empty: string;
-  emptyHint: string;
-  summary: string;
-  experience: string;
-  projects: string;
-  skills: string;
-  education: string;
-  certificates: string;
-  languages: string;
-}> = {
+const TEXT: Record<
+  AppLocale,
+  {
+    docTitle: string;
+    file: string;
+    close: string;
+    closeHint: string;
+    get: string;
+    savePdf: string;
+    savePdfDesc: string;
+    print: string;
+    printDesc: string;
+    hint: string;
+    actions: string;
+    toOther: string;
+    pageWord: string;
+    switchTheme: string;
+    empty: string;
+    emptyHint: string;
+    summary: string;
+    experience: string;
+    projects: string;
+    skills: string;
+    education: string;
+    certificates: string;
+    languages: string;
+  }
+> = {
   en: {
     docTitle: 'Resume',
     file: 'Resume',
@@ -119,36 +122,47 @@ const LEVEL_DOTS: Record<LanguageLevel, number> = { beginner: 1, intermediate: 2
 
 /** Escape a value for safe interpolation into HTML text or an attribute. */
 function esc(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
+  return value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
 /** Inline glyphs (12–14px, currentColor) so the header and meta lines read at a glance. */
 const ICON: Record<string, string> = {
   mail: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg>',
-  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c0-.6.4-1 1-1h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5L18 14l4 1.5V18c0 .6-.4 1-1 1A16 16 0 0 1 4 5Z"/></svg>',
+  phone:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5c0-.6.4-1 1-1h3l1.5 4-2 1.5a12 12 0 0 0 5.5 5.5L18 14l4 1.5V18c0 .6-.4 1-1 1A16 16 0 0 1 4 5Z"/></svg>',
   pin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6-5.3-6-10a6 6 0 1 1 12 0c0 4.7-6 10-6 10Z"/><circle cx="12" cy="11" r="2"/></svg>',
-  calendar: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>',
+  calendar:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 9h18M8 3v4M16 3v4"/></svg>',
+  briefcase:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>',
   link: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a4 4 0 0 0 6 .5l2.5-2.5a4 4 0 0 0-5.7-5.7L11.5 6.6"/><path d="M14 11a4 4 0 0 0-6-.5L5.5 13a4 4 0 0 0 5.7 5.7l1.3-1.3"/></svg>',
-  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>',
-  github: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5.1 0-1.1.4-2 1-2.8-.1-.3-.5-1.3.1-2.7 0 0 .8-.3 2.8 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.7 1 2.8 0 4-2.4 4.8-4.6 5.1.3.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.3 10.3 0 0 0 22 12.3C22 6.6 17.5 2 12 2Z"/></svg>',
-  linkedin: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 1 1 5 8.5a2.5 2.5 0 0 1 0-5ZM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.75V21H17.6v-5.1c0-1.22-.02-2.78-1.9-2.78-1.9 0-2.2 1.32-2.2 2.68V21H9z"/></svg>',
+  globe:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 2.5 15 0 18M12 3c-2.5 2.5-2.5 15 0 18"/></svg>',
+  github:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.5 2 2 6.6 2 12.3c0 4.5 2.9 8.4 6.8 9.7.5.1.7-.2.7-.5v-1.9c-2.8.6-3.4-1.2-3.4-1.2-.5-1.2-1.1-1.5-1.1-1.5-.9-.6.1-.6.1-.6 1 .1 1.5 1 1.5 1 .9 1.6 2.4 1.1 3 .9.1-.7.3-1.1.6-1.4-2.2-.3-4.6-1.1-4.6-5.1 0-1.1.4-2 1-2.8-.1-.3-.5-1.3.1-2.7 0 0 .8-.3 2.8 1a9.3 9.3 0 0 1 5 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7.6.7 1 1.7 1 2.8 0 4-2.4 4.8-4.6 5.1.3.3.7.9.7 1.9v2.8c0 .3.2.6.7.5A10.3 10.3 0 0 0 22 12.3C22 6.6 17.5 2 12 2Z"/></svg>',
+  linkedin:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5A2.5 2.5 0 1 1 5 8.5a2.5 2.5 0 0 1 0-5ZM3 9h4v12H3zM9 9h3.8v1.7h.05c.53-.95 1.83-1.95 3.77-1.95 4.03 0 4.78 2.5 4.78 5.75V21H17.6v-5.1c0-1.22-.02-2.78-1.9-2.78-1.9 0-2.2 1.32-2.2 2.68V21H9z"/></svg>',
   x: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3l-6.6 7.6L22 21h-6.2l-4.3-5.6L6.3 21H3.3l7-8.1L2.5 3H9l3.9 5.2L17.5 3Zm-1.1 16h1.7L7.7 4.8H5.9L16.4 19Z"/></svg>',
-  twitter: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3l-6.6 7.6L22 21h-6.2l-4.3-5.6L6.3 21H3.3l7-8.1L2.5 3H9l3.9 5.2L17.5 3Zm-1.1 16h1.7L7.7 4.8H5.9L16.4 19Z"/></svg>',
-  telegram: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.6 20c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.1 13.3l-4.8-1.5c-1-.3-1-1 .2-1.5l18.8-7.2c.9-.3 1.6.2 1.3 1.4Z"/></svg>',
-  whatsapp: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2Zm5.3 14c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1a11 11 0 0 1-5.9-5.2c-.4-.8-.6-1.6-.4-2.2.1-.4.6-1.1 1-1.2.3-.2.8-.1 1 .3l.6 1.3c.1.3 0 .5-.2.7l-.4.5c-.1.2-.2.3 0 .6.5.9 1.5 1.7 2.5 2 .3.1.5 0 .6-.2l.5-.6c.2-.2.4-.3.7-.1l1.4.7c.3.2.4.4.3.7Z"/></svg>',
-  youtube: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.3-.4-4.8a2.5 2.5 0 0 0-1.8-1.8C19.2 5 12 5 12 5s-7.2 0-8.8.4A2.5 2.5 0 0 0 1.4 7.2C1 8.7 1 12 1 12s0 3.3.4 4.8a2.5 2.5 0 0 0 1.8 1.8C4.8 19 12 19 12 19s7.2 0 8.8-.4a2.5 2.5 0 0 0 1.8-1.8C23 15.3 23 12 23 12ZM10 15V9l5 3-5 3Z"/></svg>',
-  instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
+  twitter:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5 3h3l-6.6 7.6L22 21h-6.2l-4.3-5.6L6.3 21H3.3l7-8.1L2.5 3H9l3.9 5.2L17.5 3Zm-1.1 16h1.7L7.7 4.8H5.9L16.4 19Z"/></svg>',
+  telegram:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.9 4.3 18.6 20c-.2 1-.9 1.3-1.7.8l-4.8-3.5-2.3 2.2c-.3.3-.5.5-1 .5l.3-4.9 8.9-8c.4-.3-.1-.5-.6-.2L6.1 13.3l-4.8-1.5c-1-.3-1-1 .2-1.5l18.8-7.2c.9-.3 1.6.2 1.3 1.4Z"/></svg>',
+  whatsapp:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 0 0-8.6 15l-1.3 4.8 4.9-1.3A10 10 0 1 0 12 2Zm5.3 14c-.2.6-1.2 1.2-1.7 1.2-.4.1-1 .1-1.6-.1a11 11 0 0 1-5.9-5.2c-.4-.8-.6-1.6-.4-2.2.1-.4.6-1.1 1-1.2.3-.2.8-.1 1 .3l.6 1.3c.1.3 0 .5-.2.7l-.4.5c-.1.2-.2.3 0 .6.5.9 1.5 1.7 2.5 2 .3.1.5 0 .6-.2l.5-.6c.2-.2.4-.3.7-.1l1.4.7c.3.2.4.4.3.7Z"/></svg>',
+  youtube:
+    '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.3-.4-4.8a2.5 2.5 0 0 0-1.8-1.8C19.2 5 12 5 12 5s-7.2 0-8.8.4A2.5 2.5 0 0 0 1.4 7.2C1 8.7 1 12 1 12s0 3.3.4 4.8a2.5 2.5 0 0 0 1.8 1.8C4.8 19 12 19 12 19s7.2 0 8.8-.4a2.5 2.5 0 0 0 1.8-1.8C23 15.3 23 12 23 12ZM10 15V9l5 3-5 3Z"/></svg>',
+  instagram:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg>',
   file: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>',
   home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10.5 9-7.5 9 7.5"/><path d="M5 9.5V21h14V9.5"/><path d="M10 21v-6h4v6"/></svg>',
-  close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
-  download: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
-  filedown: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/></svg>',
-  printer: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
+  close:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  download:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/></svg>',
+  filedown:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/><path d="M12 11v6"/><path d="m9 14 3 3 3-3"/></svg>',
+  printer:
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg>',
   chev: '<svg class="ico-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
 };
 
@@ -332,7 +346,6 @@ const STYLE = `
   .menu__item:hover { background: var(--b2-hover); }
   .menu__item[data-busy] { cursor: progress; }
   .menu__item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
-  .menu__item svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--icon); }
   .menu__txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .menu__label { font-weight: 600; color: var(--ink); }
   .menu__desc { font-size: 11.5px; line-height: 1.45; color: var(--muted); }
@@ -356,8 +369,9 @@ const STYLE = `
   .head__c svg { width: 13px; height: 13px; flex: none; color: var(--icon); }
   .head__c a { color: inherit; text-decoration: none; }
 
-  .summary { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--body); text-align: justify; }
-  html[dir='rtl'] .summary { text-align: right; }
+  /* A summary is a paragraph, not a newspaper column: start-aligned in both directions,
+     so the final line of a paragraph never stretches edge to edge. */
+  .summary { margin: 0; font-size: 12.5px; line-height: 1.55; color: var(--body); text-align: start; }
 
   /* Two equal columns the sections flow through in strict order: the first is filled to
      its foot, the rest carries on in the second, and only then does a fresh sheet start.
@@ -376,14 +390,18 @@ const STYLE = `
   .sec { margin-bottom: 16px; }
   .sec:last-child { margin-bottom: 0; }
 
-  /* Experience */
+  /* Experience: role and company share one line; the facts (period, location, type)
+     share the next, start-aligned in both directions. Long lines wrap instead of
+     overflowing the column, and each chip keeps its icon glued to unbroken text. */
   .xp { margin-bottom: 12px; }
   .xp:last-child { margin-bottom: 0; }
+  .xp__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; min-width: 0; }
   .xp__role { font-size: 13.5px; font-weight: 700; color: var(--ink); }
-  .xp__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 2px 14px; margin-top: 1px; font-size: 12px; color: var(--muted); }
-  .xp__org { color: var(--accent); font-weight: 600; margin-inline-end: auto; }
+  .xp__sep { color: var(--muted); }
+  .xp__org { font-size: 13px; color: var(--accent); font-weight: 600; min-width: 0; overflow-wrap: break-word; }
+  .xp__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 3px 12px; margin-top: 3px; font-size: 12px; color: var(--muted); }
   .xp__m { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
-  .xp__m svg { width: 12px; height: 12px; color: var(--icon); }
+  .xp__m svg { width: 12px; height: 12px; flex: none; color: var(--icon); }
   .xp__list { margin: 5px 0 0; padding: 0; list-style: none; }
   .xp__list li { position: relative; padding-inline-start: 12px; font-size: 12px; line-height: 1.45; color: var(--body); margin: 3px 0; }
   .xp__list li::before { content: ''; position: absolute; inset-inline-start: 1px; top: .55em; width: 3px; height: 3px; border-radius: 50%; background: var(--icon); }
@@ -496,8 +514,10 @@ function toolbar(locale: AppLocale, name?: string): string {
   const dirOf = (code: AppLocale) => (code === 'fa' ? 'rtl' : 'ltr');
   const base = (name || '').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-+|-+$/g, '');
   const file = `${base || t.file}.pdf`;
-  const sun = '<svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
-  const moon = '<svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>';
+  const sun =
+    '<svg class="ico-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg>';
+  const moon =
+    '<svg class="ico-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8Z"/></svg>';
   return `
     <div class="toolbar">
       <div class="toolbar__brand">
@@ -933,22 +953,42 @@ function headerHtml(model: ResumeModel): string {
 
 /** A titled block: heading + body, only emitted when the caller passes content. */
 function section(title: string, inner: string, extraClass = ''): string {
-  return inner ? `          <section class="sec${extraClass ? ` ${extraClass}` : ''}"><h2 class="sh">${esc(title)}</h2>\n${inner}\n          </section>` : '';
+  return inner
+    ? `          <section class="sec${extraClass ? ` ${extraClass}` : ''}"><h2 class="sh">${esc(title)}</h2>\n${inner}\n          </section>`
+    : '';
 }
 
+/**
+ * One role: the title and company share the first line, the facts (period, location,
+ * type) share the second, start-aligned in both directions. Either line wraps cleanly
+ * when it outgrows the column, and a missing piece never leaves a stray separator.
+ */
 function experienceHtml(model: ResumeModel): string {
   return model.experience
-    .map(
-      item => `            <div class="xp">
-              <div class="xp__role">${esc(item.role)}</div>
-              <div class="xp__meta">
-                ${item.company ? `<span class="xp__org">${esc(item.company)}</span>` : ''}
-                ${item.period ? `<span class="xp__m" dir="ltr">${ICON.calendar}${esc(item.period)}</span>` : ''}
-                ${item.location ? `<span class="xp__m">${ICON.pin}${esc(item.location)}</span>` : ''}
-              </div>
+    .map(item => {
+      // `jobType` is optional in the profile schema — the chip renders only when the
+      // field exists, so this stays correct whether or not `build.ts` added it.
+      const jobType = (item as { jobType?: string }).jobType;
+      const head = [
+        item.role ? `<span class="xp__role">${esc(item.role)}</span>` : '',
+        item.role && item.company ? `<span class="xp__sep" aria-hidden="true">·</span>` : '',
+        item.company ? `<span class="xp__org">${esc(item.company)}</span>` : '',
+      ]
+        .filter(Boolean)
+        .join('');
+      const meta = [
+        item.period ? `<span class="xp__m" dir="ltr">${ICON.calendar}${esc(item.period)}</span>` : '',
+        item.location ? `<span class="xp__m">${ICON.pin}${esc(item.location)}</span>` : '',
+        jobType ? `<span class="xp__m">${ICON.briefcase}${esc(jobType)}</span>` : '',
+      ]
+        .filter(Boolean)
+        .join('');
+      return `            <div class="xp">
+              ${head ? `<div class="xp__head">${head}</div>` : ''}
+              ${meta ? `<div class="xp__meta">${meta}</div>` : ''}
               ${item.bullets.length ? `<ul class="xp__list">${item.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : ''}
-            </div>`
-    )
+            </div>`;
+    })
     .join('\n');
 }
 
@@ -1019,9 +1059,14 @@ export function renderResumeHtml(model: ResumeModel): string {
   const mainCol = [
     section(t.summary, model.summary ? `            <p class="summary">${esc(model.summary)}</p>` : ''),
     section(t.experience, experienceHtml(model)),
-    section(t.languages, model.languages.length ? `          <ul class="langs">
+    section(
+      t.languages,
+      model.languages.length
+        ? `          <ul class="langs">
 ${languagesHtml(model)}
-          </ul>` : ''),
+          </ul>`
+        : ''
+    ),
   ].filter(Boolean);
 
   const sideCol = [

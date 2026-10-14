@@ -37,6 +37,7 @@ export interface ResumeExperience {
   company: string;
   location?: string;
   period?: string;
+  jobType?: string;
   bullets: string[];
 }
 
@@ -105,7 +106,12 @@ function bulletsOf(description: string | undefined): string[] {
   if (!description) return [];
   return description
     .split('\n')
-    .map(line => line.replace(/^\s*[•\-*]\s*/, '').replace(/\*\*/g, '').trim())
+    .map(line =>
+      line
+        .replace(/^\s*[•\-*]\s*/, '')
+        .replace(/\*\*/g, '')
+        .trim()
+    )
     .filter(Boolean);
 }
 
@@ -115,7 +121,7 @@ function clip(text: string | undefined, max: number): string | undefined {
   if (!value) return undefined;
   if (value.length <= max) return value;
   const cut = value.slice(0, max);
-  const edge = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf('\u060C'), 0);
+  const edge = Math.max(cut.lastIndexOf(' '), cut.lastIndexOf('٬'), 0);
   return `${cut.slice(0, edge > 0 ? edge : max)}…`;
 }
 
@@ -140,7 +146,10 @@ function experienceOf(works: IWork[], locale: AppLocale): ResumeExperience[] {
     company: work.company?.trim() || '',
     location: work.location?.trim() || undefined,
     period: period(work.start, work.end, locale),
-    bullets: bulletsOf(work.description).slice(0, 4).map(b => clip(b, 170) ?? b),
+    jobType: (work as { jobType?: string }).jobType?.trim() || undefined,
+    bullets: bulletsOf(work.description)
+      .slice(0, 4)
+      .map(b => clip(b, 170) ?? b),
   }));
 }
 
@@ -183,7 +192,13 @@ function summaryOf(profile: NonNullable<PortfolioData['profile']>): string | und
   const summary = profile.summary?.trim();
   if (summary) return clip(summary, 480);
   const first = profile.description?.split(/\n\s*\n/).find(block => block.trim());
-  return clip(first?.replace(/[#*_>`-]/g, '').replace(/\s+/g, ' ').trim(), 480);
+  return clip(
+    first
+      ?.replace(/[#*_>`-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim(),
+    480
+  );
 }
 
 /**
@@ -207,7 +222,9 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
     });
   }
 
-  const selected = [...projects.filter(project => project.active)].sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured))).slice(0, 3);
+  const selected = [...projects.filter(project => project.active)]
+    .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
+    .slice(0, 3);
 
   return {
     locale,
@@ -223,7 +240,10 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
       technologies: (project.technologies ?? []).filter(Boolean).slice(0, 6),
       links: linksOf(project),
     })),
-    skills: skills.map(skill => skill.name).filter(Boolean).slice(0, 18),
+    skills: skills
+      .map(skill => skill.name)
+      .filter(Boolean)
+      .slice(0, 18),
     education: educationOf(data.educations, locale),
     certificates: certificatesOf(data.certificates, locale),
     languages: languagesOf(profile),
