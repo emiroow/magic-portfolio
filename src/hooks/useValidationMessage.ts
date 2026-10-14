@@ -16,6 +16,8 @@ const MESSAGE_KEYS: Record<string, string> = {
   'Description is required': 'descriptionRequired',
   'Company is required': 'companyRequired',
   'School is required': 'schoolRequired',
+  'End cannot be before start': 'endBeforeStart',
+  'Add an end date or mark the role as current': 'endOrCurrentRequired',
   'Slug is required': 'slugRequired',
   'Slug may contain letters, digits and dashes': 'slugPattern',
   'Price is required': 'priceRequired',

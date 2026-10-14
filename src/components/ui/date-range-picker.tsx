@@ -23,6 +23,8 @@ interface DateRangePickerProps {
   startPlaceholder?: string;
   endPlaceholder?: string;
   disabled?: boolean;
+  /** Drop the end column entirely, for a period that simply has no end. */
+  hideEnd?: boolean;
   error?: {
     start?: string;
     end?: string;
@@ -119,6 +121,7 @@ export const DateRangePicker = ({
   startPlaceholder,
   endPlaceholder,
   disabled = false,
+  hideEnd = false,
   error,
 }: DateRangePickerProps) => {
   const { resolvedTheme } = useTheme();
@@ -146,18 +149,20 @@ export const DateRangePicker = ({
         calendarLocale={calendarLocale}
         panelClass={panelClass}
       />
-      <MonthField
-        id={endId}
-        label={endLabel}
-        value={parse(endValue)}
-        onChange={onEndChange}
-        placeholder={endPlaceholder}
-        disabled={disabled}
-        error={error?.end}
-        calendar={calendar}
-        calendarLocale={calendarLocale}
-        panelClass={panelClass}
-      />
+      {hideEnd ? null : (
+        <MonthField
+          id={endId}
+          label={endLabel}
+          value={parse(endValue)}
+          onChange={onEndChange}
+          placeholder={endPlaceholder}
+          disabled={disabled}
+          error={error?.end}
+          calendar={calendar}
+          calendarLocale={calendarLocale}
+          panelClass={panelClass}
+        />
+      )}
     </div>
   );
 };

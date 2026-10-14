@@ -11,7 +11,7 @@ import {
   ResumeRow,
   SectionShell,
 } from '@/features/dashboard/components';
-import { Field } from '@/components/ui/field';
+import { CheckboxField, Field } from '@/components/ui/field';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { DateRangePicker } from '@/components/ui/date-range-picker';
 import { Button } from '@/components/ui/button';
@@ -20,7 +20,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useWorkExperience from '@/features/experience/hooks/useWorkExperience';
-import { formatYearMonthLocal } from '@/lib/utils';
+import { workPeriod } from '@/features/experience/format';
 import type { IWork } from '@/features/experience/types';
 import { Briefcase, Plus } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
@@ -37,6 +37,7 @@ const WorkExperience = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     getValues,
     errors,
@@ -58,10 +59,21 @@ const WorkExperience = () => {
 
   const editingId = getValues('_id');
   const logoUrl = getValues('logoUrl');
+  const isCurrent = watch('current');
 
   const closeForm = () => {
     panel.close();
     reset();
+  };
+
+  /**
+   * The switch owns the end month and nothing else. Turning it on drops the picked month
+   * at once, so a save can never carry a date the owner just disowned; turning it off
+   * hands the picker back empty rather than filling it with this month.
+   */
+  const setCurrent = (checked: boolean) => {
+    setValue('current', checked, { shouldDirty: true });
+    if (checked) setValue('end', '', { shouldDirty: true, shouldValidate: true });
   };
 
   const beginCreate = () => {
@@ -123,8 +135,9 @@ const WorkExperience = () => {
           </div>
 
           <DateRangePicker
-            startValue={getValues('start')}
-            endValue={getValues('end')}
+            startValue={watch('start') ?? ''}
+            endValue={watch('end') ?? ''}
+            hideEnd={isCurrent}
             onStartChange={value => setValue('start', value, { shouldValidate: true, shouldDirty: true })}
             onEndChange={value => setValue('end', value, { shouldValidate: true, shouldDirty: true })}
             startLabel={t('start')}
@@ -134,6 +147,10 @@ const WorkExperience = () => {
             locale={lang}
             error={{ start: errors.start?.message, end: errors.end?.message }}
           />
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <CheckboxField id="work-current" label={t('current')} {...register('current')} onChange={event => setCurrent(event.target.checked)} />
+          </div>
 
           <Field label={t('description')} id="work-description" error={errors.description?.message}>
             <Textarea id="work-description" rows={4} {...register('description')} placeholder={t('descriptionPlaceholder')} />
@@ -159,9 +176,7 @@ const WorkExperience = () => {
               href={work.href}
               description={work.description}
               meta={work.location}
-              period={`${formatYearMonthLocal(work.start, lang)}${work.start && work.end ? ' – ' : ''}${
-                work.end ? formatYearMonthLocal(work.end, lang) : work.start ? tRoot('present') : ''
-              }`}
+              period={workPeriod(work, lang, tRoot('present'))}
               onEdit={() => beginEdit(work)}
               onDelete={() => confirm.request(work._id, work.company)}
             />

@@ -1,18 +1,16 @@
 'use client';
 
 import { api } from '@/lib/client-api';
-import { workSchema } from '@/features/experience/schema';
+import { workFormSchema } from '@/features/experience/schema';
+import type { WorkForm } from '@/features/experience/schema';
 import type { IWork } from '@/features/experience/types';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useToastMessages } from '@/hooks/useToastMessages';
 import { useLocale } from 'next-intl';
 import { useForm } from 'react-hook-form';
-import { z } from 'zod';
 
-// Same schema as the API plus the optional document id for edits.
-const formSchema = workSchema.extend({ _id: z.string().optional() });
-type WorkForm = z.infer<typeof formSchema>;
+type SavedWork = Omit<WorkForm, 'current'>;
 
 const EMPTY: WorkForm = {
   company: '',
@@ -23,7 +21,25 @@ const EMPTY: WorkForm = {
   start: '',
   end: '',
   description: '',
+  current: false,
 };
+
+/**
+ * The body the API accepts, from the values the form holds.
+ *
+ * `current` is a question about `end`, not a column: ticking it drops the end month, so
+ * an open role is stored as one with no end. Unticking it keeps whatever the owner picked
+ * — an empty month stays empty rather than being filled with this month, which would
+ * quietly date a role nobody dated.
+ */
+function toPayload({ current, start, end, logoUrl, ...rest }: WorkForm): SavedWork {
+  return {
+    ...rest,
+    logoUrl: logoUrl ? logoUrl.split('?')[0] : '',
+    start: start ?? '',
+    end: current ? '' : (end ?? ''),
+  };
+}
 
 /** Work experience list + CRUD and logo upload for the dashboard. */
 const useWorkExperience = () => {
@@ -34,15 +50,23 @@ const useWorkExperience = () => {
     register,
     handleSubmit,
     setValue,
+    watch,
     reset,
     getValues,
     trigger,
     formState: { errors },
   } = useForm<WorkForm>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(workFormSchema),
     defaultValues: EMPTY,
     mode: 'onTouched',
   });
+
+  /**
+   * Back to a blank create form. `reset()` alone would not give one: `startEdit` passes
+   * the record to `reset`, and react-hook-form adopts those values as the new defaults —
+   * so the next "add" press would reopen already holding the last edited role.
+   */
+  const resetForm = () => reset({ ...EMPTY });
 
   const {
     data: works,
@@ -57,13 +81,12 @@ const useWorkExperience = () => {
 
   const save = useMutation({
     mutationFn: (data: WorkForm) => {
-      // Store clean URLs: strip the display-only ?cb= cache buster.
-      const clean = { ...data, logoUrl: data.logoUrl ? data.logoUrl.split('?')[0] : '' };
+      const clean = toPayload(data);
       return clean._id ? api.put<IWork>(`/api/${locale}/admin/work`, clean) : api.post<IWork>(`/api/${locale}/admin/work`, clean);
     },
     onSuccess: () => {
       ok();
-      reset();
+      resetForm();
       refetchWorks();
     },
     onError: () => fail(),
@@ -99,13 +122,21 @@ const useWorkExperience = () => {
     onError: () => fail(),
   });
 
-  const startEdit = (work: IWork) => reset({ ...EMPTY, ...work, _id: work._id });
+  /**
+   * The record decides its own state: a stored document with no end month — missing,
+   * null or blank, all of which older records do use — opens as a current role.
+   */
+  const startEdit = (work: IWork) => {
+    const end = work.end?.trim() ?? '';
+    reset({ ...EMPTY, ...work, start: work.start?.trim() ?? '', end, current: !end, _id: work._id });
+  };
 
   return {
     register,
     handleSubmit,
     setValue,
-    reset,
+    watch,
+    reset: resetForm,
     getValues,
     errors,
     works,

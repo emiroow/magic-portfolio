@@ -565,6 +565,7 @@
       "title": "Job title",
       "start": "Start",
       "end": "End",
+      "current": "I currently work here",
       "save": "Save",
       "description": "Description",
       "logoImage": "Company Logo",
@@ -1195,6 +1196,8 @@
     "duplicateDestination": "Two destinations share one name.",
     "platformInvalid": "Choose a support platform.",
     "gatewayInvalid": "That service is not a gateway.",
-    "addressTooLong": "The address is too long."
+    "addressTooLong": "The address is too long.",
+    "endBeforeStart": "The end month cannot be before the start month.",
+    "endOrCurrentRequired": "Add an end date, or turn on “I currently work here”."
   }
 }
