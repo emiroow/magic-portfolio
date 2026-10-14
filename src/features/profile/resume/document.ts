@@ -346,6 +346,9 @@ const STYLE = `
   .menu__item:hover { background: var(--b2-hover); }
   .menu__item[data-busy] { cursor: progress; }
   .menu__item:focus-visible { outline: 2px solid var(--ink); outline-offset: -2px; }
+  /* The glyph carries its own size: these SVGs ship with a viewBox only, so without
+     this they fall back to the browser's default replaced-element box. */
+  .menu__item svg { width: 16px; height: 16px; flex: none; margin-top: 2px; color: var(--icon); }
   .menu__txt { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
   .menu__label { font-weight: 600; color: var(--ink); }
   .menu__desc { font-size: 11.5px; line-height: 1.45; color: var(--muted); }
