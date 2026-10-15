@@ -11,10 +11,11 @@ import { socialModel } from '@/features/socials/model';
 import { supporterModel } from '@/features/support/supporter.model';
 import { workModel } from '@/features/experience/model';
 import mongoose from 'mongoose';
-import { describePersonas, getPersona } from '@/seed/personas/index';
+import { PERSONAS, describePersonas, getPersona } from '@/seed/personas/index';
+import { CERTIFICATES, seedCertificateData } from '@/seed/certificate.seed';
+import { formatIssues, seedErrors, validatePersona, type SeedIssue } from '@/seed/personas/validate';
 import type { Persona } from '@/seed/personas/types';
 import { seedBlogData } from '@/seed/blog.seed';
-import { seedCertificateData } from '@/seed/certificate.seed';
 import { seedDonationData } from '@/seed/donation.seed';
 import { seedEducationData } from '@/seed/education.seed';
 import { seedUserData } from '@/seed/profile.seed';
@@ -54,6 +55,43 @@ const STEPS: readonly Step[] = [
 /** `FORCE_SEED=true` or `--force`: drop the database before seeding. */
 const isForced = (argv: string[] = process.argv) => process.env.FORCE_SEED === 'true' || argv.includes('--force');
 
+/** The audit for one persona, against the credential set its career inherits. */
+const issuesOf = (persona: Persona): SeedIssue[] => validatePersona(persona, persona.certificates ?? CERTIFICATES[persona.id]);
+
+/**
+ * The documents this persona will actually insert, audited before anything is written.
+ *
+ * A seed that half-succeeds is worse than one that refuses to run: the English site ends up
+ * with a project the Persian site does not have. So the audit runs first and its errors abort
+ * the run, while the craft warnings are printed for whoever is polishing the content.
+ */
+const auditPersona = (persona: Persona) => {
+  const issues = issuesOf(persona);
+  formatIssues(persona.id, issues).forEach(line => console.log(line));
+
+  const errors = seedErrors(issues);
+  if (errors.length) {
+    throw new Error(`${errors.length} problem(s) in the "${persona.id}" persona — fix them, or run \`npm run seed:check\` for the full report.`);
+  }
+};
+
+/**
+ * `--check`: audit every persona, no database required. Prints the same report a seed run
+ * prints, across all identities, and exits non-zero when any of them would insert bad content.
+ */
+const checkPersonas = (argv: string[] = process.argv) => {
+  const list = argv.some(arg => arg.startsWith('--persona=')) ? [getPersona(argv)] : Object.values(PERSONAS);
+  const perPersona = list.map(persona => ({ persona, issues: issuesOf(persona) }));
+
+  const lines = perPersona.flatMap(({ persona, issues }) => formatIssues(persona.id, issues));
+  const errors = perPersona.reduce((total, { issues }) => total + seedErrors(issues).length, 0);
+  const warnings = perPersona.reduce((total, { issues }) => total + (issues.length - seedErrors(issues).length), 0);
+
+  console.log(lines.length ? lines.join('\n') : `${list.length} persona(s) clean.`);
+  console.log(`\nSeed audit: ${errors} error(s), ${warnings} warning(s) across ${list.length} persona(s).`);
+  return errors;
+};
+
 /**
  * Insert the demo persona. Skips when the database already has content,
  * unless `--force` (or `FORCE_SEED=true`) drops it first.
@@ -61,6 +99,8 @@ const isForced = (argv: string[] = process.argv) => process.env.FORCE_SEED === '
 export const seedData = async (persona: Persona = getPersona()) => {
   const owner = persona.profile.en[0].fullName;
   console.log(`Persona: ${persona.id} — ${persona.label} (${owner})`);
+
+  auditPersona(persona);
 
   await connectDB();
 
@@ -93,10 +133,14 @@ export const seedData = async (persona: Persona = getPersona()) => {
   console.log(`Seed data inserted successfully (${summary}).`);
 };
 
-/** `--list-personas` prints without touching the database. */
+/** `--list-personas` prints without touching the database; `--check` audits without writing. */
 const run = async () => {
   if (process.argv.includes('--list-personas')) {
     console.log(describePersonas().join('\n'));
+    return;
+  }
+  if (process.argv.includes('--check')) {
+    if (checkPersonas()) process.exitCode = 1;
     return;
   }
   await seedData();

@@ -80,6 +80,20 @@ export function withBothLangs<T extends object>(pair: Localized<T>) {
 }
 
 /**
+ * Toolkit badges, ranked in the order the persona authored them.
+ *
+ * Both the home section and the admin list sort `order` first and the alphabet second, so a
+ * persona that leaves the rank out gets its toolkit resorted by name — `Accessibility` ahead of
+ * `React` — which is a statement nobody made. Stamping the rank here keeps the authored list the
+ * printed one, and an explicitly ranked badge still wins, so the dashboard's arrows survive a
+ * reseed of a persona that cares about a particular pair.
+ */
+export function rankSkills(pair: Localized<Content<ISkill>>): Localized<Content<ISkill>> {
+  const rank = (list: Content<ISkill>[]) => list.map((skill, index) => ({ order: (index + 1) * 10, ...skill }));
+  return { en: rank(pair.en), fa: rank(pair.fa) };
+}
+
+/**
  * Placeholder media. `SEED_IMAGES=false` seeds no remote URL at all, and the
  * UI falls back to its own monogram placeholders — handy offline, and a reminder
  * that every image below is throwaway demo content.

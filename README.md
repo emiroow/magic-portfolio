@@ -87,6 +87,7 @@ The dashboard is at `/en/dashboard`. Sign in with the `ADMIN_EMAIL` / `ADMIN_PAS
 | `npm run seed`       | Insert demo content (skips if DB is not empty)       |
 | `npm run seed:force` | Drop the database, then seed demo content            |
 | `npm run seed:list`  | List the demo personas and their content counts      |
+| `npm run seed:check` | Audit every persona's content — no database needed   |
 | `npm run lint`       | ESLint                                               |
 | `npm run typecheck`  | `tsc --noEmit`                                       |
 | `npm run format`     | Prettier over `src/**`                               |
@@ -125,13 +126,17 @@ The dashboard is at `/en/dashboard`. Sign in with the `ADMIN_EMAIL` / `ADMIN_PAS
 ```bash
 npm run seed:list                              # what is available
 npm run seed -- --persona=designer --force     # reset the database and seed that identity
+npm run seed:check                             # audit all four identities before seeding anything
 SEED_IMAGES=false npm run seed                 # no remote placeholder images, just the site's monograms
 ```
 
 Notes on what gets written:
 
 - **Both locales at once.** Every entry is authored in English and Persian with parallel documents, including Jalali dates on the `/fa` site.
+- **The seed audits itself first.** Before a document is inserted, `src/seed/personas/validate.ts` checks the pair: equal record counts per locale, the same slug/href/dates/tags at the same index, a Persian month that really is the Jalali face of its Gregorian twin, icon slugs the dashboard's picker still offers, home-row picks within the three slots and never hidden behind `active: false`, and Persian articles that keep the code blocks and tables their English twins carry. Errors abort the run — a half-translated demo is worse than no demo — and `npm run seed:check` prints the whole report without a database.
 - **Projects are case studies.** Each one carries a long-form Markdown body, a `featured` flag (three per persona lead the home row) and an explicit `createdAt`, so archives and the home section land in a sensible order.
+- **Every persona has a shop.** Four products per identity, priced in the currency its market uses (toman for the three in Iran, dollars for the one in Berlin) and with one free pick, so `/products`, the home row and the purchase page all have something to show.
+- **The toolkit keeps its order.** Badges are seeded with a display rank in the order they were authored, because the list sorts priority first and alphabet second — otherwise a React engineer would open with `Accessibility`.
 - **The blog has a draft.** One post per persona ships unpublished, which is how the dashboard's draft state gets demonstrated.
 - **A notice post comes first.** "About this demo content" is seeded as the newest post, so nobody mistakes invented metrics for real work.
 - **Credentials match the career.** Each identity ships five certificates written for its role — a cloud and an accessibility credential for the front-end engineer, Kubernetes and Kafka for the back-end one — with real issuing bodies and invented credential ids on `credentials.example.com`. Three are marked for the résumé, and at least one has already lapsed so the dashboard's expired state is visible without inventing a record. The set lives in `src/seed/certificate.seed.ts`; a persona that wants its own declares `certificates` and that file steps aside.

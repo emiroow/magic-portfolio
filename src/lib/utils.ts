@@ -6,7 +6,12 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const PERSIAN_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
+/**
+ * Jalali month names, in order. Exported because the seed audit reads Persian
+ * date strings with the same vocabulary the pages write them with, so the two
+ * can never disagree about what «مهر» means.
+ */
+export const PERSIAN_MONTHS = ['فروردین', 'اردیبهشت', 'خرداد', 'تیر', 'مرداد', 'شهریور', 'مهر', 'آبان', 'آذر', 'دی', 'بهمن', 'اسفند'];
 
 /** Convert ASCII digits in a string to Persian digits. */
 function toPersianDigits(input: string) {
