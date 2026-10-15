@@ -301,6 +301,31 @@ const STYLE = `
   html[data-theme='dark'] .ico-sun { opacity: 0; transform: rotate(90deg) scale(.4); }
   html[data-theme='dark'] .ico-moon { opacity: 1; transform: rotate(0deg) scale(1); }
 
+  /* Theme reveal — the site's circular switch, carried into this document so the two read
+     as one gesture: the same custom properties, the same keyframes and the same length as
+     the block in app/globals.css. Only the incoming theme moves; the outgoing sheet holds
+     still underneath, and the browser's own cross-fade is switched off on both halves,
+     because a fade over a growing circle is exactly what makes a reveal read as a flash.
+
+     [data-reveal] is set by the script for the length of the reveal and does here what
+     disableTransitionOnChange does on the site: a snapshot has to be taken of a finished
+     palette, not of the colour fade above or the sun/moon turn caught half-way. */
+  html[data-reveal], html[data-reveal] *, html[data-reveal] *::before, html[data-reveal] *::after { transition: none !important; }
+  ::view-transition-group(root), ::view-transition-image-pair(root) { animation: none; }
+  ::view-transition-old(root) { animation: none; mix-blend-mode: normal; z-index: 0; }
+  ::view-transition-new(root) {
+    animation: theme-reveal .45s cubic-bezier(.4, 0, .2, 1) both;
+    mix-blend-mode: normal; z-index: 1;
+  }
+  @keyframes theme-reveal {
+    from { clip-path: circle(0px at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%)); }
+    to { clip-path: circle(var(--theme-reveal-r, 150vmax) at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%)); }
+  }
+  /* Reduced motion asks for the switch, not the travel; the script skips the reveal too. */
+  @media (prefers-reduced-motion: reduce) {
+    ::view-transition-group(root), ::view-transition-image-pair(root), ::view-transition-new(root) { animation: none; }
+  }
+
   /* Tooltips drawn in CSS: this is a bare route with no React, and the native title
      tooltip is slow, unstyled and outside the palette. The mark fades in under the
      control on hover and on keyboard focus, in the inverted surface the site uses. */
@@ -785,14 +810,59 @@ function toolbarScript(): string {
 
         // The theme lives under next-themes' 'theme' key, so the résumé opens the way
         // the site was left and leaves the site the way the résumé was left.
-        var themeBtn = document.getElementById('theme');
-        if (themeBtn) themeBtn.addEventListener('click', function () {
-          var next = root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        function applyTheme(next) {
           root.setAttribute('data-theme', next);
           var meta = document.querySelector('meta[name="theme-color"]');
           if (meta) meta.setAttribute('content', next === 'dark' ? '#0a0a0a' : '#ffffff');
           try { localStorage.setItem('theme', next); localStorage.removeItem('resume-theme'); } catch (e) {}
           pdfBlob = null; // a themed download must be re-captured in the new theme
+        }
+
+        // The circular reveal, aimed here and drawn by the CSS above. This document writes
+        // its own attribute, so the change is already on the page when the callback returns
+        // and the incoming snapshot is the new palette — no framework help needed. Engines
+        // without the API and visitors who asked for reduced motion get the plain switch.
+        var reveal = null;
+        function revealTheme(next, event) {
+          var reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+          if (reduce || typeof document.startViewTransition !== 'function') { applyTheme(next); return; }
+
+          // A press made by the keyboard carries no position, so it is aimed at the control
+          // rather than at the corner of the screen.
+          var x = event.clientX, y = event.clientY;
+          if (!event.detail || (x === 0 && y === 0)) {
+            var box = event.currentTarget.getBoundingClientRect();
+            x = box.left + box.width / 2;
+            y = box.top + box.height / 2;
+          }
+          // Farthest corner, measured to each of its own extremes: the sheet is a wide fixed
+          // canvas, and a radius aimed only at the opposite corner would leave the near ones
+          // in the old palette on a big screen.
+          var far = Math.ceil(Math.hypot(Math.max(x, window.innerWidth - x), Math.max(y, window.innerHeight - y)));
+          root.style.setProperty('--theme-reveal-x', x + 'px');
+          root.style.setProperty('--theme-reveal-y', y + 'px');
+          root.style.setProperty('--theme-reveal-r', far + 'px');
+          root.setAttribute('data-reveal', '1');
+
+          var run = document.startViewTransition(function () { applyTheme(next); });
+          // A second press cuts the running reveal short, so only the newest one may put the
+          // aim back — releasing it earlier would drop an in-flight circle onto its centred
+          // fallback half-way across the page.
+          reveal = run;
+          var done = function () {
+            if (reveal !== run) return;
+            reveal = null;
+            root.removeAttribute('data-reveal');
+            root.style.removeProperty('--theme-reveal-x');
+            root.style.removeProperty('--theme-reveal-y');
+            root.style.removeProperty('--theme-reveal-r');
+          };
+          run.finished.then(done, done);
+        }
+
+        var themeBtn = document.getElementById('theme');
+        if (themeBtn) themeBtn.addEventListener('click', function (event) {
+          revealTheme(root.getAttribute('data-theme') === 'dark' ? 'light' : 'dark', event);
         });
 
         // role="toolbar" promises arrow-key movement between its controls, so exactly one

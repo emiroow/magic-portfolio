@@ -426,3 +426,66 @@
  * the inline transition the library writes onto the bar. A visitor who asked for no motion
  * still learns that a route is coming — it simply arrives in steps instead of a slide.
  */
+
+/*
+ * Theme reveal.
+ *
+ * `lib/theme-reveal` aims a circle at the press that switched the theme and hands its
+ * geometry to the three custom properties below; the drawing is entirely here, and the
+ * compositor does it. Only the incoming theme moves: the outgoing snapshot holds still
+ * underneath (`animation: none`, no blend, one step below in the stack) while the incoming
+ * one is uncovered from the click outwards.
+ *
+ * Switching the UA's own crossfade off on both halves is not a preference — a default fade
+ * over a growing circle reads as a flash, because the old theme is still dissolving above
+ * the new one. The duration is the shortest that still reads as a circle travelling across
+ * the page, and it is worth knowing why that matters: while a view transition runs,
+ * Chromium holds pointer input to the snapshot, so this length is also the window in which
+ * a second press on the toggle is retargeted away from it. `ease-in-out` keeps the travel
+ * even at both ends.
+ *
+ * Both keyframes take their centre from the same properties, so the shape interpolates as a
+ * growing circle rather than jumping discretely, and the centred fallback is there only for
+ * a reveal whose geometry never arrived: the properties are written before it starts.
+ */
+::view-transition-group(root),
+::view-transition-image-pair(root) {
+  /* Nothing about the frame animates either: a viewport that changes size mid-reveal — a
+     mobile URL bar folding away — snaps to the new box instead of scaling the whole page. */
+  animation: none;
+}
+
+::view-transition-old(root) {
+  animation: none;
+  mix-blend-mode: normal;
+  z-index: 0;
+}
+
+::view-transition-new(root) {
+  animation: theme-reveal 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+  mix-blend-mode: normal;
+  z-index: 1;
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0px at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%));
+  }
+
+  to {
+    clip-path: circle(var(--theme-reveal-r, 150vmax) at var(--theme-reveal-x, 50%) var(--theme-reveal-y, 50%));
+  }
+}
+
+/*
+ * Reduced motion: the new theme is simply there, with nothing travelling. The JavaScript
+ * skips the reveal for the same visitor, and this is the other half of that promise — a
+ * transition started by anything else still lands without motion.
+ */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(root),
+  ::view-transition-image-pair(root),
+  ::view-transition-new(root) {
+    animation: none;
+  }
+}
