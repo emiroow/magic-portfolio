@@ -1,10 +1,10 @@
 'use client';
 
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
-import { cn, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { GalleryImage } from '@/components/gallery-image';
+import { cn, localizedCount } from '@/lib/utils';
 import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { useState } from 'react';
 
 interface ImageGalleryProps {
@@ -19,34 +19,9 @@ interface ImageGalleryProps {
   className?: string;
 }
 
-interface GalleryImageProps {
-  src: string;
-  alt: string;
-  className?: string;
-  sizes?: string;
-  priority?: boolean;
-  contain?: boolean;
-}
-
-/**
- * A stored image, optimized when it came from this site's own storage.
- *
- * A pasted external URL — or a seeded demo cover — cannot go through `next/image`
- * without a domain allowlisted at build time, so it degrades to a plain `img`
- * instead of throwing on a record the owner can see perfectly well.
- *
- * Exported for the dashboard tiles, which show the very same pictures.
- */
-export function GalleryImage({ src, alt, className, sizes, priority, contain }: GalleryImageProps) {
-  const fit = contain ? 'object-contain' : 'object-cover';
-
-  if (!isOptimizableImage(src)) {
-    // eslint-disable-next-line @next/next/no-img-element
-    return <img src={src} alt={alt} loading={priority ? undefined : 'lazy'} decoding="async" className={cn('size-full', fit, className)} />;
-  }
-
-  return <Image src={src} alt={alt} fill sizes={sizes} priority={priority} className={cn(fit, className)} />;
-}
+// Re-exported from its directive-free home so the dashboard tiles and the cards
+// keep one shared definition; this module owns the stateful gallery and lightbox.
+export { GalleryImage };
 
 /**
  * A record's pictures, from none to many.

@@ -1,10 +1,9 @@
 import BlurFade from '@/components/magicui/blur-fade';
+import { GalleryImage } from '@/components/gallery-image';
 import { eyebrowClass } from '@/components/section-header';
 import { Button } from '@/components/ui/button';
 import { ResumeButton } from '@/features/profile/resume/button';
-import { isOptimizableImage } from '@/lib/utils';
 import { HandHeart, Mail } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import type { IProfile } from '@/features/profile/types';
 import type { AppLocale } from '@/types';
@@ -110,27 +109,13 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
         <BlurFade delay={delay + 0.1} className="shrink-0">
           <div className="group relative size-20 overflow-hidden rounded-full border shadow-sm sm:size-24 lg:size-28">
             {avatar ? (
-              isOptimizableImage(avatar) ? (
-                <Image
-                  src={avatar}
-                  alt={name}
-                  width={256}
-                  height={256}
-                  priority
-                  sizes="(max-width: 640px) 80px, (max-width: 1024px) 96px, 112px"
-                  className="size-full object-cover grayscale transition-[filter] duration-500 group-hover:grayscale-0"
-                />
-              ) : (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={avatar}
-                  alt={name}
-                  width={256}
-                  height={256}
-                  decoding="async"
-                  className="size-full object-cover grayscale transition-[filter] duration-500 group-hover:grayscale-0"
-                />
-              )
+              <GalleryImage
+                src={avatar}
+                alt={name}
+                priority
+                sizes="(max-width: 640px) 80px, (max-width: 1024px) 96px, 112px"
+                className="grayscale transition-[filter] duration-500 group-hover:grayscale-0"
+              />
             ) : (
               <span className="flex size-full items-center justify-center bg-muted text-xl font-bold text-muted-foreground">{monogram}</span>
             )}

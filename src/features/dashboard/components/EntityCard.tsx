@@ -1,9 +1,9 @@
 'use client';
 
 import { Card } from '@/components/ui/card';
-import { cn, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { GalleryImage } from '@/components/gallery-image';
+import { cn, localizedCount } from '@/lib/utils';
 import { useLocale, useTranslations } from 'next-intl';
-import Image from 'next/image';
 import type { ReactNode } from 'react';
 
 interface EntityCardProps {
@@ -80,12 +80,7 @@ export function EntityThumb({ src, alt, className, sizes = '(max-width: 640px) 1
 
   return (
     <div className={cn('relative shrink-0 overflow-hidden rounded-lg border', className)}>
-      {isOptimizableImage(src) ? (
-        <Image src={src} alt={alt} fill sizes={sizes} className="object-cover" />
-      ) : (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={alt} loading="lazy" decoding="async" className="size-full object-cover" />
-      )}
+      <GalleryImage src={src} alt={alt} sizes={sizes} />
 
       {count > 1 && (
         <span

@@ -983,7 +983,8 @@
       "title": "Crop Image",
       "apply": "Apply",
       "zoom": "Zoom",
-      "move": "Drag to reposition"
+      "move": "Drag to reposition",
+      "readError": "That image could not be read. Try a different file."
     },
     "menu": {
       "Profile": "Profile",

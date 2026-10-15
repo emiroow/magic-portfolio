@@ -1,10 +1,10 @@
 import { iconDecider } from '@/components/icons';
+import { GalleryImage } from '@/components/gallery-image';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { CARD_IMAGE_SIZES, IMAGE_SPECS } from '@/constants/imageSpecs';
-import { cn, isOptimizableImage } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import { ArrowUpRight } from 'lucide-react';
-import Image from 'next/image';
 import Link from 'next/link';
 import Markdown from 'react-markdown';
 
@@ -55,7 +55,6 @@ export function ProjectCard({
   sizes = CARD_IMAGE_SIZES,
   headingLevel: Heading = 'h3',
 }: ProjectCardProps) {
-  const cover = image && isOptimizableImage(image) ? image : undefined;
   const chips = [...(links ?? [])];
   if (href && !chips.some(link => link.href === href)) {
     chips.unshift({ type: liveLabel || 'Live', href, icon: 'website' });
@@ -65,18 +64,14 @@ export function ProjectCard({
   return (
     <Card className={cn('group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30', className)}>
       <div className={cn('relative w-full overflow-hidden border-b bg-muted', IMAGE_SPECS.project.aspectClass)}>
-        {cover ? (
-          <Image
-            src={cover}
+        {image ? (
+          <GalleryImage
+            src={image}
             alt={title}
-            fill
             priority={priority}
             sizes={sizes}
-            className="object-cover object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
+            className="object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
           />
-        ) : image ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={image} alt={title} loading="lazy" decoding="async" className="size-full object-cover grayscale" />
         ) : (
           // Deterministic monogram keeps the grid aligned without an image.
           <span aria-hidden className="flex size-full items-center justify-center text-3xl font-bold text-muted-foreground/40">

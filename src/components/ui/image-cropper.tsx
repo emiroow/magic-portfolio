@@ -18,6 +18,8 @@ type ImageCropperProps = {
   };
   outputSize?: number; // final pixel size for width (height derived by aspect)
   onCropped: (file: File) => void;
+  /** Fired when the picked file cannot be decoded, so the caller can say why nothing was saved. */
+  onError?: () => void;
 };
 
 type CropperBodyProps = {
@@ -26,6 +28,7 @@ type CropperBodyProps = {
   labels: ImageCropperProps['labels'];
   outputSize: number;
   onCropped: (file: File) => void;
+  onError?: () => void;
   onClose: () => void;
 };
 
@@ -34,7 +37,7 @@ type CropperBodyProps = {
  * through logical utilities and inherited direction, so the Persian dialog is
  * the English one flipped — no hand-rolled `flex-row-reverse` to double-mirror.
  */
-function CropperBody({ src, aspect, labels, outputSize, onCropped, onClose }: CropperBodyProps) {
+function CropperBody({ src, aspect, labels, outputSize, onCropped, onError, onClose }: CropperBodyProps) {
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null);
@@ -74,13 +77,20 @@ function CropperBody({ src, aspect, labels, outputSize, onCropped, onClose }: Cr
         ctx.drawImage(image, x, y, sw, sh, 0, 0, outW, outH);
         canvas.toBlob(b => resolve(b), 'image/jpeg', 0.92);
       };
+      // A corrupt, truncated, or browser-undecodable file never fires `onload`;
+      // resolving here keeps the promise from hanging the dialog open forever.
+      image.onerror = () => resolve(null);
       image.src = src;
     });
-    if (!blob) return;
+    if (!blob) {
+      onError?.();
+      onClose();
+      return;
+    }
     const file = new File([blob], 'cropped.jpg', { type: 'image/jpeg' });
     onCropped(file);
     onClose();
-  }, [src, croppedAreaPixels, outputSize, aspect, onCropped, onClose]);
+  }, [src, croppedAreaPixels, outputSize, aspect, onCropped, onError, onClose]);
 
   return (
     <>
@@ -138,7 +148,7 @@ function CropperBody({ src, aspect, labels, outputSize, onCropped, onClose }: Cr
   );
 }
 
-export default function ImageCropperDialog({ open, onOpenChange, src, aspect = 1, labels, outputSize = 512, onCropped }: ImageCropperProps) {
+export default function ImageCropperDialog({ open, onOpenChange, src, aspect = 1, labels, outputSize = 512, onCropped, onError }: ImageCropperProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[420px]">
@@ -150,6 +160,7 @@ export default function ImageCropperDialog({ open, onOpenChange, src, aspect = 1
             labels={labels}
             outputSize={outputSize}
             onCropped={onCropped}
+            onError={onError}
             onClose={() => onOpenChange(false)}
           />
         ) : null}

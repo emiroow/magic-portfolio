@@ -281,6 +281,7 @@ export function GalleryField({
           outputSize={outputSize}
           labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: td('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
           onCropped={cropOne}
+          onError={() => setNotice(tcrop('readError'))}
         />
       )}
 

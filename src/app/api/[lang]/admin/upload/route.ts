@@ -20,7 +20,27 @@ const isDev = process.env.NODE_ENV === 'development';
 
 /** 5 MB upload limit. */
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
-const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
+
+/**
+ * Formats the pipeline can decode and serve, named the way sharp reports them —
+ * the format read off the actual bytes, never the browser's `file.type` claim.
+ * AVIF belongs here because sharp reads it and `next/image` serves it; each is
+ * verified against the decoded header below, so a renamed non-image is refused
+ * whatever MIME string it arrived with.
+ */
+const ALLOWED_FORMATS = ['jpeg', 'png', 'webp', 'avif'];
+
+/**
+ * Longest side, in pixels, an upload may have. A catalogue cover is normalised to
+ * 1600px and an avatar to a few hundred, so 6000px is far beyond any real need —
+ * it exists to refuse a decompression bomb: a small file that expands to an absurd
+ * canvas. The 5 MB byte cap cannot catch that, because the danger is the decoded
+ * size, not the compressed one, so the ceiling is enforced as sharp reads the header.
+ */
+const MAX_IMAGE_DIMENSION = 6000;
+
+/** Total-pixel ceiling handed to sharp (`limitInputPixels`) as the bomb guard. */
+const MAX_IMAGE_PIXELS = MAX_IMAGE_DIMENSION * MAX_IMAGE_DIMENSION;
 
 /**
  * Re-bake a catalogue cover onto its canonical canvas.
@@ -32,8 +52,8 @@ const ALLOWED_TYPES = ['image/png', 'image/jpeg', 'image/webp'];
  * difference instead of stretching it, so nothing is ever distorted to hit the size,
  * and JPEG output keeps the catalogue uniform whatever format was uploaded.
  */
-async function normalizeToSpec(input: ArrayBuffer, spec: ImageSpec): Promise<Buffer> {
-  return sharp(Buffer.from(input))
+async function normalizeToSpec(input: Buffer, spec: ImageSpec): Promise<Buffer> {
+  return sharp(input, { limitInputPixels: MAX_IMAGE_PIXELS, failOn: 'error' })
     .rotate() // honour the EXIF orientation, so a phone upload lands upright rather than sideways
     .flatten({ background: '#ffffff' }) // covers are opaque; clear alpha before the JPEG encode
     .resize({ width: spec.width, height: spec.height, fit: 'cover', position: 'centre', kernel: 'lanczos3' })
@@ -165,27 +185,56 @@ export async function POST(req: NextRequest) {
       return apiJson({ data: { fileUrl: docUrl } });
     }
 
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return apiError(`Only ${ALLOWED_TYPES.join(', ')} files are allowed`);
-    }
     if (file.size > MAX_FILE_SIZE) {
       return apiError('File exceeds the 5 MB size limit');
     }
 
     const spec = specForUploadType(type);
-    const sourceBytes = await file.arrayBuffer();
+    const sourceBytes = Buffer.from(await file.arrayBuffer());
+
+    // Decode the bytes once, before anything reaches storage. A browser's MIME
+    // string is a claim, not a fact: a renamed executable, a truncated file and a
+    // decompression bomb all arrive wearing an innocent `image/png`. Reading the
+    // real header with sharp is what proves the upload is an image at all, of a
+    // format the pipeline can serve, and small enough in pixels not to exhaust
+    // memory when it is decoded. This is the authority for every image — a
+    // catalogue cover and an avatar alike — so nothing is stored on trust.
+    let format: string;
+    let width: number;
+    let height: number;
+    try {
+      const metadata = await sharp(sourceBytes, { limitInputPixels: MAX_IMAGE_PIXELS, failOn: 'error' }).metadata();
+      format = metadata.format ?? '';
+      width = metadata.width ?? 0;
+      height = metadata.height ?? 0;
+    } catch (error) {
+      console.error('[api/admin/upload] image could not be decoded:', error);
+      return apiError('The image could not be processed', 400);
+    }
+
+    if (!ALLOWED_FORMATS.includes(format)) {
+      return apiError(`Only ${ALLOWED_FORMATS.join(', ')} images are allowed`, 400);
+    }
+    if (!width || !height || width > MAX_IMAGE_DIMENSION || height > MAX_IMAGE_DIMENSION) {
+      return apiError(`Image dimensions must be ${MAX_IMAGE_DIMENSION}px or smaller on each side`, 400);
+    }
+
     // Catalogue covers are re-baked to their canonical canvas; everything else
-    // (avatar, logos, certificates) is stored as uploaded, alpha and all. A cover that
-    // cannot be decoded is refused rather than filed in a shape the pages cannot frame.
+    // (avatar, logos, certificates) keeps the exact bytes just proven valid, alpha
+    // and all, so a transparent logo is never flattened against its owner's intent.
+    // A cover that cannot be re-baked is refused rather than filed in a shape the
+    // pages cannot frame.
     let payload: Buffer;
     try {
-      payload = spec ? await normalizeToSpec(sourceBytes, spec) : Buffer.from(sourceBytes);
+      payload = spec ? await normalizeToSpec(sourceBytes, spec) : sourceBytes;
     } catch (error) {
       console.error('[api/admin/upload] image processing failed:', error);
       return apiError('The image could not be processed', 400);
     }
 
-    const ext = spec ? 'jpg' : file.type === 'image/jpeg' ? 'jpg' : file.type.split('/')[1];
+    // The stored extension follows the detected format, never the claimed MIME, so
+    // the file on disk is named for what it actually is.
+    const ext = spec ? 'jpg' : format === 'jpeg' ? 'jpg' : format;
     const fileName = type === 'avatar' ? `avatarImage.${ext}` : `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${ext}`;
 
     const fileUrl = await storeUpload(folder, fileName, payload, { fixed: type === 'avatar' });

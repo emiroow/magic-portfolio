@@ -4,10 +4,10 @@ import { Field } from '@/components/ui/field';
 import ImageCropperDialog from '@/components/ui/image-cropper';
 import Loading from '@/components/ui/loading';
 import { Button } from '@/components/ui/button';
-import { cn, isOptimizableImage } from '@/lib/utils';
+import { GalleryImage } from '@/components/gallery-image';
+import { cn } from '@/lib/utils';
 import { ImagePlus, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import { useId, useRef, useState } from 'react';
 
 /** What the file inputs accept, and what the upload route insists on. */
@@ -67,8 +67,11 @@ export function ImageField({
   const fileRef = useRef<HTMLInputElement>(null);
   const [cropOpen, setCropOpen] = useState(false);
   const [cropSrc, setCropSrc] = useState<string | null>(null);
+  /** A picked file that could not be decoded; transient, so it gets its own live line. */
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const objectClass = fit === 'contain' ? 'object-contain p-1' : 'object-cover';
+  // A contained logo gets a little breathing room inside the frame; a cover does not.
+  const containPad = fit === 'contain' ? 'p-1' : undefined;
 
   const onCropOpenChange = (open: boolean) => {
     setCropOpen(open);
@@ -81,15 +84,15 @@ export function ImageField({
 
   return (
     <Field label={label} id={controlId} error={error} hint={hint}>
+      {notice && !error && (
+        <p role="status" className="text-xs leading-relaxed text-muted-foreground">
+          {notice}
+        </p>
+      )}
       <div className="flex flex-wrap items-center gap-3">
         <div className={cn('relative flex shrink-0 items-center justify-center overflow-hidden border border-dashed bg-muted/20', frameClassName)}>
           {value ? (
-            isOptimizableImage(value) ? (
-              <Image src={value} alt={alt} fill sizes="192px" className={objectClass} />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={value} alt={alt} className={cn('size-full', objectClass)} />
-            )
+            <GalleryImage src={value} alt={alt} sizes="192px" contain={fit === 'contain'} className={containPad} />
           ) : (
             <ImagePlus className="size-5 text-muted-foreground/40" aria-hidden />
           )}
@@ -139,6 +142,7 @@ export function ImageField({
         onChange={event => {
           const file = event.target.files?.[0];
           if (!file) return;
+          setNotice(null);
           setCropSrc(URL.createObjectURL(file));
           setCropOpen(true);
         }}
@@ -152,6 +156,7 @@ export function ImageField({
         outputSize={outputSize}
         labels={{ title: tcrop('title'), apply: tcrop('apply'), cancel: td('cancel'), zoom: tcrop('zoom'), move: tcrop('move') }}
         onCropped={onUpload}
+        onError={() => setNotice(tcrop('readError'))}
       />
     </Field>
   );

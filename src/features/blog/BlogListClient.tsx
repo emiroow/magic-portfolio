@@ -1,17 +1,17 @@
 'use client';
 
 import { EmptyPanel } from '@/components/empty-panel';
+import { GalleryImage } from '@/components/gallery-image';
 import BlurFade from '@/components/magicui/blur-fade';
 import { eyebrowClass } from '@/components/section-header';
 import { Stack } from '@/components/stack';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ListingToolbar } from '@/components/ui/listing-toolbar';
-import { cn, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { cn, formatYearMonthLocal, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
 import { Clock, FileText, Search } from 'lucide-react';
-import Image from 'next/image';
 import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
@@ -33,17 +33,8 @@ function Cover({ post, className, sizes }: { post: IBlog; className?: string; si
 
   return (
     <div className={cn('relative shrink-0 overflow-hidden bg-muted/40', className)}>
-      {src && isOptimizableImage(src) ? (
-        <Image
-          src={src}
-          alt={post.title}
-          fill
-          sizes={sizes}
-          className="object-cover object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
-        />
-      ) : src ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={post.title} className="size-full object-cover grayscale" loading="lazy" decoding="async" />
+      {src ? (
+        <GalleryImage src={src} alt={post.title} sizes={sizes} className="object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0" />
       ) : (
         <span aria-hidden className="flex size-full items-center justify-center text-xl font-bold text-muted-foreground/40">
           {monogram}

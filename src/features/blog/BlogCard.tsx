@@ -1,12 +1,12 @@
+import { GalleryImage } from '@/components/gallery-image';
 import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { CARD_IMAGE_SIZES, IMAGE_SPECS } from '@/constants/imageSpecs';
-import { cn, formatYearMonthLocal, isOptimizableImage, localizedCount } from '@/lib/utils';
+import { cn, formatYearMonthLocal, localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
 import { Clock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import Image from 'next/image';
 import Link from 'next/link';
 
 interface BlogCardProps {
@@ -31,24 +31,19 @@ interface BlogCardProps {
 export function BlogCard({ post, locale, lang, className, priority = false, headingLevel: Heading = 'h3' }: BlogCardProps) {
   const t = useTranslations('blogPage');
   const src = post.image;
-  const cover = src && isOptimizableImage(src) ? src : undefined;
   const tags = post.tags ?? [];
 
   return (
     <Card className={cn('group relative flex h-full flex-col overflow-hidden p-0 transition-colors hover:border-foreground/30', className)}>
       <div className={cn('relative w-full overflow-hidden border-b bg-muted', IMAGE_SPECS.blog.aspectClass)}>
-        {cover ? (
-          <Image
-            src={cover}
+        {src ? (
+          <GalleryImage
+            src={src}
             alt={post.title}
-            fill
             priority={priority}
             sizes={CARD_IMAGE_SIZES}
-            className="object-cover object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
+            className="object-top grayscale transition-[filter] duration-500 group-hover:grayscale-0"
           />
-        ) : src ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={src} alt={post.title} loading="lazy" decoding="async" className="size-full object-cover grayscale" />
         ) : (
           // Deterministic monogram keeps the grid aligned without an image.
           <span aria-hidden className="flex size-full items-center justify-center text-3xl font-bold text-muted-foreground/40">
