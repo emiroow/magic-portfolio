@@ -443,7 +443,7 @@ const STYLE = `
   .lang__lvl { color: var(--muted); white-space: nowrap; }
   .lang__dots { display: inline-flex; gap: 3px; }
   .lang__dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--dot-off); }
-  .lang__dots i.on { background: var(--ink); }
+  .lang__dots i.on { background: var(--accent); }
   .ed { margin-bottom: 10px; }
   .ed:last-child { margin-bottom: 0; }
   .ed__deg { font-size: 12.5px; font-weight: 700; color: var(--ink); }
