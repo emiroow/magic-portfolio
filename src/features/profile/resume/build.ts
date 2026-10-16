@@ -91,6 +91,25 @@ const PRESENT: Record<AppLocale, string> = { en: 'Present', fa: 'تاکنون' }
 /** A credential that does not lapse, per locale. Kept short: the rail is narrow. */
 const NO_EXPIRY: Record<AppLocale, string> = { en: 'No expiry', fa: 'بدون انقضا' };
 
+/**
+ * The schemes the résumé is willing to turn into a clickable link.
+ *
+ * Social and project URLs clear their schemas' `z.string().url()`, but that only proves a
+ * string parses — `javascript:`, `data:` and `vbscript:` all satisfy it, and interpolated
+ * into an `href` they execute in the visitor's browser. So every outward link is checked
+ * against this allowlist here, where untrusted stored data first enters the résumé model:
+ * an unsafe scheme is dropped, and `document.ts` can then trust each `href` it escapes.
+ * Ordinary http(s), mailto and tel links — everything a real contact or project uses —
+ * pass untouched.
+ */
+const SAFE_LINK_SCHEME = /^(?:https?:|mailto:|tel:)/i;
+
+/** The URL when it is safe to link, else `undefined`. */
+function safeHref(value: string | undefined): string | undefined {
+  const href = value?.trim();
+  return href && SAFE_LINK_SCHEME.test(href) ? href : undefined;
+}
+
 /** Fold a `start`/`end` pair into a locale-formatted period, honouring "present". */
 function period(start: string | undefined, end: string | undefined, locale: AppLocale): string | undefined {
   const from = formatYearMonthLocal(start, locale);
@@ -130,12 +149,14 @@ function linksOf(project: IProject): { label: string; href: string }[] {
   const seen = new Set<string>();
   const out: { label: string; href: string }[] = [];
   for (const link of project.links ?? []) {
-    if (!link.href || seen.has(link.href)) continue;
-    seen.add(link.href);
-    out.push({ label: linkHost(link.href) || link.type || 'link', href: link.href });
+    const href = safeHref(link.href);
+    if (!href || seen.has(href)) continue;
+    seen.add(href);
+    out.push({ label: linkHost(href) || link.type || 'link', href });
   }
-  if (!out.length && project.href) {
-    out.push({ label: linkHost(project.href) || 'link', href: project.href });
+  if (!out.length) {
+    const href = safeHref(project.href);
+    if (href) out.push({ label: linkHost(href) || 'link', href });
   }
   return out.slice(0, 2);
 }
@@ -214,10 +235,14 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
   const contacts: ResumeContact[] = [];
   if (profile.email) contacts.push({ value: profile.email, href: `mailto:${profile.email}`, icon: 'mail' });
   if (profile.tel) contacts.push({ value: profile.tel, href: `tel:${toDialNumber(profile.tel)}`, icon: 'phone' });
-  for (const social of socials.filter(s => s.url).slice(0, 3)) {
+  const socialContacts = socials
+    .map(social => ({ social, href: safeHref(social.url) }))
+    .filter((entry): entry is { social: PortfolioData['socials'][number]; href: string } => entry.href !== undefined)
+    .slice(0, 3);
+  for (const { social, href } of socialContacts) {
     contacts.push({
-      value: social.name?.trim() || formatSocialHandle(social.url),
-      href: social.url,
+      value: social.name?.trim() || formatSocialHandle(href),
+      href,
       icon: social.icon?.toLowerCase() || 'link',
     });
   }

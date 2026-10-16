@@ -27,9 +27,15 @@ export async function GET(request: Request, { params }: { params: Promise<{ lang
 
   // An uploaded file is the owner's résumé, verbatim: hand the reader straight to it.
   // Resolve against the request origin so a development `/resumes/...` path (a
-  // relative URL, which `Response.redirect` rejects) reaches the right place.
-  if (data.profile?.resumeUrl) {
-    return Response.redirect(new URL(data.profile.resumeUrl, request.url), 302);
+  // relative URL, which `Response.redirect` rejects) reaches the right place. The stored
+  // value is read straight from the database here, so it is re-checked against the same
+  // shapes the write-time schema allows: a same-origin path or an absolute http(s) URL.
+  // Anything else — notably a protocol-relative `//host`, which would resolve off-site and
+  // turn this into an open redirect — is ignored, falling through to the generated résumé
+  // rather than sending the visitor somewhere untrusted.
+  const resumeUrl = data.profile?.resumeUrl?.trim();
+  if (resumeUrl && ((resumeUrl.startsWith('/') && !resumeUrl.startsWith('//')) || /^https?:\/\//i.test(resumeUrl))) {
+    return Response.redirect(new URL(resumeUrl, request.url), 302);
   }
 
   const model = buildResume(data, locale);

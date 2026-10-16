@@ -23,9 +23,10 @@ function fileNameFrom(url: string): string {
   return clean.split('/').filter(Boolean).pop() || 'resume';
 }
 
-/** Whether a stored URL points back at this site (a `/public` path) or elsewhere. */
+/** Whether a stored URL points back at this site (a `/public` path) or elsewhere.
+ *  A protocol-relative `//host` is off-site, not same-origin, so it is excluded. */
 function isSameOrigin(url: string): boolean {
-  return url.startsWith('/');
+  return url.startsWith('/') && !url.startsWith('//');
 }
 
 /**

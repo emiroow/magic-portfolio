@@ -600,9 +600,13 @@ function toolbarScript(): string {
         var root = document.documentElement;
         var PAGE_W = 794, PAGE_H = 1122;
         // Pinned UMD builds; loaded on demand, cached, and reused for jsPDF's own
-        // html2canvas dependency so nothing is fetched twice.
+        // html2canvas dependency so nothing is fetched twice. Each is pinned to its
+        // published SHA-256 (from jsDelivr's own package API) so a swapped or tampered
+        // CDN file is refused by the browser instead of running in the site's origin.
         var LIB_H2C = 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js';
+        var SRI_H2C = 'sha256-6H5VB5QyLldKH9oMFUmjxw2uWpPZETQXpCkBaDjquMs=';
         var LIB_JSPDF = 'https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js';
+        var SRI_JSPDF = 'sha256-hbosw/+FiiD6Sf5uRXvshj6kC1Wp83JeWKlA5i9vYaQ=';
         var narrow = window.matchMedia('(max-width: 819px)');
 
         // Pagination. The sections are one ordered flow: the first column of a sheet is
@@ -713,12 +717,17 @@ function toolbarScript(): string {
 
         function doPrint() { window.print(); }
 
-        function loadScript(src) {
+        function loadScript(src, integrity) {
           return new Promise(function (resolve, reject) {
             var existing = document.querySelector('script[src="' + src + '"]');
             if (existing) { existing.addEventListener('load', resolve); existing.addEventListener('error', reject); return; }
             var tag = document.createElement('script');
             tag.src = src; tag.async = true;
+            // SRI needs crossorigin on a cross-origin script; jsDelivr serves it with
+            // CORS. A hash mismatch fires onerror, which the caller already turns into
+            // a print fallback — so a bad or blocked file degrades, never breaks silently.
+            tag.crossOrigin = 'anonymous';
+            tag.integrity = integrity;
             tag.onload = resolve; tag.onerror = function () { reject(new Error('blocked: ' + src)); };
             document.head.appendChild(tag);
           });
@@ -729,7 +738,7 @@ function toolbarScript(): string {
         // restores the fixed boxes and the paginator has already broken the flow at them,
         // so each captured sheet becomes exactly one page of the file.
         function capturePdf() {
-          return Promise.all([loadScript(LIB_H2C), loadScript(LIB_JSPDF)]).then(function () {
+          return Promise.all([loadScript(LIB_H2C, SRI_H2C), loadScript(LIB_JSPDF, SRI_JSPDF)]).then(function () {
             var h2c = window.html2canvas;
             var JSPDF = window.jspdf && window.jspdf.jsPDF;
             if (!pages || !h2c || !JSPDF) throw new Error('no pdf engine');

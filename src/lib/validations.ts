@@ -46,7 +46,12 @@ export const optionalDocumentPath = () =>
   z
     .string()
     .trim()
-    .refine(value => value === '' || value.startsWith('/') || /^https?:\/\//i.test(value), 'Enter a valid file path or URL')
+    // A leading `/` is a same-origin path; `//host` is protocol-relative and would send
+    // the résumé redirect (and the download anchor) off-site, so it is refused explicitly.
+    .refine(
+      value => value === '' || (value.startsWith('/') && !value.startsWith('//')) || /^https?:\/\//i.test(value),
+      'Enter a valid file path or URL'
+    )
     .optional();
 
 /**
