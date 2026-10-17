@@ -4,6 +4,7 @@ import { certificatePeriod } from '@/features/certificate/format';
 import type { PortfolioData } from '@/features/portfolio/queries';
 import { formatSocialHandle, formatYearMonthLocal, linkHost, toDialNumber } from '@/lib/utils';
 import type { AppLocale, LanguageLevel } from '@/types';
+import type { IProfile } from '@/features/profile/types';
 import type { IProject } from '@/features/projects/types';
 import type { IWork } from '@/features/experience/types';
 
@@ -12,7 +13,7 @@ import type { IWork } from '@/features/experience/types';
  *
  * `buildResume` reads the same loaded portfolio the home page renders — profile,
  * career, projects, toolkit, education, credentials — and shapes it into the sections
- * a printed résumé carries. It knows nothing about HTML or fonts; `document.ts` owns
+ * a printed résumé carries. It knows nothing about HTML or fonts; `document.tsx` owns
  * the look.
  *
  * Keeping the two apart is what lets the visitor's download, the dashboard preview and
@@ -37,7 +38,6 @@ export interface ResumeExperience {
   company: string;
   location?: string;
   period?: string;
-  jobType?: string;
   bullets: string[];
 }
 
@@ -92,13 +92,36 @@ const PRESENT: Record<AppLocale, string> = { en: 'Present', fa: 'تاکنون' }
 const NO_EXPIRY: Record<AppLocale, string> = { en: 'No expiry', fa: 'بدون انقضا' };
 
 /**
+ * How much of each section the sheet carries. The bounds are the document's own — they
+ * are what keeps a profile that outgrew a page reading as a résumé rather than as a
+ * data dump — so they live in one place instead of scattered through the builders.
+ */
+const LIMITS = {
+  experience: 3,
+  bullets: 4,
+  bulletChars: 170,
+  projects: 3,
+  projectTech: 6,
+  projectLinks: 2,
+  projectChars: 150,
+  education: 3,
+  certificates: MAX_RESUME_CERTIFICATES,
+  skills: 18,
+  languages: 6,
+  socials: 3,
+  summaryChars: 480,
+  /** What a search result renders before it truncates on its own. */
+  descriptionChars: 155,
+} as const;
+
+/**
  * The schemes the résumé is willing to turn into a clickable link.
  *
  * Social and project URLs clear their schemas' `z.string().url()`, but that only proves a
  * string parses — `javascript:`, `data:` and `vbscript:` all satisfy it, and interpolated
  * into an `href` they execute in the visitor's browser. So every outward link is checked
  * against this allowlist here, where untrusted stored data first enters the résumé model:
- * an unsafe scheme is dropped, and `document.ts` can then trust each `href` it escapes.
+ * an unsafe scheme is dropped, and `document.tsx` can then trust each `href` it renders.
  * Ordinary http(s), mailto and tel links — everything a real contact or project uses —
  * pass untouched.
  */
@@ -108,6 +131,21 @@ const SAFE_LINK_SCHEME = /^(?:https?:|mailto:|tel:)/i;
 function safeHref(value: string | undefined): string | undefined {
   const href = value?.trim();
   return href && SAFE_LINK_SCHEME.test(href) ? href : undefined;
+}
+
+/**
+ * The owner's uploaded file, when the stored value is one this site may hand over.
+ *
+ * The write-time schema limits `resumeUrl` to a same-origin path or an absolute http(s)
+ * URL, and the value is read straight out of the database here — so it is checked against
+ * the same shapes again rather than trusted. Anything else, notably a protocol-relative
+ * `//host`, would send the reader off-site and is ignored, leaving the generated résumé
+ * to be composed instead. `layout.tsx` asks this before anything streams.
+ */
+export function uploadedResumeFile(profile?: Pick<IProfile, 'resumeUrl'> | null): string | undefined {
+  const url = profile?.resumeUrl?.trim();
+  if (!url) return undefined;
+  return (url.startsWith('/') && !url.startsWith('//')) || /^https?:\/\//i.test(url) ? url : undefined;
 }
 
 /** Fold a `start`/`end` pair into a locale-formatted period, honouring "present". */
@@ -158,24 +196,23 @@ function linksOf(project: IProject): { label: string; href: string }[] {
     const href = safeHref(project.href);
     if (href) out.push({ label: linkHost(href) || 'link', href });
   }
-  return out.slice(0, 2);
+  return out.slice(0, LIMITS.projectLinks);
 }
 
 function experienceOf(works: IWork[], locale: AppLocale): ResumeExperience[] {
-  return works.slice(0, 3).map(work => ({
+  return works.slice(0, LIMITS.experience).map(work => ({
     role: work.title?.trim() || '',
     company: work.company?.trim() || '',
     location: work.location?.trim() || undefined,
     period: period(work.start, work.end, locale),
-    jobType: (work as { jobType?: string }).jobType?.trim() || undefined,
     bullets: bulletsOf(work.description)
-      .slice(0, 4)
-      .map(b => clip(b, 170) ?? b),
+      .slice(0, LIMITS.bullets)
+      .map(bullet => clip(bullet, LIMITS.bulletChars) ?? bullet),
   }));
 }
 
 function educationOf(educations: PortfolioData['educations'], locale: AppLocale): ResumeEducation[] {
-  return educations.slice(0, 3).map(edu => ({
+  return educations.slice(0, LIMITS.education).map(edu => ({
     degree: edu.degree?.trim() || undefined,
     school: edu.school?.trim() || undefined,
     period: period(edu.start, edu.end, locale),
@@ -192,7 +229,7 @@ function certificatesOf(certificates: PortfolioData['certificates'], locale: App
   return certificates
     .filter(certificate => certificate.title?.trim())
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
-    .slice(0, MAX_RESUME_CERTIFICATES)
+    .slice(0, LIMITS.certificates)
     .map(certificate => ({
       title: certificate.title?.trim() || '',
       issuer: certificate.issuer?.trim() || undefined,
@@ -204,22 +241,41 @@ function certificatesOf(certificates: PortfolioData['certificates'], locale: App
 function languagesOf(profile: NonNullable<PortfolioData['profile']>): ResumeLanguage[] {
   return (profile.languages ?? [])
     .filter(language => language.name?.trim() && (LANGUAGE_LEVELS as readonly string[]).includes(language.level))
-    .slice(0, 6)
+    .slice(0, LIMITS.languages)
     .map(language => ({ name: language.name.trim(), level: language.level }));
 }
 
-/** The opening paragraph: the summary, else the first block of the long-form bio. */
-function summaryOf(profile: NonNullable<PortfolioData['profile']>): string | undefined {
-  const summary = profile.summary?.trim();
-  if (summary) return clip(summary, 480);
-  const first = profile.description?.split(/\n\s*\n/).find(block => block.trim());
+/**
+ * The opening paragraph: the summary, else the first block of the long-form bio.
+ * Shared with the page's metadata, so what a search result says and what the sheet
+ * opens with can never drift apart.
+ */
+export function resumeSummary(profile?: Pick<IProfile, 'summary' | 'description'> | null): string | undefined {
+  const summary = profile?.summary?.trim();
+  if (summary) return clip(summary, LIMITS.summaryChars);
+  const first = profile?.description?.split(/\n\s*\n/).find(block => block.trim());
   return clip(
     first
       ?.replace(/[#*_>`-]/g, '')
       .replace(/\s+/g, ' ')
       .trim(),
-    480
+    LIMITS.summaryChars
   );
+}
+
+/**
+ * The one sentence a search result or a link preview shows.
+ *
+ * Cut to the length the crawlers actually render rather than truncated with an ellipsis
+ * they append themselves, and shared by `<meta>`, Open Graph, Twitter and the JSON-LD —
+ * four places a reader may compare against each other.
+ */
+export function seoDescription(text?: string): string {
+  const value = text?.replace(/\s+/g, ' ').trim();
+  if (!value) return '';
+  if (value.length <= LIMITS.descriptionChars) return value;
+  const edge = value.lastIndexOf(' ', LIMITS.descriptionChars);
+  return `${value.slice(0, edge > 0 ? edge : LIMITS.descriptionChars).replace(/[,;:.]$/, '')}…`;
 }
 
 /**
@@ -238,7 +294,7 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
   const socialContacts = socials
     .map(social => ({ social, href: safeHref(social.url) }))
     .filter((entry): entry is { social: PortfolioData['socials'][number]; href: string } => entry.href !== undefined)
-    .slice(0, 3);
+    .slice(0, LIMITS.socials);
   for (const { social, href } of socialContacts) {
     contacts.push({
       value: social.name?.trim() || formatSocialHandle(href),
@@ -249,26 +305,26 @@ export function buildResume(data: PortfolioData, locale: AppLocale): ResumeModel
 
   const selected = [...projects.filter(project => project.active)]
     .sort((a, b) => Number(Boolean(b.featured)) - Number(Boolean(a.featured)))
-    .slice(0, 3);
+    .slice(0, LIMITS.projects);
 
   return {
     locale,
     name: profile.fullName?.trim() || profile.name?.trim() || '',
     role: profile.jobTitle?.trim() || '',
     contacts,
-    summary: summaryOf(profile),
+    summary: resumeSummary(profile),
     experience: experienceOf(data.works, locale),
     projects: selected.map(project => ({
       title: project.title,
-      description: clip(project.description, 150),
+      description: clip(project.description, LIMITS.projectChars),
       period: project.dates?.trim() || undefined,
-      technologies: (project.technologies ?? []).filter(Boolean).slice(0, 6),
+      technologies: (project.technologies ?? []).filter(Boolean).slice(0, LIMITS.projectTech),
       links: linksOf(project),
     })),
     skills: skills
       .map(skill => skill.name)
       .filter(Boolean)
-      .slice(0, 18),
+      .slice(0, LIMITS.skills),
     education: educationOf(data.educations, locale),
     certificates: certificatesOf(data.certificates, locale),
     languages: languagesOf(profile),
