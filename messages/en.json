@@ -110,6 +110,31 @@
       "figma": "Figma"
     }
   },
+  "resume": {
+    "docTitle": "Resume",
+    "hint": "Choose \"Print\", then \"Save as PDF\" — or use \"Get\" for a direct download.",
+    "controls": "Resume controls",
+    "home": "Close",
+    "get": "Get",
+    "pdf": "Save as PDF",
+    "pdfDesc": "Download the A4 sheet as a PDF file.",
+    "pdfBusy": "Preparing…",
+    "print": "Print",
+    "printDesc": "Send the A4 sheet to a printer.",
+    "theme": "Switch theme",
+    "toOther": "Read this résumé in Persian",
+    "page": "Page",
+    "description": "Career summary, work experience, projects, skills and education.",
+    "sections": {
+      "summary": "Summary",
+      "experience": "Work Experience",
+      "projects": "Projects",
+      "skills": "Skills",
+      "education": "Education",
+      "certificates": "Certificates",
+      "languages": "Languages"
+    }
+  },
   "linkTypes": {
     "github": "GitHub",
     "demo": "Live demo",
