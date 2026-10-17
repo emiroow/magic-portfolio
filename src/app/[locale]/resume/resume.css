@@ -1,0 +1,655 @@
+/*
+ * The résumé sheet.
+ *
+ * A printed page has requirements the rest of the site does not: a fixed A4 canvas the
+ * layout engine measures against, columns that break on paper rather than on screen, and
+ * a print path that always lands on white whatever the visitor is reading in. That is why
+ * this lives in its own stylesheet instead of in Tailwind utilities: `@page`, the sheet
+ * geometry and the print overrides have no utility form, and keeping them in one file is
+ * what makes the contract with `layout-engine.ts` readable — every class here is a class
+ * the engine looks for.
+ *
+ * The palette is the site's own, not a second one: every value is derived from the
+ * monochrome tokens in `globals.css`, so emphasis on paper comes from weight, tonal step
+ * and rule strength exactly as it does on screen, and a token change reaches the résumé
+ * with it. `next-themes` writes `.dark` on `<html>`, and print forces the light set back
+ * on. Persian inherits its face from the locale; nothing here names a font.
+ */
+
+.rs-root {
+  /* Paper and stage: the sheet is the lightest surface it sits on. */
+  --rs-stage-bg: hsl(var(--muted));
+  --rs-page-bg: hsl(var(--background));
+
+  /* The four tonal steps the whole document is built from. */
+  --rs-ink: hsl(var(--foreground));
+  --rs-body: hsl(var(--foreground) / 0.86);
+  --rs-muted: hsl(var(--muted-foreground));
+
+  /* Rules carry the emphasis a hue would otherwise have to supply. */
+  --rs-rule: hsl(var(--foreground) / 0.3);
+  --rs-hairline: hsl(var(--border));
+  --rs-icon: hsl(var(--muted-foreground));
+  --rs-dot-off: hsl(var(--border));
+  --rs-shadow: 0 6px 24px rgb(0 0 0 / 0.08);
+
+  min-height: 100dvh;
+  background: var(--rs-stage-bg);
+  color: var(--rs-body);
+  line-height: 1.4;
+}
+
+.dark .rs-root {
+  /* A dark sheet sits one step above its stage, the way a card does on screen. */
+  --rs-stage-bg: hsl(var(--background));
+  --rs-page-bg: hsl(var(--card));
+  --rs-rule: hsl(var(--foreground) / 0.4);
+  --rs-shadow: 0 6px 24px rgb(0 0 0 / 0.6);
+}
+
+/* Persian leads looser and never tracks: the script joins, and spacing breaks the joining. */
+[dir='rtl'] .rs-root {
+  line-height: 1.7;
+}
+
+/* The stack of sheets sits centred on the stage; the whole stack scales, never the type. */
+.rs-stage {
+  display: flex;
+  justify-content: center;
+  padding: 28px 0 64px;
+  overflow: hidden;
+}
+
+.rs-pages {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 28px;
+  transform-origin: top center;
+}
+
+/* One A4 sheet: 210 × 297 mm at 96 dpi. The engine measures and breaks against this box. */
+.rs-page {
+  width: 794px;
+  height: 1122px;
+  flex: none;
+  padding: 42px 46px;
+  background: var(--rs-page-bg);
+  box-shadow: var(--rs-shadow);
+  overflow: hidden;
+}
+
+/* A further sheet never reads as anonymous: whose it is and which page it is. */
+.rs-cont {
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--rs-rule);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--rs-muted);
+}
+
+[dir='rtl'] .rs-cont {
+  font-size: 12px;
+}
+
+/* Header band: name, headline and one iconed contact run — no rule under it. */
+.rs-name {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1.08;
+  color: var(--rs-ink);
+}
+
+[dir='ltr'] .rs-name {
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.rs-role {
+  margin: 4px 0 0;
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--rs-ink);
+}
+
+.rs-contacts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 18px;
+  margin: 12px 0 0;
+  font-size: 12px;
+  color: var(--rs-muted);
+}
+
+.rs-c {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.rs-c svg {
+  color: var(--rs-icon);
+}
+
+.rs-c a {
+  color: inherit;
+  text-decoration-line: underline;
+  text-decoration-color: var(--rs-hairline);
+  text-underline-offset: 2px;
+}
+
+.rs-c a:hover {
+  text-decoration-color: var(--rs-ink);
+}
+
+/* A summary is a paragraph, not a newspaper column: start-aligned in both directions, so
+   the final line of a paragraph never stretches edge to edge. */
+.rs-summary {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  text-align: start;
+  color: var(--rs-body);
+}
+
+/* Two equal columns the sections flow through in strict order: the first is filled to its
+   foot, the rest carries on in the second, and only then does a fresh sheet start. */
+.rs-flow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 30px;
+  align-items: start;
+  margin-top: 20px;
+}
+
+.rs-flow--single {
+  grid-template-columns: 1fr;
+}
+
+.rs-flow__col {
+  min-width: 0;
+}
+
+/* Section heading: a ruled label, uppercased and tracked only where the script allows it. */
+.rs-sec {
+  margin-bottom: 16px;
+}
+
+.rs-sec:last-child {
+  margin-bottom: 0;
+}
+
+.rs-sh {
+  margin: 0 0 9px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid var(--rs-rule);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--rs-muted);
+}
+
+[dir='ltr'] .rs-sh {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+[dir='rtl'] .rs-sh {
+  font-size: 13px;
+}
+
+/* Experience: role and company share one line, the facts share the next. Either wraps
+   instead of overflowing the column, and each fact keeps its icon glued to its text. */
+.rs-xp {
+  margin-bottom: 12px;
+}
+
+.rs-xp:last-child {
+  margin-bottom: 0;
+}
+
+.rs-xp__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 8px;
+  min-width: 0;
+}
+
+.rs-xp__role {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--rs-ink);
+}
+
+.rs-xp__sep {
+  color: var(--rs-muted);
+}
+
+.rs-xp__org {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--rs-body);
+  overflow-wrap: break-word;
+}
+
+.rs-xp__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 3px 12px;
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--rs-muted);
+}
+
+.rs-m {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.rs-m svg {
+  color: var(--rs-icon);
+}
+
+.rs-list {
+  margin: 5px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rs-list li {
+  position: relative;
+  margin: 3px 0;
+  padding-inline-start: 12px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--rs-body);
+}
+
+.rs-list li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: 1px;
+  top: 0.55em;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--rs-icon);
+}
+
+/* The capability sections: skills, languages, education, certificates, projects. */
+.rs-sk {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.75;
+  color: var(--rs-body);
+}
+
+.rs-langs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rs-lang {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: 12px;
+}
+
+.rs-lang__name {
+  font-weight: 600;
+  color: var(--rs-ink);
+}
+
+.rs-lang__side {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rs-lang__lvl {
+  white-space: nowrap;
+  color: var(--rs-muted);
+}
+
+.rs-lang__dots {
+  display: inline-flex;
+  gap: 3px;
+}
+
+.rs-lang__dots i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--rs-dot-off);
+}
+
+.rs-lang__dots i.is-on {
+  background: var(--rs-ink);
+}
+
+.rs-ed {
+  margin-bottom: 10px;
+}
+
+.rs-ed:last-child {
+  margin-bottom: 0;
+}
+
+.rs-ed__deg {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--rs-ink);
+}
+
+.rs-ed__school {
+  margin-top: 1px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--rs-body);
+}
+
+.rs-ed__meta {
+  margin-top: 2px;
+  font-size: 11.5px;
+  color: var(--rs-muted);
+}
+
+.rs-ct {
+  margin-bottom: 8px;
+}
+
+.rs-ct:last-child {
+  margin-bottom: 0;
+}
+
+.rs-ct__title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--rs-ink);
+}
+
+.rs-ct__issuer {
+  margin-top: 1px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--rs-body);
+}
+
+.rs-ct__meta {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--rs-muted);
+}
+
+.rs-pj {
+  margin-bottom: 10px;
+}
+
+.rs-pj:last-child {
+  margin-bottom: 0;
+}
+
+.rs-pj__title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--rs-ink);
+}
+
+.rs-pj__desc {
+  margin-top: 1px;
+  font-size: 11.5px;
+  color: var(--rs-muted);
+}
+
+.rs-pj__tech {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--rs-muted);
+}
+
+.rs-pj__link {
+  margin-top: 1px;
+  font-size: 11px;
+}
+
+.rs-pj__link a {
+  color: var(--rs-ink);
+  text-decoration-line: underline;
+  text-decoration-color: var(--rs-rule);
+  text-underline-offset: 2px;
+}
+
+.rs-pj__link a:hover {
+  text-decoration-color: var(--rs-ink);
+}
+
+/*
+ * Narrow screens: one readable column and no fixed-A4 scaling. The sheet stops being
+ * paper and simply reads; the engine hands the stack's transform back to CSS here.
+ */
+@media screen and (max-width: 819px) {
+  .rs-stage {
+    display: block;
+    padding: 0;
+  }
+
+  .rs-pages {
+    display: block;
+    gap: 0;
+    /* Undo the scale the engine writes inline, which only an !important outranks. */
+    transform: none !important;
+  }
+
+  .rs-page {
+    width: auto;
+    height: auto;
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 28px 22px;
+    box-shadow: none;
+    overflow: visible;
+  }
+
+  /*
+   * A further sheet is a page turn on paper and a continuation on a phone, so neither
+   * seam may read as spacing — and both did.
+   *
+   * With the running line hidden and the sheet given no top padding to stand under, the
+   * flow's own 20px margin had nothing to sit inside: it collapsed straight out of the
+   * sheet, shoved the second white page down and let the grey stage show through as a
+   * band across the screen above whichever section turned the page, while the space over
+   * that section grew to 48px against the 16px every other break keeps. A sheet that is
+   * not the last gives up its bottom padding and the next takes 16px in its place, so
+   * the margin is dropped rather than escaped.
+   *
+   * The other seam is where the two print columns hand over. A column's last section
+   * carries no margin below it, which is right while the columns stand side by side and
+   * leaves them touching with no air at all once they stack into one reading column.
+   *
+   * Persian reaches both first: the sheet leads the script at 1.7 rather than 1.4 and
+   * sets its section headings 2px larger, so the same profile runs 1699px against 1589px
+   * in English and turns onto a further sheet on a smaller amount of career.
+   */
+  .rs-page:not(:last-child) {
+    padding-bottom: 0;
+  }
+
+  .rs-page + .rs-page {
+    padding-top: 16px;
+  }
+
+  .rs-page + .rs-page .rs-flow {
+    margin-top: 0;
+  }
+
+  /* A running line belongs to paper, not to a page that scrolls. */
+  .rs-cont {
+    display: none;
+  }
+
+  .rs-flow {
+    grid-template-columns: 1fr;
+    gap: 16px 0;
+  }
+}
+
+/*
+ * Print geometry. `data-pdf` re-asserts the fixed A4 sheets — used by the paginator so
+ * blocks are measured at the width they print at, and by a direct download so a phone
+ * saves the very same document a desktop reader sees. It has to out-specify the narrow
+ * rules above, hence the attribute-plus-class selectors with !important. Colours are left
+ * alone on purpose: the downloaded file follows the theme the visitor is reading in.
+ */
+.rs-root[data-pdf] .rs-stage {
+  display: block !important;
+  height: auto !important;
+  padding: 0 !important;
+  overflow: visible !important;
+}
+
+.rs-root[data-pdf] .rs-pages {
+  display: block !important;
+  gap: 0 !important;
+  transform: none !important;
+}
+
+.rs-root[data-pdf] .rs-page {
+  width: 794px !important;
+  height: 1122px !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 42px 46px !important;
+  box-shadow: none !important;
+  overflow: hidden !important;
+}
+
+.rs-root[data-pdf] .rs-page + .rs-page {
+  padding-top: 42px !important;
+}
+
+/* The margin under a continuation sheet's running line is print geometry. The narrow
+   rules above drop it for a page that scrolls and hand it back here, so a phone that
+   measures, breaks and captures a sheet does it at the height a desktop prints. */
+.rs-root[data-pdf] .rs-page + .rs-page .rs-flow {
+  margin-top: 20px !important;
+}
+
+.rs-root[data-pdf] .rs-cont {
+  display: block !important;
+}
+
+.rs-root[data-pdf] .rs-flow {
+  grid-template-columns: 1fr 1fr !important;
+  gap: 0 30px !important;
+}
+
+.rs-root[data-pdf] .rs-flow--single {
+  grid-template-columns: 1fr !important;
+}
+
+/*
+ * Printing. The sheet goes out on white paper whatever the viewer's theme, one A4 page per
+ * `.rs-page`, and nothing that is chrome rather than content comes along: the controls, the
+ * site's grid backdrop and the app's own page surface all stay off the sheet.
+ */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+@media print {
+  /*
+   * A résumé goes out on white paper whatever the visitor reads on screen. Every sheet
+   * colour is derived, so the light tokens are re-asserted for this subtree alone and
+   * each derived value — ink, stage, rules, the dot meter — follows it back to paper.
+   */
+  .rs-root,
+  .dark .rs-root {
+    --background: 0 0% 100%;
+    --card: 0 0% 100%;
+    --muted: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --muted-foreground: 0 0% 40%;
+    --border: 0 0% 90%;
+
+    --rs-shadow: none;
+  }
+
+  .rs-root {
+    min-height: 0;
+  }
+
+  /*
+   * Chrome, all of it: the controls, the site's grid backdrop, and the Get menu — which
+   * portals onto `<body>` outside this subtree, so it has to be named here or a menu left
+   * open when printing arrives on the paper.
+   */
+  .rs-bar,
+  .surface-grid,
+  [data-radix-popper-content-wrapper] {
+    display: none !important;
+  }
+
+  .rs-stage {
+    display: block !important;
+    height: auto !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+
+  .rs-pages {
+    display: block !important;
+    gap: 0 !important;
+    transform: none !important;
+  }
+
+  .rs-page {
+    width: 794px !important;
+    height: 1122px !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 42px 46px !important;
+    box-shadow: none !important;
+    overflow: hidden !important;
+    break-after: page;
+    page-break-after: always;
+  }
+
+  .rs-page:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  .rs-flow {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .rs-flow--single {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* A printed link cannot be clicked: the text it carries is the whole of its value. */
+  .rs-c a,
+  .rs-pj__link a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  /* The dot meter is a fill rather than a border, so it has to be asked for by name. */
+  .rs-role,
+  .rs-xp__org,
+  .rs-ed__school,
+  .rs-ct__issuer,
+  .rs-lang__dots i {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
