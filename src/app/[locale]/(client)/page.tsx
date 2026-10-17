@@ -163,7 +163,7 @@ export default async function Page({ params }: Props) {
         emailLabel={profile.email ? tSections('hero.emailCta') : undefined}
         supportLabel={supported ? t('support.pay') : undefined}
         supportHref={`/${locale}/support`}
-        resume={{ locale: lang, uploadedUrl: profile.resumeUrl, label: tSections('hero.resumeCta') }}
+        resume={{ href: `/${locale}/resume`, label: tSections('hero.resumeCta') }}
       />
       <About
         index={ordinal('about')}

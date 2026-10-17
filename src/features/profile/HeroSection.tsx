@@ -2,11 +2,9 @@ import BlurFade from '@/components/magicui/blur-fade';
 import { GalleryImage } from '@/components/gallery-image';
 import { eyebrowClass } from '@/components/section-header';
 import { Button } from '@/components/ui/button';
-import { ResumeButton } from '@/features/profile/resume/button';
-import { HandHeart, Mail } from 'lucide-react';
+import { Download, HandHeart, Mail } from 'lucide-react';
 import Link from 'next/link';
 import type { IProfile } from '@/features/profile/types';
-import type { AppLocale } from '@/types';
 
 interface HeroProps {
   profile: IProfile;
@@ -19,10 +17,10 @@ interface HeroProps {
   /** Localized `/support` page the support button leads to. */
   supportHref?: string;
   /**
-   * The "Résumé" shortcut. Always offered when present: with an uploaded file it saves
-   * that file, without one it opens the résumé generated from the profile.
+   * The "Résumé" shortcut, leading to the résumé page. The page itself decides what the
+   * visitor gets: the file the owner uploaded, or the document composed from the profile.
    */
-  resume?: { locale: AppLocale; uploadedUrl?: string; label: string };
+  resume?: { href: string; label: string };
   /** Base delay for the entrance stagger. */
   delay?: number;
 }
@@ -94,12 +92,12 @@ export function Hero({ profile, greeting, emailLabel, supportLabel, supportHref,
                   </Button>
                 )}
                 {resume && (
-                  <ResumeButton
-                    locale={resume.locale}
-                    label={resume.label}
-                    uploadedUrl={resume.uploadedUrl}
-                    className="rounded-full px-5"
-                  />
+                  <Button asChild variant="outline" size="sm" className="rounded-full px-5">
+                    <Link href={resume.href}>
+                      <Download className="me-2 size-4" aria-hidden />
+                      {resume.label}
+                    </Link>
+                  </Button>
                 )}
               </div>
             </BlurFade>

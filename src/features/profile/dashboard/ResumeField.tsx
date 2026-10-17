@@ -3,11 +3,13 @@
 import { Button } from '@/components/ui/button';
 import Loading from '@/components/ui/loading';
 import { FileText, Trash2, Upload } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useRef } from 'react';
 
 /** What the picker offers and what the upload route insists on. */
-const ACCEPTED_DOC_TYPES = '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const ACCEPTED_DOC_TYPES =
+  '.pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document';
 
 interface ResumeFieldProps {
   locale: 'fa' | 'en';
@@ -29,7 +31,7 @@ function fileName(url: string): string {
  * It is deliberately not its own dashboard tab — the résumé is one more field of the
  * owner's identity, so it lives with the rest of them. Two states, plainly named: an
  * uploaded file (which the download serves), or a résumé generated from the profile.
- * The preview opens the exact document a visitor would get.
+ * The preview opens the very page a visitor is sent to, in a tab of its own.
  */
 export function ResumeField({ locale, uploadedUrl, uploading, onUpload, onRemove }: ResumeFieldProps) {
   const t = useTranslations('dashboard.profile');
@@ -42,14 +44,10 @@ export function ResumeField({ locale, uploadedUrl, uploading, onUpload, onRemove
           <p className="text-xs font-medium text-muted-foreground">{t('resume')}</p>
           <p className="mt-0.5 text-sm font-medium">{uploadedUrl ? t('resumeModeUploaded') : t('resumeModeAuto')}</p>
         </div>
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          className="rounded-full text-muted-foreground hover:text-foreground"
-          onClick={() => window.open(`/api/${locale}/resume`, '_blank', 'noopener,noreferrer')}
-        >
-          {t('resumePreview')}
+        <Button asChild variant="ghost" size="sm" className="rounded-full text-muted-foreground hover:text-foreground">
+          <Link href={`/${locale}/resume`} target="_blank" rel="noopener noreferrer">
+            {t('resumePreview')}
+          </Link>
         </Button>
       </div>
 
