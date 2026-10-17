@@ -1,5 +1,6 @@
 import { getBlogList } from '@/features/blog/queries';
 import { getProducts } from '@/features/products/queries';
+import { getProfile } from '@/features/profile/queries';
 import { getProjects } from '@/features/projects/queries';
 import { documentKey } from '@/lib/utils';
 import { routing } from '@/i18n/routing';
@@ -7,8 +8,9 @@ import type { AppLocale } from '@/types';
 import type { MetadataRoute } from 'next';
 
 /**
- * Localized sitemap: home + blog + catalogue pages per locale, plus the support
- * page and every blog post, project and product page.
+ * Localized sitemap: home + blog + catalogue pages per locale, plus the support page,
+ * the résumé of every locale that has a profile to build one from, and every blog post,
+ * project and product page.
  * Database-safe — content is simply omitted when the DB is unavailable.
  */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -150,6 +152,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       priority: 0.6,
       alternates: alternates('/support', routing.locales),
+    });
+  }
+
+  // Résumé: only where a profile exists to compose one from — with none, the page 404s
+  // and has no place in an index.
+  for (const locale of routing.locales) {
+    if (!(await getProfile(locale as AppLocale))) continue;
+    entries.push({
+      url: url(locale, '/resume'),
+      lastModified: now,
+      changeFrequency: 'monthly',
+      priority: 0.6,
+      alternates: alternates('/resume', routing.locales),
     });
   }
 
