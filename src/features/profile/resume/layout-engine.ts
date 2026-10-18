@@ -10,6 +10,20 @@
  * the next, and turns to a fresh sheet only when both are spent. Nothing is shrunk and
  * nothing is clipped.
  *
+ * When a section is taller than the space left in a column it is laid row by row from
+ * where that column currently ends — the column fills to its foot and the section
+ * carries on in the next one — and every fragment it leaves behind is wrapped in its
+ * own `.rs-sec` with a cloned `.rs-sh` heading, so the reader always knows which
+ * section they are in. A column is therefore never left blank under a section that
+ * could have started there. Individual records that exceed a full column are split at
+ * their internal structure; content that overflows is a layout to fix, content that
+ * vanishes is a document that lied.
+ *
+ * Every pass re-derives its source first: continuation fragments an earlier pass left
+ * in the columns are merged back into the sections they came from before anything is
+ * measured, so the flow is idempotent and never depends on the state the DOM arrived
+ * in — a second pass after the fonts load breaks exactly where the first one did.
+ *
  * React owns none of this. The sheet markup reaches the client as `children` passed
  * from a Server Component, so it keeps one identity across every render and the tree is
  * never reconciled again — which is what makes moving its nodes safe here.
@@ -59,6 +73,19 @@ function runningLine(pages: HTMLElement, sheet: number): HTMLElement {
 }
 
 /**
+ * Create a continuation fragment: a new `.rs-sec` section wrapping a cloned heading.
+ * Rows are appended into this fragment as they are placed.
+ */
+function createFragment(original: HTMLElement, heading: HTMLElement): HTMLElement {
+  const fragment = document.createElement('section');
+  fragment.className = original.className;
+  const ariaLabel = original.getAttribute('aria-label');
+  if (ariaLabel) fragment.setAttribute('aria-label', ariaLabel);
+  fragment.appendChild(heading.cloneNode(true) as HTMLElement);
+  return fragment;
+}
+
+/**
  * Re-break the flow across as many sheets as the content needs.
  *
  * Blocks are measured while `data-pdf` pins every sheet to its print box, so a page that
@@ -71,7 +98,27 @@ export function paginate(sheets: Sheets): void {
   if (!first || !band) return;
 
   // The blocks in reading order, however an earlier pass distributed them.
-  const blocks = [...pages.querySelectorAll<HTMLElement>('.rs-flow__col')].flatMap(column => [...column.children] as HTMLElement[]);
+  const raw = [...pages.querySelectorAll<HTMLElement>('.rs-flow__col')].flatMap(column => [...column.children] as HTMLElement[]);
+  if (!raw.length) return;
+
+  // Re-derive the original sections before anything is measured: an earlier pass may
+  // have split one section into consecutive continuation fragments that share its
+  // accessible name, and re-flowing those fragments as sections of their own would
+  // freeze an old break in place — which is how a stale pass once left a column blank.
+  // Merging them back makes every pass start from the same source, so the flow is
+  // idempotent whatever state the DOM arrived in.
+  const blocks: HTMLElement[] = [];
+  for (const block of raw) {
+    const label = block.getAttribute('aria-label');
+    const prev = blocks[blocks.length - 1];
+    if (prev && label && label === prev.getAttribute('aria-label')) {
+      for (const child of [...block.children]) {
+        if (!child.classList.contains('rs-sh')) prev.appendChild(child);
+      }
+      continue;
+    }
+    blocks.push(block);
+  }
   if (!blocks.length) return;
 
   root.setAttribute('data-pdf', '1');
@@ -117,7 +164,7 @@ export function paginate(sheets: Sheets): void {
      * `scrollHeight` rounds to whole pixels; the +1 keeps that rounding from bouncing a
      * block which exactly fills the column into the next one.
      */
-    const place = (node: HTMLElement, placement: Placement): boolean => {
+    const fits = (node: HTMLElement, placement: Placement): boolean => {
       placement.column.appendChild(node);
       if (placement.column.scrollHeight > placement.limit + 1) {
         placement.column.removeChild(node);
@@ -125,50 +172,142 @@ export function paginate(sheets: Sheets): void {
       }
       return true;
     };
-    const isFresh = (placement: Placement): boolean => placement.column.children.length === 0;
 
     /**
-     * Flow one section. It is placed whole whenever a column can hold it, and the column is
-     * only turned when it cannot — so a section never straddles a break for no reason.
+     * Flow one section across columns and pages.
      *
-     * A section taller than a column is then laid row by row, and its heading is never left
-     * standing alone at the foot of a column: an orphaned heading reads as a broken page
-     * rather than as a break, so the heading is carried to the column its first row lands
-     * in and the blank it leaves behind stays in the column above, where it belongs.
+     * A section that fits the space left in the current column stays whole. Anything
+     * taller is laid row by row from where that column currently ends, so the first
+     * column fills to its foot and the section carries on in the second with its
+     * heading repeated; a fresh sheet opens only once both columns are spent. Turning
+     * the column ahead of a section that could have started in the space left behind
+     * is what once stranded a blank first column, so it never happens here.
+     *
+     * A single row taller than an entire column is split at its internal structure
+     * (bullet lists are distributed item by item); only a leaf that cannot be split is
+     * ever forced past a column foot.
      */
     const flowSection = (block: HTMLElement): void => {
-      if (place(block, placement)) return;
-      if (!isFresh(placement)) {
-        placement = advance(placement);
-        if (place(block, placement)) return;
-      }
+      if (fits(block, placement)) return;
 
-      const rows = [...block.children] as HTMLElement[];
-      // A section with nothing under its heading still prints the heading.
-      if (!rows.length) {
+      const children = [...block.children] as HTMLElement[];
+      if (!children.length) {
         placement.column.appendChild(block);
         return;
       }
 
-      rows.forEach((row, at) => {
-        if (place(row, placement)) return;
+      // Identify the heading (the `.rs-sh` child) and the content rows after it.
+      const headingEl = children.find(child => child.classList.contains('rs-sh'));
+      const rows = headingEl ? children.filter(child => child !== headingEl) : children;
 
-        if (at === 1 && placement.column.children.length === 1) {
-          const heading = placement.column.children[0] as HTMLElement;
-          placement.column.removeChild(heading);
-          placement = advance(placement);
-          if (!place(heading, placement)) placement.column.appendChild(heading);
+      if (!headingEl || !rows.length) {
+        placement.column.appendChild(block);
+        return;
+      }
+
+      // The first fragment opens in the column the section was reached in.
+      let fragment = createFragment(block, headingEl);
+      placement.column.appendChild(fragment);
+
+      /**
+       * Split a tall row at its internal structure. Bullet lists (`.rs-list`, `ul`)
+       * are distributed item by item; other children are kept whole. Continuation
+       * wrappers preserve the row's class so CSS still applies.
+       */
+      const splitRow = (row: HTMLElement): void => {
+        const parts = [...row.children] as HTMLElement[];
+        if (!parts.length) {
+          // Leaf node with only text — force it.
+          fragment.appendChild(row);
+          return;
         }
 
-        if (!isFresh(placement)) {
+        let wrapper = document.createElement('div');
+        wrapper.className = row.className;
+        fragment.appendChild(wrapper);
+
+        /** Open the next column/page and a continuation of both fragment and wrapper. */
+        const continueRow = (): void => {
           placement = advance(placement);
-          if (place(row, placement)) return;
+          fragment = createFragment(block, headingEl);
+          placement.column.appendChild(fragment);
+          wrapper = document.createElement('div');
+          wrapper.className = row.className;
+          fragment.appendChild(wrapper);
+        };
+
+        for (const part of parts) {
+          // A bullet list is the most common overflow source — split at `li` level.
+          if (part.classList.contains('rs-list') || (part.tagName === 'UL' && part.children.length > 1)) {
+            const items = [...part.children] as HTMLElement[];
+            let currentList = document.createElement(part.tagName.toLowerCase());
+            currentList.className = part.className;
+            wrapper.appendChild(currentList);
+
+            for (const item of items) {
+              currentList.appendChild(item);
+              if (placement.column.scrollHeight <= placement.limit + 1) continue;
+
+              // Doesn't fit — pull it back out and carry on in the next column.
+              currentList.removeChild(item);
+              if (!currentList.children.length) wrapper.removeChild(currentList);
+              continueRow();
+              currentList = document.createElement(part.tagName.toLowerCase());
+              currentList.className = part.className;
+              wrapper.appendChild(currentList);
+              currentList.appendChild(item);
+              // A single bullet taller than a column stays forced past its foot.
+            }
+          } else {
+            // Non-list child: place whole.
+            wrapper.appendChild(part);
+            if (placement.column.scrollHeight <= placement.limit + 1) continue;
+
+            wrapper.removeChild(part);
+            if (!wrapper.children.length) fragment.removeChild(wrapper);
+            continueRow();
+            wrapper.appendChild(part);
+          }
         }
 
-        // A row taller than an entire column is allowed past its foot: content that runs on
-        // is a layout to fix, content that was never placed is a document that lied.
-        placement.column.appendChild(row);
-      });
+        // Clean up an empty trailing wrapper.
+        if (!wrapper.children.length && wrapper.parentElement) wrapper.parentElement.removeChild(wrapper);
+      };
+
+      let rowIdx = 0;
+      while (rowIdx < rows.length) {
+        const row = rows[rowIdx];
+
+        // Try placing the row into the current fragment.
+        fragment.appendChild(row);
+        if (placement.column.scrollHeight <= placement.limit + 1) {
+          rowIdx++;
+          continue;
+        }
+        fragment.removeChild(row);
+
+        // A fragment left holding only its heading would orphan it at the column foot:
+        // the heading travels to the column its first row lands in instead.
+        if (fragment.children.length <= 1) fragment.parentElement?.removeChild(fragment);
+
+        placement = advance(placement);
+        fragment = createFragment(block, headingEl);
+        placement.column.appendChild(fragment);
+
+        fragment.appendChild(row);
+        if (placement.column.scrollHeight <= placement.limit + 1) {
+          rowIdx++;
+          continue;
+        }
+
+        // Row taller than a fresh column — split it internally.
+        fragment.removeChild(row);
+        splitRow(row);
+        rowIdx++;
+      }
+
+      // A trailing fragment that caught no row would print a heading over nothing.
+      if (fragment.children.length <= 1 && fragment.parentElement) fragment.parentElement.removeChild(fragment);
     };
 
     blocks.forEach(flowSection);
