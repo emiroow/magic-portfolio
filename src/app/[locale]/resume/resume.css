@@ -33,6 +33,13 @@
   --rs-dot-off: hsl(var(--border));
   --rs-shadow: 0 6px 24px rgb(0 0 0 / 0.08);
 
+  /*
+   * How far a captured text run falls below the box the browser laid it out in, at the two
+   * caption sizes a glyph is ever set beside. The `data-pdf` rule that spends it is at the
+   * foot of this file.
+   */
+  --rs-raster-drop: 6px;
+
   min-height: 100dvh;
   background: var(--rs-stage-bg);
   color: var(--rs-body);
@@ -50,6 +57,8 @@
 /* Persian leads looser and never tracks: the script joins, and spacing breaks the joining. */
 [dir='rtl'] .rs-root {
   line-height: 1.7;
+  /* The looser leading is also what the capturer measures against, so its runs fall further. */
+  --rs-raster-drop: 10px;
 }
 
 /* The stack of sheets sits centred on the stage; the whole stack scales, never the type. */
@@ -553,6 +562,27 @@
 
 .rs-root[data-pdf] .rs-flow--single {
   grid-template-columns: 1fr !important;
+}
+
+/*
+ * Glyphs against their text, on paper only.
+ *
+ * A captured sheet places a run and a glyph with two different engines. The glyph is an
+ * image: it is painted exactly where the sheet laid its box. The text is painted by hand,
+ * at a baseline the capturer measures for itself from a probe hung off the document body,
+ * which inherits the document's leading rather than the sheet's tighter one — so the run
+ * lands below its own box, by 7px across the Latin sheet's caption sizes and 10px across
+ * the Persian one, while nothing of the sort happens on screen or through the print dialog.
+ * A contact row is where that shows: the mark beside an address reads as riding upwards.
+ *
+ * The shortfall is paid back to the glyph, since its box is the one measurement both
+ * engines agree on. A negative bottom margin moves a centred flex item down by half its
+ * own value and leaves the line the text still sizes, so the row keeps the height the
+ * paginator measured and nothing else on the sheet so much as shifts.
+ */
+.rs-root[data-pdf] .rs-c svg,
+.rs-root[data-pdf] .rs-m svg {
+  margin-bottom: calc(-2 * var(--rs-raster-drop));
 }
 
 /*

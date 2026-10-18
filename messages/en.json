@@ -112,6 +112,7 @@
   },
   "resume": {
     "docTitle": "Resume",
+    "loading": "Preparing your resume…",
     "hint": "Choose \"Print\", then \"Save as PDF\" — or use \"Get\" for a direct download.",
     "controls": "Resume controls",
     "home": "Close",
