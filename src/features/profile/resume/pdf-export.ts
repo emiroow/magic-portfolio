@@ -80,30 +80,44 @@ function engines(): { snapshot: Snapshot; Pdf: PdfConstructor } | null {
 /**
  * Capture every sheet as it stands on paper, and return the A4 file.
  *
- * The sheets are put back through `paginate` first and held at print geometry while they
- * are drawn, so each one becomes exactly one page of the file whatever the viewport looked
- * like a moment ago. The palette is whatever the visitor is reading in — a downloaded file
- * mirroring the theme on screen is the point of pressing this button instead of Print.
+ * The capture runs on an off-screen twin of the sheet stack rather than on the stack
+ * the visitor is reading. Re-breaking and un-scaling the live page mid-download is what
+ * once let scrollbars appear and vanish under the reader — the viewport jumped sideways
+ * and snapped back — because `data-pdf` opens the stage's overflow and the released
+ * scale changes the document's own height. The twin carries the same `data-pdf`
+ * geometry, so it breaks and measures exactly as paper would, while the page on screen
+ * never moves a pixel. The palette is whatever the visitor is reading in — a downloaded
+ * file mirroring the theme on screen is the point of pressing this button instead of
+ * Print.
  */
 export async function capturePdf(sheets: Sheets): Promise<Blob> {
-  const { root, stage, pages } = sheets;
+  const { pages } = sheets;
   await Promise.all(ENGINES.map(loadEngine));
   const loaded = engines();
   if (!loaded) throw new Error('no pdf engine');
   const { snapshot, Pdf } = loaded;
 
-  paginate(sheets);
-  root.setAttribute('data-pdf', '1');
-  pages.style.setProperty('transform', 'none', 'important');
-  stage.style.height = '';
+  // Fallback metrics and the real faces differ; the file must carry the ones on screen.
+  await document.fonts?.ready;
 
-  const drawn = [...pages.querySelectorAll<HTMLElement>('.rs-page')];
-  // Follow the sheet's own background so the canvas never fringes white along a dark page.
-  const background = drawn[0] ? getComputedStyle(drawn[0]).backgroundColor : '#ffffff';
+  const host = document.createElement('div');
+  host.className = 'rs-root rs-capture-host';
+  host.setAttribute('data-pdf', '1');
+  const stage = document.createElement('div');
+  stage.className = 'rs-stage';
+  const twin = pages.cloneNode(true) as HTMLElement;
+  // The live stack carries the preview's inline scale; the twin must stand at paper size.
+  twin.style.transform = '';
+  stage.appendChild(twin);
+  host.appendChild(stage);
+  document.body.appendChild(host);
 
   try {
-    // Fallback metrics and the real faces differ; the file must carry the ones on screen.
-    await document.fonts?.ready;
+    paginate({ root: host, stage, pages: twin });
+    const drawn = [...twin.querySelectorAll<HTMLElement>('.rs-page')];
+    // Follow the sheet's own background so the canvas never fringes white along a dark page.
+    const background = drawn[0] ? getComputedStyle(drawn[0]).backgroundColor : '#ffffff';
+
     const canvases: HTMLCanvasElement[] = [];
     for (const sheet of drawn) {
       canvases.push(await snapshot(sheet, { scale: 3, backgroundColor: background, logging: false, width: PAGE_WIDTH, height: PAGE_HEIGHT }));
@@ -116,8 +130,7 @@ export async function capturePdf(sheets: Sheets): Promise<Blob> {
     });
     return pdf.output('blob');
   } finally {
-    root.removeAttribute('data-pdf');
-    pages.style.removeProperty('transform');
+    host.remove();
   }
 }
 

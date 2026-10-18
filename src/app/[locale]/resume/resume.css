@@ -586,6 +586,26 @@
 }
 
 /*
+ * The off-screen twin a direct download captures.
+ *
+ * The capture must happen at print geometry, and print geometry opens the stage's
+ * overflow and unscales the stack — on the live page that is a scrollbar appearing and
+ * vanishing under the reader, felt as a jump sideways and a snap back. So the twin is
+ * hung off-screen in a fixed box of its own: fixed positioning keeps it out of the
+ * document flow and out of the scrollbar entirely, while every `data-pdf` rule above
+ * still reaches it because it carries the same root class and attribute. The page the
+ * visitor reads never moves a pixel while their file is drawn.
+ */
+.rs-capture-host {
+  position: fixed !important;
+  top: 0 !important;
+  left: -10000px !important;
+  width: 794px;
+  min-height: 0 !important;
+  pointer-events: none;
+}
+
+/*
  * Printing. The sheet goes out on white paper whatever the viewer's theme, one A4 page per
  * `.rs-page`, and nothing that is chrome rather than content comes along: the controls, the
  * site's grid backdrop and the app's own page surface all stay off the sheet.
