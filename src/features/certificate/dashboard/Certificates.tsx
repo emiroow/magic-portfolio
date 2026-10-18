@@ -20,8 +20,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useCertificates from '@/features/certificate/hooks/useCertificates';
-import { MAX_RESUME_CERTIFICATES } from '@/features/certificate/constants';
-import { localizedCount } from '@/lib/utils';
 import type { AppLocale } from '@/types';
 import type { ICertificate } from '@/features/certificate/types';
 import { Award, Plus } from 'lucide-react';
@@ -63,15 +61,10 @@ const Certificates = () => {
   const editingId = watch('_id');
   const title = watch('title');
   const logoUrl = watch('logoUrl');
-  const featured = watch('featured');
 
-  // The printed sheet is one page, so it carries a bounded few. The record being
-  // edited must not count against itself. Unlike a home-page slot the count is not
-  // enforced: the résumé takes the first of them, and the checkbox says so instead of
-  // refusing an owner who marked one too many.
-  const markedByOthers = (certificates ?? []).filter(certificate => certificate.featured && certificate._id !== editingId).length;
-  const overflow = markedByOthers + (featured ? 1 : 0) > MAX_RESUME_CERTIFICATES;
-  const resumeNote = overflow ? t('resumeOverflow', { count: localizedCount(MAX_RESUME_CERTIFICATES, lang) }) : t('resumeHint');
+  // Featured certificates are sorted first on the generated résumé; all valid
+  // certificates are rendered regardless of the flag.
+  const resumeNote = t('resumeHint');
 
   const closeForm = () => {
     panel.close();

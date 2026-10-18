@@ -1,9 +1,5 @@
 /**
- * Certificates the generated résumé sheet carries.
- *
- * The sheet is a fixed A4 page and every section on it competes for the same
- * vertical space, so credentials are bounded here the way roles, projects and
- * study records are bounded in `build.ts`. The public section lists all of them;
- * only this many are promoted to print.
+ * Certificates marked as “featured” are sorted first on the generated résumé sheet.
+ * All valid certificates are rendered — the flag controls priority, not inclusion.
  */
-export const MAX_RESUME_CERTIFICATES = 4;
+export const FEATURED_CERTIFICATES_FIRST = true;
