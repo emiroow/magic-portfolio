@@ -99,7 +99,7 @@ export function ProductCard({
           )}
         </div>
 
-        <p className="mt-2 line-clamp-3 text-pretty text-xs leading-relaxed text-muted-foreground">{description}</p>
+        <p className="mt-2 line-clamp-4 text-pretty text-xs leading-relaxed text-muted-foreground">{description}</p>
 
         {shownFeatures.length > 0 && (
           <ul className="mt-3 flex flex-wrap gap-1.5">

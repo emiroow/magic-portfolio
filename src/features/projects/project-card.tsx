@@ -106,7 +106,7 @@ export function ProjectCard({
           {Boolean(dates) && <span className="shrink-0 text-[11px] tabular-nums text-muted-foreground">{dates}</span>}
         </div>
 
-        <Markdown className="prose prose-neutral mt-2 line-clamp-3 max-w-full text-pretty text-xs leading-relaxed text-muted-foreground dark:prose-invert prose-p:my-0">
+        <Markdown className="prose prose-neutral mt-2 line-clamp-4 max-w-full text-pretty text-xs leading-relaxed text-muted-foreground dark:prose-invert prose-p:my-0">
           {description}
         </Markdown>
 

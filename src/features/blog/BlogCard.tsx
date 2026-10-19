@@ -62,7 +62,7 @@ export function BlogCard({ post, locale, lang, className, priority = false, head
           </Link>
         </Heading>
 
-        {post.summary && <p className="mt-2 line-clamp-3 text-pretty text-xs leading-relaxed text-muted-foreground">{post.summary}</p>}
+        {post.summary && <p className="mt-2 line-clamp-4 text-pretty text-xs leading-relaxed text-muted-foreground">{post.summary}</p>}
 
         {/* One block pinned to the bottom, so cards of different text length
             still land their tags and meta on the same line. */}
