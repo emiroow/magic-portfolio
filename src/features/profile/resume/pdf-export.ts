@@ -40,6 +40,13 @@ type PdfConstructor = new (options: { orientation: string; unit: string; format:
 const A4_MM = { width: 210, height: 297 } as const;
 
 /**
+ * The viewport the raster is drawn in. It must clear the 819px reading-mode breakpoint so the
+ * capture's own window never matches the narrow media query: the sheets are A4 whatever the
+ * visitor's device, and the raster must not inherit a phone's single-column reading layout.
+ */
+const CAPTURE_WINDOW_WIDTH = 1280;
+
+/**
  * One settled promise per source, shared by every caller: a first capture that is still
  * running must not fetch a second copy, and a repeat call must not attach listeners to a
  * tag that finished loading long ago — which is what once made a second download hang
@@ -114,13 +121,28 @@ export async function capturePdf(sheets: Sheets): Promise<Blob> {
 
   try {
     paginate({ root: host, stage, pages: twin });
+    // `paginate` drops the print flag the moment it finishes measuring — right for the live
+    // page, but it would leave the raster to whatever the viewport's own reading-mode rules
+    // produce: a phone's download would come out single-column and every glyph would lose the
+    // compensation that keeps it beside its text. The flag goes back on for the capture itself.
+    host.setAttribute('data-pdf', '1');
     const drawn = [...twin.querySelectorAll<HTMLElement>('.rs-page')];
     // Follow the sheet's own background so the canvas never fringes white along a dark page.
     const background = drawn[0] ? getComputedStyle(drawn[0]).backgroundColor : '#ffffff';
 
     const canvases: HTMLCanvasElement[] = [];
     for (const sheet of drawn) {
-      canvases.push(await snapshot(sheet, { scale: 3, backgroundColor: background, logging: false, width: PAGE_WIDTH, height: PAGE_HEIGHT }));
+      canvases.push(
+        await snapshot(sheet, {
+          scale: 3,
+          backgroundColor: background,
+          logging: false,
+          width: PAGE_WIDTH,
+          height: PAGE_HEIGHT,
+          windowWidth: CAPTURE_WINDOW_WIDTH,
+          windowHeight: PAGE_HEIGHT,
+        })
+      );
     }
 
     const pdf = new Pdf({ orientation: 'portrait', unit: 'mm', format: 'a4' });

@@ -55,6 +55,8 @@ interface Placement {
   other: HTMLElement;
   usedFirst: boolean;
   limit: number;
+  /** True when this placement opened a brand-new sheet, so a carried-over section restates its heading. */
+  freshSheet: boolean;
 }
 
 /** Read the running-line text the page handed down as data. */
@@ -76,13 +78,18 @@ function runningLine(pages: HTMLElement, sheet: number): HTMLElement {
  * Create a continuation fragment: a new `.rs-sec` section wrapping a cloned heading.
  * Rows are appended into this fragment as they are placed.
  */
-function createFragment(original: HTMLElement, heading: HTMLElement): HTMLElement {
+function createFragment(original: HTMLElement, heading: HTMLElement, withHeading: boolean): HTMLElement {
   const fragment = document.createElement('section');
   fragment.className = original.className;
   const ariaLabel = original.getAttribute('aria-label');
   if (ariaLabel) fragment.setAttribute('aria-label', ariaLabel);
-  fragment.appendChild(heading.cloneNode(true) as HTMLElement);
+  if (withHeading) fragment.appendChild(heading.cloneNode(true) as HTMLElement);
   return fragment;
+}
+
+/** A continuation fragment that caught no content row: all it still holds is its own heading. */
+function isEmptyFragment(fragment: HTMLElement): boolean {
+  return [...fragment.children].every(child => child.classList.contains('rs-sh'));
 }
 
 /**
@@ -148,12 +155,12 @@ export function paginate(sheets: Sheets): void {
       page.appendChild(row);
       pages.appendChild(page);
 
-      return { column, other, usedFirst: false, limit: inner - chrome.offsetHeight - topGap };
+      return { column, other, usedFirst: false, limit: inner - chrome.offsetHeight - topGap, freshSheet: true };
     };
 
     /** Move to the next column, turning the page once both are spent. */
     const advance = (placement: Placement): Placement => {
-      if (!placement.usedFirst) return { ...placement, column: placement.other, usedFirst: true };
+      if (!placement.usedFirst) return { ...placement, column: placement.other, usedFirst: true, freshSheet: false };
       sheet += 1;
       return openSheet(runningLine(pages, sheet));
     };
@@ -205,8 +212,20 @@ export function paginate(sheets: Sheets): void {
         return;
       }
 
+      // A section's heading is drawn once, where its content first lands, and again only when
+      // the flow turns to a fresh sheet. Carrying on into the second column of the page the
+      // section already started on is a continuation the reader sees beside the original, so it
+      // must not reprint the label over the same career.
+      let headingPlaced = false;
+      const newFragment = (freshSheet: boolean): HTMLElement => {
+        const withHeading = freshSheet || !headingPlaced;
+        const made = createFragment(block, headingEl, withHeading);
+        if (withHeading) headingPlaced = true;
+        return made;
+      };
+
       // The first fragment opens in the column the section was reached in.
-      let fragment = createFragment(block, headingEl);
+      let fragment = newFragment(placement.freshSheet);
       placement.column.appendChild(fragment);
 
       /**
@@ -229,7 +248,7 @@ export function paginate(sheets: Sheets): void {
         /** Open the next column/page and a continuation of both fragment and wrapper. */
         const continueRow = (): void => {
           placement = advance(placement);
-          fragment = createFragment(block, headingEl);
+          fragment = newFragment(placement.freshSheet);
           placement.column.appendChild(fragment);
           wrapper = document.createElement('div');
           wrapper.className = row.className;
@@ -288,10 +307,15 @@ export function paginate(sheets: Sheets): void {
 
         // A fragment left holding only its heading would orphan it at the column foot:
         // the heading travels to the column its first row lands in instead.
-        if (fragment.children.length <= 1) fragment.parentElement?.removeChild(fragment);
+        if (isEmptyFragment(fragment)) {
+          const carriedHeading = fragment.querySelector('.rs-sh') !== null;
+          fragment.parentElement?.removeChild(fragment);
+          // A heading removed together with its empty fragment was never really placed after all.
+          if (carriedHeading) headingPlaced = false;
+        }
 
         placement = advance(placement);
-        fragment = createFragment(block, headingEl);
+        fragment = newFragment(placement.freshSheet);
         placement.column.appendChild(fragment);
 
         fragment.appendChild(row);
@@ -307,7 +331,7 @@ export function paginate(sheets: Sheets): void {
       }
 
       // A trailing fragment that caught no row would print a heading over nothing.
-      if (fragment.children.length <= 1 && fragment.parentElement) fragment.parentElement.removeChild(fragment);
+      if (isEmptyFragment(fragment) && fragment.parentElement) fragment.parentElement.removeChild(fragment);
     };
 
     blocks.forEach(flowSection);

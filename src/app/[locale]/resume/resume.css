@@ -573,16 +573,24 @@
  * which inherits the document's leading rather than the sheet's tighter one — so the run
  * lands below its own box, by 7px across the Latin sheet's caption sizes and 10px across
  * the Persian one, while nothing of the sort happens on screen or through the print dialog.
- * A contact row is where that shows: the mark beside an address reads as riding upwards.
+ * Every mark that is painted rather than typeset rides upwards by that shortfall beside its
+ * text: the contact and meta glyphs, the language dot meter, and the bullet dot.
  *
- * The shortfall is paid back to the glyph, since its box is the one measurement both
- * engines agree on. A negative bottom margin moves a centred flex item down by half its
- * own value and leaves the line the text still sizes, so the row keeps the height the
- * paginator measured and nothing else on the sheet so much as shifts.
+ * The shortfall is paid back to the mark, since its box is the one measurement both engines
+ * agree on. A negative bottom margin moves a centred flex item down by half its own value
+ * and leaves the line the text still sizes, so the row keeps the height the paginator
+ * measured and nothing else on the sheet so much as shifts.
  */
 .rs-root[data-pdf] .rs-c svg,
-.rs-root[data-pdf] .rs-m svg {
+.rs-root[data-pdf] .rs-m svg,
+.rs-root[data-pdf] .rs-lang__dots {
   margin-bottom: calc(-2 * var(--rs-raster-drop));
+}
+
+/* The bullet dot is absolutely positioned, so no margin reaches it; its `top` is pushed down
+   by the same shortfall instead, keeping it on the first line of the bullet it marks. */
+.rs-root[data-pdf] .rs-list li::before {
+  top: calc(0.55em + var(--rs-raster-drop));
 }
 
 /*
