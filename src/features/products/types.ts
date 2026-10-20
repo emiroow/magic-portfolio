@@ -6,7 +6,7 @@ export interface IProduct {
   title: string;
   /** URL segment for `/products/[slug]`; falls back to `_id` when absent. */
   slug?: string;
-  /** Short summary shown on the catalogue card. */
+  /** Short summary shown on the catalogue card: four lines, at most 240 characters. */
   description: string;
   /** Long-form Markdown body rendered on the product page. */
   details?: string;

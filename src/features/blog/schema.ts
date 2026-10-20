@@ -1,10 +1,10 @@
-import { gallerySchema, optionalString, slugSchema, tagListSchema } from '@/lib/validations';
+import { gallerySchema, optionalString, shortDescriptionSchema, slugSchema, tagListSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export const blogSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   slug: slugSchema,
-  summary: optionalString(),
+  summary: shortDescriptionSchema().optional(),
   content: optionalString(),
   /**
    * Cover, written as `images[0]` by the dashboard.

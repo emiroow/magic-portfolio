@@ -1,4 +1,12 @@
-import { gallerySchema, optionalString, optionalUrl, productCurrencySchema, slugSchema, tagListSchema } from '@/lib/validations';
+import {
+  gallerySchema,
+  optionalString,
+  optionalUrl,
+  productCurrencySchema,
+  shortDescriptionSchema,
+  slugSchema,
+  tagListSchema,
+} from '@/lib/validations';
 import { z } from 'zod';
 
 /**
@@ -15,7 +23,7 @@ export const productSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   slug: slugSchema.optional().or(z.literal('')),
   category: z.string().trim().max(40, 'Category is too long').optional().or(z.literal('')),
-  description: z.string().min(1, 'Description is required'),
+  description: shortDescriptionSchema().min(1, 'Description is required'),
   details: optionalString(),
   /** Cover, written as `images[0]` by the dashboard; cards and social read this. */
   image: optionalString(),

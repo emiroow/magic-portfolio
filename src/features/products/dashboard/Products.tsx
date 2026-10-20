@@ -27,7 +27,7 @@ import { HOME_PRODUCT_SLOTS } from '@/features/products/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
 import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
-import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
+import { MAX_SHORT_DESCRIPTION_LENGTH, MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IProduct } from '@/features/products/types';
 import { Package, Plus } from 'lucide-react';
@@ -192,8 +192,19 @@ const Products = () => {
             </Field>
           </div>
 
-          <Field label={t('productDescription')} id="product-description" error={errors.description?.message} hint={t('productDescriptionHint')}>
-            <Textarea id="product-description" rows={3} {...register('description')} placeholder={t('productDescriptionPlaceholder')} />
+          <Field
+            label={t('productDescription')}
+            id="product-description"
+            error={errors.description?.message}
+            hint={t('productDescriptionHint', { max: localizedCount(MAX_SHORT_DESCRIPTION_LENGTH, lang) })}
+          >
+            <Textarea
+              id="product-description"
+              rows={3}
+              maxLength={MAX_SHORT_DESCRIPTION_LENGTH}
+              {...register('description')}
+              placeholder={t('productDescriptionPlaceholder')}
+            />
           </Field>
 
           <ChipInput

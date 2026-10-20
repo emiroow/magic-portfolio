@@ -4,6 +4,7 @@ import type { AppLocale } from '@/types';
 export interface IBlog {
   _id?: string;
   title: string;
+  /** Short summary shown in listings and previews: four lines, at most 240 characters. */
   summary?: string;
   content?: string;
   slug: string;

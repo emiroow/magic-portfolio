@@ -77,6 +77,21 @@ export const MAX_TAG_ITEMS = 12;
 export const MAX_TAG_ITEM_LENGTH = 32;
 
 /**
+ * The ceiling for a short description: the blurb a product card, a blog listing, a
+ * dashboard row and the résumé sheet print. Every one of those surfaces shows four
+ * lines, and 240 characters is what that run holds at the narrowest column — the
+ * figure the seed audit already holds a project blurb to. Bounding the field where
+ * it is written keeps the cards even instead of only clipping them where they paint.
+ */
+export const MAX_SHORT_DESCRIPTION_LENGTH = 240;
+
+/**
+ * A short description, trimmed and kept to the run a card shows. Callers add their
+ * own `.min(1)` when the field is required; optional fields keep `.optional()`.
+ */
+export const shortDescriptionSchema = () => z.string().trim().max(MAX_SHORT_DESCRIPTION_LENGTH, 'Longer than the four lines a card can show');
+
+/**
  * A list of short names — technologies, features, tags.
  *
  * The per-item rules are enforced through `superRefine` rather than chained `.min/.max`

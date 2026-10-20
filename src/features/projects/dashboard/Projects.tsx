@@ -27,7 +27,7 @@ import { HOME_PROJECT_SLOTS } from '@/features/projects/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
 import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
-import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
+import { MAX_SHORT_DESCRIPTION_LENGTH, MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IProject } from '@/features/projects/types';
 import { FolderGit2, Plus } from 'lucide-react';
@@ -199,8 +199,19 @@ const Projects = () => {
             </Field>
           </div>
 
-          <Field label={t('projectDescription')} id="project-description" error={errors.description?.message} hint={t('projectDescriptionHint')}>
-            <Textarea id="project-description" rows={3} {...register('description')} placeholder={t('projectDescriptionPlaceholder')} />
+          <Field
+            label={t('projectDescription')}
+            id="project-description"
+            error={errors.description?.message}
+            hint={t('projectDescriptionHint', { max: localizedCount(MAX_SHORT_DESCRIPTION_LENGTH, lang) })}
+          >
+            <Textarea
+              id="project-description"
+              rows={3}
+              maxLength={MAX_SHORT_DESCRIPTION_LENGTH}
+              {...register('description')}
+              placeholder={t('projectDescriptionPlaceholder')}
+            />
           </Field>
 
           <ChipInput

@@ -1,4 +1,4 @@
-import { gallerySchema, optionalString, optionalUrl, slugSchema, tagListSchema } from '@/lib/validations';
+import { gallerySchema, optionalString, optionalUrl, shortDescriptionSchema, slugSchema, tagListSchema } from '@/lib/validations';
 import { z } from 'zod';
 
 export const projectLinkSchema = z.object({
@@ -15,7 +15,7 @@ export const projectSchema = z.object({
   active: z.boolean(),
   // Optional: documents stored before this field simply keep their current value.
   featured: z.boolean().optional(),
-  description: z.string().min(1, 'Description is required'),
+  description: shortDescriptionSchema().min(1, 'Description is required'),
   details: optionalString(),
   technologies: tagListSchema(),
   links: z.array(projectLinkSchema),

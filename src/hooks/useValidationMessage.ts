@@ -14,6 +14,7 @@ const MESSAGE_KEYS: Record<string, string> = {
   'Job title is required': 'jobTitleRequired',
   'Title is required': 'titleRequired',
   'Description is required': 'descriptionRequired',
+  'Longer than the four lines a card can show': 'shortDescriptionTooLong',
   'Company is required': 'companyRequired',
   'School is required': 'schoolRequired',
   'End cannot be before start': 'endBeforeStart',

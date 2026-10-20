@@ -101,7 +101,7 @@ const BlogRow = ({
         )}
 
         <div className="min-w-0 flex-1 space-y-3">
-          {post.summary && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{post.summary}</p>}
+          {post.summary && <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">{post.summary}</p>}
 
           {tags.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">

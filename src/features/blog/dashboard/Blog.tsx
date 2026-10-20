@@ -18,6 +18,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import MarkdownEditor from '@/components/ui/markdown-editor';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { useConfirmDelete } from '@/features/dashboard/hooks/useConfirmDelete';
 import { useFormPanel } from '@/hooks/useFormPanel';
 import useBlog from '@/features/blog/hooks/useBlog';
@@ -25,7 +26,7 @@ import { HOME_BLOG_SLOTS } from '@/features/blog/constants';
 import { MAX_GALLERY_IMAGES } from '@/constants/global';
 import { IMAGE_SPECS } from '@/constants/imageSpecs';
 import { localizedCount, slugify } from '@/lib/utils';
-import { MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
+import { MAX_SHORT_DESCRIPTION_LENGTH, MAX_TAG_ITEMS, MAX_TAG_ITEM_LENGTH } from '@/lib/validations';
 import type { AppLocale } from '@/types';
 import type { IBlog } from '@/features/blog/types';
 import { FileText, Plus } from 'lucide-react';
@@ -192,8 +193,19 @@ const Blog = () => {
             </Field>
           </div>
 
-          <Field label={t('summaryLabel')} id="blog-summary" error={errors.summary?.message} hint={t('summaryHint')}>
-            <Input id="blog-summary" {...register('summary')} placeholder={t('summaryPlaceholder')} autoComplete="off" />
+          <Field
+            label={t('summaryLabel')}
+            id="blog-summary"
+            error={errors.summary?.message}
+            hint={t('summaryHint', { max: localizedCount(MAX_SHORT_DESCRIPTION_LENGTH, lang) })}
+          >
+            <Textarea
+              id="blog-summary"
+              rows={3}
+              maxLength={MAX_SHORT_DESCRIPTION_LENGTH}
+              {...register('summary')}
+              placeholder={t('summaryPlaceholder')}
+            />
           </Field>
 
           <ChipInput

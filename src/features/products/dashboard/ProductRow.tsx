@@ -112,7 +112,7 @@ const ProductRow = ({
         )}
 
         <div className="min-w-0 flex-1 space-y-3">
-          {product.description && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{product.description}</p>}
+          {product.description && <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">{product.description}</p>}
 
           {features.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">

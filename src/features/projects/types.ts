@@ -18,6 +18,7 @@ export interface IProject {
   active: boolean;
   /** Picked for the home page section; `active` still controls visibility. */
   featured?: boolean;
+  /** Short description shown on the card and the résumé sheet: four lines, at most 240 characters. */
   description: string;
   /** Long-form Markdown body rendered on the details page. */
   details?: string;

@@ -68,7 +68,7 @@ const ProjectRow = ({ project, onEdit, onDelete, deleting, homePosition, slotsFu
         )}
 
         <div className="min-w-0 flex-1 space-y-3">
-          {project.description && <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground sm:text-sm">{project.description}</p>}
+          {project.description && <p className="line-clamp-4 text-xs leading-relaxed text-muted-foreground sm:text-sm">{project.description}</p>}
 
           {technologies.length > 0 && (
             <ul className="flex flex-wrap gap-1.5">
