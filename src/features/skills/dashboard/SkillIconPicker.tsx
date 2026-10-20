@@ -5,26 +5,14 @@ import { Button } from '@/components/ui/button';
 import { useFieldContext } from '@/components/ui/field';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { SKILL_CATALOG, skillNameFor, type SkillGroupId } from '@/features/skills/constants';
+import { SKILL_CATALOG, SKILL_GROUP_ORDER, skillNameFor } from '@/features/skills/constants';
 import { Check, ChevronsUpDown, X } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 
-const GROUP_ORDER: SkillGroupId[] = [
-  'general',
-  'languages',
-  'frameworks',
-  'data',
-  'infrastructure',
-  'quality',
-  'mobile',
-  'design',
-  'intelligence',
-  'services',
-];
-
-/** Catalogue split into its sections once, up front — never per render. */
-const GROUPED = GROUP_ORDER.map(group => ({ group, entries: SKILL_CATALOG.filter(entry => entry.group === group) }));
+/** Catalogue split into its sections once, up front — never per render. The order comes
+ *  straight from the catalogue, so a new section cannot be forgotten here. */
+const GROUPED = SKILL_GROUP_ORDER.map(group => ({ group, entries: SKILL_CATALOG.filter(entry => entry.group === group) }));
 
 interface SkillIconPickerProps {
   /** The persisted slug; the single source of truth lives in the parent form. */
