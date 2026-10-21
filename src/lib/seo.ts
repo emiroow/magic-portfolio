@@ -16,12 +16,22 @@ export const SITE_DESCRIPTION: Record<AppLocale, string> = {
   fa: 'سایت شخصی توسعه‌دهنده: پروژه‌ها، تجربیات، مهارت‌ها و وبلاگ.',
 };
 
-/** Brand title `Name | Job Title | <suffix>` built from the profile (no env). */
-export function brandedTitle(profile: IProfile | null, locale: AppLocale = 'en'): string {
+/**
+ * The owner as `Name | Job Title`, read from the profile of the locale being rendered.
+ *
+ * Suffix-free on purpose: a document route (the résumé) is about a person and their craft,
+ * so it identifies them without inheriting the brand of the site that happens to host it.
+ */
+export function personTitle(profile: IProfile | null): string {
   const name = profile?.fullName?.trim() || profile?.name?.trim();
   const job = profile?.jobTitle?.trim();
 
-  return [name, job, SITE_SUFFIX[locale]].filter(Boolean).join(' | ');
+  return [name, job].filter(Boolean).join(' | ');
+}
+
+/** Brand title `Name | Job Title | <suffix>` built from the profile (no env). */
+export function brandedTitle(profile: IProfile | null, locale: AppLocale = 'en'): string {
+  return [personTitle(profile), SITE_SUFFIX[locale]].filter(Boolean).join(' | ');
 }
 
 const rawSite = process.env.NEXT_PUBLIC_SITE_URL?.trim();

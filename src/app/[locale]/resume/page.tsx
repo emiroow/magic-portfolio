@@ -5,7 +5,7 @@ import { buildResume, resumeSummary, seoDescription } from '@/features/profile/r
 import { ResumeSheet, type ResumeLevelLabels, type ResumeSectionLabels } from '@/features/profile/resume/document';
 import ResumeViewer, { type ResumeViewerLabels } from '@/features/profile/resume/viewer';
 import { getProfile } from '@/features/profile/queries';
-import { brandedTitle, languageAlternates, localeUrl, ogImageFor } from '@/lib/seo';
+import { languageAlternates, localeUrl, ogImageFor, personTitle } from '@/lib/seo';
 import type { AppLocale, LanguageLevel } from '@/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -77,23 +77,30 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // result shows is all the metadata needs from the document.
   const [t, profile] = await Promise.all([getTranslations({ locale, namespace: 'resume' }), getProfile(lang)]);
 
-  const name = profile?.fullName?.trim() || profile?.name?.trim() || t('docTitle');
-  const title = t('docTitle');
+  const docWord = t('docTitle');
+  // `Résumé | Name | Job Title` — the document, the person and their craft, and no site suffix:
+  // a sheet handed to a recruiter speaks for the person on it, not for the portfolio hosting it.
+  const title = [docWord, personTitle(profile)].filter(Boolean).join(' | ');
+  const name = profile?.fullName?.trim() || profile?.name?.trim() || docWord;
   const description = seoDescription(resumeSummary(profile)) || t('description');
   const url = localeUrl(locale, '/resume');
-  const ogImage = ogImageFor(`${name} — ${title}`, locale);
+  // The card draws a headline rather than a title tag, so it gets the person and the word for
+  // this document instead of the pipe-separated string a browser tab shows.
+  const ogSubject = `${name} — ${docWord}`;
+  const ogImage = ogImageFor(ogSubject, locale);
 
   return {
-    title,
+    // `absolute` is the opt-out of the root template, which would append the brand — suffix and all.
+    title: { absolute: title },
     description,
     alternates: { canonical: url, languages: languageAlternates('/resume') },
     openGraph: {
       type: 'profile',
-      title: `${title} | ${brandedTitle(profile, lang)}`,
+      title,
       description,
       url,
       locale: lang === 'fa' ? 'fa_IR' : 'en_US',
-      images: [{ url: ogImage, width: 1200, height: 630, alt: title }],
+      images: [{ url: ogImage, width: 1200, height: 630, alt: ogSubject }],
     },
     twitter: { card: 'summary', title, description, images: [ogImage] },
   };
