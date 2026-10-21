@@ -240,6 +240,17 @@ export async function GET(req: Request) {
         </div>
       ) : null}
     </div>,
-    { width: WIDTH, height: HEIGHT, fonts }
+    {
+      width: WIDTH,
+      height: HEIGHT,
+      fonts,
+      /**
+       * A card is drawn from the profile, so a saved name or role has to be on the next fetch a
+       * crawler makes. `ImageResponse` answers with a year of `immutable` unless it is told
+       * otherwise, which keeps the card that was there before the edit alive for as long as the URL
+       * pointing at it stays the same — and a share is worth exactly one crawl.
+       */
+      headers: { 'Cache-Control': 'public, max-age=0, must-revalidate' },
+    }
   );
 }

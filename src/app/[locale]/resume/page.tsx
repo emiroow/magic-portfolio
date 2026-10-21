@@ -5,7 +5,7 @@ import { buildResume, resumeSummary, seoDescription } from '@/features/profile/r
 import { ResumeSheet, type ResumeLevelLabels, type ResumeSectionLabels } from '@/features/profile/resume/document';
 import ResumeViewer, { type ResumeViewerLabels } from '@/features/profile/resume/viewer';
 import { getProfile } from '@/features/profile/queries';
-import { languageAlternates, localeUrl, ogImageFor, personName, personTitle } from '@/lib/seo';
+import { languageAlternates, localeUrl, ogImageFor, personName, personTitle, TWITTER_HANDLE } from '@/lib/seo';
 import type { AppLocale, LanguageLevel } from '@/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -102,7 +102,16 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       locale: lang === 'fa' ? 'fa_IR' : 'en_US',
       images: [{ url: ogImage, width: 1200, height: 630, alt: ogSubject }],
     },
-    twitter: { card: 'summary', title, description, images: [ogImage] },
+    twitter: {
+      // The large card is what a 1200×630 picture is for: `summary` makes X cut it down to a square
+      // thumbnail of the same card every other page of the site shares whole.
+      card: 'summary_large_image',
+      site: TWITTER_HANDLE || undefined,
+      creator: TWITTER_HANDLE || undefined,
+      title,
+      description,
+      images: [ogImage],
+    },
   };
 }
 
