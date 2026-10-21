@@ -5,7 +5,7 @@ import { buildResume, resumeSummary, seoDescription } from '@/features/profile/r
 import { ResumeSheet, type ResumeLevelLabels, type ResumeSectionLabels } from '@/features/profile/resume/document';
 import ResumeViewer, { type ResumeViewerLabels } from '@/features/profile/resume/viewer';
 import { getProfile } from '@/features/profile/queries';
-import { languageAlternates, localeUrl, ogImageFor, personTitle } from '@/lib/seo';
+import { languageAlternates, localeUrl, ogImageFor, personName, personTitle } from '@/lib/seo';
 import type { AppLocale, LanguageLevel } from '@/types';
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
@@ -81,7 +81,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   // `Résumé | Name | Job Title` — the document, the person and their craft, and no site suffix:
   // a sheet handed to a recruiter speaks for the person on it, not for the portfolio hosting it.
   const title = [docWord, personTitle(profile)].filter(Boolean).join(' | ');
-  const name = profile?.fullName?.trim() || profile?.name?.trim() || docWord;
+  const name = personName(profile) || docWord;
   const description = seoDescription(resumeSummary(profile)) || t('description');
   const url = localeUrl(locale, '/resume');
   // The card draws a headline rather than a title tag, so it gets the person and the word for

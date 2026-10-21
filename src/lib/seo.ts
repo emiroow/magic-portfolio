@@ -5,7 +5,7 @@ import type { IProfile } from '@/features/profile/types';
 /** Shared SEO constants and helpers. */
 
 /** Localized site suffix for brand titles. */
-const SITE_SUFFIX: Record<AppLocale, string> = {
+export const SITE_SUFFIX: Record<AppLocale, string> = {
   en: 'Portfolio',
   fa: 'سایت شخصی',
 };
@@ -16,6 +16,11 @@ export const SITE_DESCRIPTION: Record<AppLocale, string> = {
   fa: 'سایت شخصی توسعه‌دهنده: پروژه‌ها، تجربیات، مهارت‌ها و وبلاگ.',
 };
 
+/** The owner's name, preferring the full one. Empty when there is no profile to name. */
+export function personName(profile: IProfile | null): string {
+  return profile?.fullName?.trim() || profile?.name?.trim() || '';
+}
+
 /**
  * The owner as `Name | Job Title`, read from the profile of the locale being rendered.
  *
@@ -23,10 +28,7 @@ export const SITE_DESCRIPTION: Record<AppLocale, string> = {
  * so it identifies them without inheriting the brand of the site that happens to host it.
  */
 export function personTitle(profile: IProfile | null): string {
-  const name = profile?.fullName?.trim() || profile?.name?.trim();
-  const job = profile?.jobTitle?.trim();
-
-  return [name, job].filter(Boolean).join(' | ');
+  return [personName(profile), profile?.jobTitle?.trim()].filter(Boolean).join(' | ');
 }
 
 /** Brand title `Name | Job Title | <suffix>` built from the profile (no env). */
